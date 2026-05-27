@@ -23,7 +23,7 @@ function fmtDate(iso: string | null) {
 function KVRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3 items-start">
-      <span className="text-caption text-text-tertiary leading-none flex-shrink-0" style={{ width: 64 }}>{label}</span>
+      <span className="text-caption text-text-tertiary leading-none flex-shrink-0 w-[64px]">{label}</span>
       <span className="text-body-sm text-text-primary flex-1 leading-relaxed">{children}</span>
     </div>
   )
@@ -32,7 +32,7 @@ function KVRow({ label, children }: { label: string; children: React.ReactNode }
 // ── SectionHeader ─────────────────────────────────────────────────
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-caption font-bold text-text-tertiary leading-none" style={{ marginBottom: 10 }}>
+    <div className="text-caption font-bold text-text-tertiary leading-none mb-[10px]">
       {children}
     </div>
   )
@@ -131,7 +131,7 @@ export default function LegalFindingDetailPage() {
   const isSubmitting = resolveMutation.isPending || resolutionPhotos.isUploading
 
   const isDesktop = useIsDesktop()
-  const sectionPad = isDesktop ? '20px 32px' : '20px 16px'
+  const sectionPadCls = isDesktop ? 'px-7 py-5' : 'px-4 py-5'
 
   return (
     <div className="flex-1 flex flex-col bg-surface-page h-full overflow-hidden">
@@ -139,14 +139,12 @@ export default function LegalFindingDetailPage() {
       {/* 모바일 헤더 */}
       {!isDesktop && (
         <div
-          className="bg-surface-raised border-b border-border-default flex items-center justify-center relative flex-shrink-0"
-          style={{ height: 48 }}
+          className="bg-surface-raised border-b border-border-default flex items-center justify-center relative flex-shrink-0 h-8"
         >
           <button
             aria-label="뒤로 가기"
             onClick={() => navigate(-1)}
-            className="text-text-primary"
-            style={{ position: 'absolute', left: 8, width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="text-text-primary absolute left-2 w-[44px] h-[44px] border-0 bg-transparent cursor-pointer flex items-center justify-center"
           ><ChevronLeft size={20} /></button>
           <span className="text-body font-bold text-text-primary">지적 상세</span>
           {staff?.role === 'admin' && finding && (
@@ -154,8 +152,7 @@ export default function LegalFindingDetailPage() {
               aria-label="다운로드"
               onClick={handleDownload}
               disabled={downloading}
-              className="text-text-primary"
-              style={{ position: 'absolute', right: 8, width: 44, height: 44, border: 'none', background: 'none', cursor: downloading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: downloading ? 0.5 : 1 }}
+              className={`text-text-primary absolute right-2 w-[44px] h-[44px] border-0 bg-transparent flex items-center justify-center ${downloading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
             ><Download size={18} /></button>
           )}
         </div>
@@ -164,16 +161,14 @@ export default function LegalFindingDetailPage() {
       {/* 데스크톱 타이틀 */}
       {isDesktop && (
         <div
-          className="flex items-center justify-between flex-shrink-0"
-          style={{ padding: '24px 32px 12px' }}
+          className="flex items-center justify-between flex-shrink-0 pt-6 px-7 pb-3"
         >
-          <div className="text-text-primary" style={{ fontSize: 22, fontWeight: 800 }}>지적 상세</div>
+          <div className="text-text-primary text-[22px] font-extrabold">지적 상세</div>
           {staff?.role === 'admin' && finding && (
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm"
-              style={{ height: 36, padding: '0 16px', cursor: downloading ? 'not-allowed' : 'pointer', opacity: downloading ? 0.5 : 1 }}
+              className={`bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm h-[36px] px-4 ${downloading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
             >
               {downloading ? '다운로드 중...' : '다운로드'}
             </button>
@@ -191,8 +186,7 @@ export default function LegalFindingDetailPage() {
       {/* 에러 */}
       {error && !isLoading && (
         <div
-          className="flex-1 flex items-center justify-center text-center text-body-sm text-text-secondary"
-          style={{ padding: '0 24px' }}
+          className="flex-1 flex items-center justify-center text-center text-body-sm text-text-secondary px-6"
         >
           항목을 불러오지 못했습니다. 뒤로 가서 다시 시도하세요.
         </div>
@@ -201,17 +195,13 @@ export default function LegalFindingDetailPage() {
       {/* 콘텐츠 */}
       {!isLoading && !error && finding && (
         <div
-          className="flex-1 overflow-y-auto"
-          style={{
-            paddingBottom: finding.status === 'open' ? (isDesktop ? 24 : 'calc(72px + var(--sab, 0px))') : 24,
-            maxWidth: isDesktop ? 700 : undefined,
-          }}
+          className={`flex-1 overflow-y-auto ${isDesktop ? 'max-w-[700px] pb-6' : (finding.status === 'open' ? 'pb-[calc(72px+var(--sab,0px))]' : 'pb-6')}`}
         >
           {/* Section 1: 지적 정보 */}
-          <div className="border-b border-border-default" style={{ padding: sectionPad }}>
+          <div className={`border-b border-border-default ${sectionPadCls}`}>
             <SectionHeader>지적 정보</SectionHeader>
-            <div className="flex flex-col" style={{ gap: 8 }}>
-              <KVRow label="지적 내용"><span style={{ whiteSpace: 'pre-wrap' }}>{finding.description}</span></KVRow>
+            <div className="flex flex-col gap-2">
+              <KVRow label="지적 내용"><span className="whitespace-pre-wrap">{finding.description}</span></KVRow>
               <KVRow label="위치">{finding.location ?? '-'}</KVRow>
               <KVRow label="등록일">{fmtDate(finding.createdAt)}</KVRow>
               <KVRow label="등록자">{finding.createdByName ?? finding.createdBy}</KVRow>
@@ -219,46 +209,45 @@ export default function LegalFindingDetailPage() {
           </div>
 
           {/* Section 2: 지적 사진 */}
-          <div className="border-b border-border-default" style={{ padding: sectionPad }}>
+          <div className={`border-b border-border-default ${sectionPadCls}`}>
             <SectionHeader>지적 사진</SectionHeader>
             {finding.photoKeys && finding.photoKeys.length > 0 ? (
-              <div style={{ marginTop: 8 }}><PhotoGrid photoUrls={finding.photoKeys.map(k => '/api/uploads/' + k)} /></div>
+              <div className="mt-2"><PhotoGrid photoUrls={finding.photoKeys.map(k => '/api/uploads/' + k)} /></div>
             ) : (
-              <div className="text-body-sm text-text-tertiary" style={{ marginTop: 8 }}>사진 없음</div>
+              <div className="text-body-sm text-text-tertiary mt-2">사진 없음</div>
             )}
           </div>
 
           {/* Section 3: 조치 내용 입력 (open) */}
           {finding.status === 'open' && (
-            <div className="border-b border-border-default" style={{ padding: sectionPad }}>
+            <div className={`border-b border-border-default ${sectionPadCls}`}>
               <SectionHeader>조치 내용</SectionHeader>
               <textarea
                 value={memo}
                 onChange={e => setMemo(e.target.value)}
                 placeholder="조치 내용을 입력하세요"
                 rows={3}
-                className="bg-surface-sunken border border-border-strong text-text-primary text-body-sm rounded-sm"
-                style={{ width: '100%', padding: '10px 12px', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.5, resize: 'vertical', outline: 'none' }}
+                className="bg-surface-sunken border border-border-strong text-text-primary text-body-sm rounded-sm w-full px-3 py-[10px] box-border leading-[1.5] resize-y outline-none"
+                style={{ fontFamily: 'inherit' }}
               />
-              <div style={{ marginTop: 12 }}>
-                <div className="text-caption font-bold text-text-tertiary leading-none" style={{ marginBottom: 6 }}>조치 사진 (최대 5장)</div>
-                <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
-                <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+              <div className="mt-3">
+                <div className="text-caption font-bold text-text-tertiary leading-none mb-[6px]">조치 사진 (최대 5장)</div>
+                <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={resolutionPhotos.handleFiles} />
+                <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple className="hidden" onChange={resolutionPhotos.handleFiles} />
                 <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} />
-                <div className="flex overflow-x-auto" style={{ gap: 8, paddingBottom: 4 }}>
+                <div className="flex overflow-x-auto gap-2 pb-1">
                   {resolutionPhotos.slots.map((slot, i) => (
-                    <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
-                      <img src={slot.preview} alt="" className="border border-border-default" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, display: 'block' }} />
+                    <div key={i} className="relative flex-shrink-0">
+                      <img src={slot.preview} alt="" className="border border-border-default w-[72px] h-[72px] object-cover rounded-[10px] block" />
                       <button
                         aria-label="사진 제거"
                         onClick={() => resolutionPhotos.removeSlot(i)}
-                        className="bg-danger-bar rounded-full text-text-on-accent text-caption font-bold leading-none flex items-center justify-center"
-                        style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, border: 'none', cursor: 'pointer' }}
+                        className="bg-danger-bar rounded-full text-text-on-accent text-caption font-bold leading-none flex items-center justify-center absolute -top-[6px] -right-[6px] w-5 h-5 border-0 cursor-pointer"
                       >✕</button>
                       {slot.uploading && (
                         <div
-                          className="absolute inset-0 flex items-center justify-center text-caption leading-none text-text-on-accent"
-                          style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 10 }}
+                          className="absolute inset-0 flex items-center justify-center text-caption leading-none text-text-on-accent rounded-[10px]"
+                          style={{ background: 'rgba(0,0,0,0.4)' }}
                         >업로드 중</div>
                       )}
                     </div>
@@ -266,8 +255,7 @@ export default function LegalFindingDetailPage() {
                   {resolutionPhotos.canAdd && (
                     <button
                       onClick={resolutionPhotos.openPicker}
-                      className="bg-surface-sunken border border-dashed border-border-strong text-text-tertiary text-caption font-bold leading-none flex flex-col items-center justify-center flex-shrink-0"
-                      style={{ width: 72, height: 72, borderRadius: 10, cursor: 'pointer', gap: 4 }}
+                      className="bg-surface-sunken border border-dashed border-border-strong text-text-tertiary text-caption font-bold leading-none flex flex-col items-center justify-center flex-shrink-0 w-[72px] h-[72px] rounded-[10px] cursor-pointer gap-1"
                     >
                       <Camera size={22} />사진 첨부
                     </button>
@@ -280,8 +268,8 @@ export default function LegalFindingDetailPage() {
                 <button
                   onClick={handleResolve}
                   disabled={isSubmitting}
-                  className="w-full text-text-on-accent text-body font-bold rounded-md"
-                  style={{ marginTop: 16, height: 48, border: 'none', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.5 : 1, background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}
+                  className={`w-full text-text-on-accent text-body font-bold rounded-md mt-4 h-8 border-0 ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
+                  style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}
                 >
                   {isSubmitting ? '처리 중...' : '조치 완료'}
                 </button>
@@ -291,15 +279,15 @@ export default function LegalFindingDetailPage() {
 
           {/* Section 4: 조치 완료 (resolved) */}
           {finding.status === 'resolved' && (
-            <div className="border-b border-border-default" style={{ padding: sectionPad }}>
+            <div className={`border-b border-border-default ${sectionPadCls}`}>
               <SectionHeader>조치 결과</SectionHeader>
-              <div className="flex flex-col" style={{ gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 <KVRow label="조치일시">{fmtDate(finding.resolvedAt)}</KVRow>
                 <KVRow label="조치자">{finding.resolvedByName ?? finding.resolvedBy ?? '-'}</KVRow>
-                <KVRow label="조치 내용"><span style={{ whiteSpace: 'pre-wrap' }}>{finding.resolutionMemo ?? '-'}</span></KVRow>
+                <KVRow label="조치 내용"><span className="whitespace-pre-wrap">{finding.resolutionMemo ?? '-'}</span></KVRow>
               </div>
               {finding.resolutionPhotoKeys && finding.resolutionPhotoKeys.length > 0 && (
-                <div style={{ marginTop: 12 }}><PhotoGrid photoUrls={finding.resolutionPhotoKeys.map(k => '/api/uploads/' + k)} /></div>
+                <div className="mt-3"><PhotoGrid photoUrls={finding.resolutionPhotoKeys.map(k => '/api/uploads/' + k)} /></div>
               )}
             </div>
           )}
@@ -309,14 +297,13 @@ export default function LegalFindingDetailPage() {
       {/* 모바일 고정 하단 CTA (open 상태만) */}
       {!isDesktop && !isLoading && !error && finding && finding.status === 'open' && (
         <div
-          className="bg-surface-page border-t border-border-default"
-          style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px', paddingBottom: 'calc(12px + var(--sab, 0px))' }}
+          className="bg-surface-page border-t border-border-default fixed bottom-0 left-0 right-0 px-4 pt-3 pb-[calc(12px+var(--sab,0px))]"
         >
           <button
             onClick={handleResolve}
             disabled={isSubmitting}
-            className="w-full text-text-on-accent text-body font-bold rounded-md"
-            style={{ height: 48, border: 'none', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.5 : 1, transition: 'opacity 0.15s', background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}
+            className={`w-full text-text-on-accent text-body font-bold rounded-md h-8 border-0 ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
+            style={{ transition: 'opacity 0.15s', background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}
           >
             {isSubmitting ? '처리 중...' : '조치 완료'}
           </button>
