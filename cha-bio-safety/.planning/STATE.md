@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-28 - Completed quick task 260528-01h: sibling Legal pages Phase B inline style 64곳 → tailwind (LegalFindingsPage 29→2 + LegalFindingDetailPage 35→4, 옵션 X+P+M 승계)
+Last activity: 2026-05-28 - Completed Phase B Wave 1 (260528-a3v): 워밍업 QRScan/Div/Reports 8→4 inline (-50%, 옵션 X+P+M 승계)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -111,6 +111,8 @@ Recent decisions affecting current work:
 | 260527-tb3 | LegalPage (소방점검 관리) 디자인 sweep — production submission-ppt 트랙 (W1~W9) 머지 후 잔존 emoji 8곳 (체크박스 ✓ / 사진상태 ✓✗ / 잠금 🔒 ×4 / 저장 💾) → Lucide (Check/X/Lock/Save) + 비표준 색 토큰 5곳 (bg-warning / border-safe / border-warning) 정리. 옵션 B (dirty=warning-bg outline) / 옵션 1 (pill border 제거) / Save 아이콘 동반. inline style 141곳 별도 phase. 비즈니스 로직 0 변경. | 2026-05-27 | 47b9088 | [260527-tb3-legalpage-sweep-emoji-8-lucide-4](./quick/260527-tb3-legalpage-sweep-emoji-8-lucide-4/) |
 | 260527-wdc | LegalPage Phase B — inline style 141곳 → tailwind class 변환 (옵션 X 정확값 arbitrary + P leading 명시 보존 + M className conditional, 색변수 N 잔존 6곳: borderBottom var(--accent) 탭 underline 3곳 / fontFamily inherit textarea 2곳 / linear-gradient 조치완료 버튼 1곳). 시각 결과 0 byte 변경 (no-op refactor). Phase A 결과 (Lucide 7 import / 색 토큰 -bar 변종 / emoji 0) 보존. 비즈니스 로직 0 byte (onClick/useState/useMutation/useQuery/useEffect/legalApi/fetch 모두 identical). TypeScript 0 error. 145 ins / 186 del (-41 net, 1250→1209 줄). | 2026-05-27 | 184e548 | [260527-wdc-legalpage-phase-b-inline-style-141-tailw](./quick/260527-wdc-legalpage-phase-b-inline-style-141-tailw/) |
 | 260528-01h | sibling Legal pages Phase B — inline style 64곳 → tailwind class (LegalFindingsPage 29→2 + LegalFindingDetailPage 35→4, 합쳐 90.6% 감소). wdc 옵션 (X 정확값 arbitrary + P leading 명시 + M conditional, 색변수 N) 그대로 승계. 잔존 6곳 = linear-gradient/SKELETON 박제/fontFamily inherit/rgba overlay/transition ease 등 tailwind 표현 불가 케이스. 시각 결과 0 byte. Phase A 결과 (Lucide imports + 색 토큰 -bar + emoji 0) 양쪽 파일 보존. 비즈 anchor (10종 + onClick handler bodies) precise grep 모두 identical. TypeScript 0 error. 68 ins / 124 del (-56 net, 734→678 합계). | 2026-05-28 | 894c9d0 | [260528-01h-legalfindingspage-legalfindingdetailpage](./quick/260528-01h-legalfindingspage-legalfindingdetailpage/) |
+| 260528-0hr | Phase B 마스터 로드맵 v2 — 모바일 우선 22 wave 구조 (Tier 1 모바일 위주 11 + Tier 2 큰 데스크톱 분기 페이지 4 모바일 + 4 데스크톱 + Tier 3 컴포넌트 3). 코드 grep 검증으로 Q1-Q8 중 5건 확정 (InspectionPage emoji 25 / ElevatorFindingDetail sweep / AdminPage skip / sketch 신규 X / 비색 1곳 SettingsPanel L143). 모바일/데스크톱 zone 분류 brace tracking 분석 28 페이지. Cherry-pick 묶음 A (Legal 완료) + B + C1/C2 + D. | 2026-05-28 | aaf18ce | [260528-0hr-phase-b-master-roadmap](./quick/260528-0hr-phase-b-master-roadmap/) |
+| 260528-a3v | Phase B Wave 1 워밍업 — QRScanPage 1→0 (w-full) + DivPage 4→4 (동적 color/chartH 옵션 N 잔존) + ReportsPage 3→0 (flex-col h-full overflow-hidden + bg-surface-page tailwind 토큰). 합계 8→4 (-50%). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (9종 × 3 파일 + onClick precise) identical. TypeScript 0 error. 변경 파일 2 (DivPage 미수정). | 2026-05-28 | 18fd138 | [260528-a3v-phase-b-wave-1](./quick/260528-a3v-phase-b-wave-1/) |
 
 ## Session Continuity
 
