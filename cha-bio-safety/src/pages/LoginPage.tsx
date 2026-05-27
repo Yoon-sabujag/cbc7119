@@ -82,9 +82,9 @@ export default function LoginPage() {
   const inner = (
     <>
       {/* 담당자 선택 */}
-      <div className="bg-surface-raised border border-border-default" style={{ borderRadius:16, padding:16, marginBottom:12 }}>
-        <p className="text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none" style={{ marginBottom:12 }}>담당자 선택</p>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+      <div className="bg-surface-raised border border-border-default rounded-lg p-4 mb-3">
+        <p className="text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none mb-3">담당자 선택</p>
+        <div className="grid grid-cols-2 gap-2">
           {staffList.map((s, i) => {
             const isSelected = selected === s.id
             const c = CARD_COLORS[i % CARD_COLORS.length]
@@ -94,18 +94,17 @@ export default function LoginPage() {
               <button
                 key={s.id}
                 onClick={() => selectStaff(s.id)}
+                className="flex items-center gap-2.5 p-2.5 rounded-md border cursor-pointer text-left transition-all duration-[130ms]"
                 style={{
-                  display:'flex', alignItems:'center', gap:10, padding:10,
-                  borderRadius:12, border:`1px solid ${isSelected ? 'rgba(59,130,246,0.6)' : c.border}`,
+                  borderColor: isSelected ? 'rgba(59,130,246,0.6)' : c.border,
                   background: isSelected ? 'rgba(59,130,246,0.12)' : c.color,
-                  cursor:'pointer', textAlign:'left', transition:'all .13s',
                 }}
               >
-                <div className="w-[34px] h-[34px] rounded-[10px]" style={{ background:isSelected?'#2563eb':c.border, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', flexShrink:0 }}>
+                <div className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-white shrink-0" style={{ background:isSelected?'#2563eb':c.border }}>
                   <span className="text-body font-bold leading-none">{initial}</span>
                 </div>
                 <div>
-                  <div className="text-label font-bold text-text-primary leading-none" style={{ marginBottom:4 }}>{s.name}</div>
+                  <div className="text-label font-bold text-text-primary leading-none mb-1">{s.name}</div>
                   <div className="text-caption text-text-tertiary leading-none">{titleLabel}</div>
                 </div>
               </button>
@@ -115,10 +114,10 @@ export default function LoginPage() {
       </div>
 
       {/* 입력 폼 */}
-      <div className="bg-surface-raised border border-border-default" style={{ borderRadius:16, padding:16 }}>
-        <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+      <div className="bg-surface-raised border border-border-default rounded-lg p-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
-            <label className="text-label font-bold leading-none text-text-secondary" style={{ display:'block', marginBottom:6 }}>사번</label>
+            <label className="text-label font-bold leading-none text-text-secondary block mb-[6px]">사번</label>
             <input
               type="text"
               inputMode="numeric"
@@ -130,8 +129,8 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="text-label font-bold leading-none text-text-secondary" style={{ display:'block', marginBottom:6 }}>비밀번호</label>
-            <div style={{ position:'relative' }}>
+            <label className="text-label font-bold leading-none text-text-secondary block mb-[6px]">비밀번호</label>
+            <div className="relative">
               <input
                 ref={pwRef}
                 type={showPw ? 'text' : 'password'}
@@ -139,14 +138,12 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                 placeholder="비밀번호 입력"
-                className={inputClass}
-                style={{ padding:'12px 44px 12px 14px', borderRadius:12, fontSize:14, outline:'none', transition:'border-color .15s' }}
+                className={`${inputClass} pl-[14px] pr-[44px] py-3 rounded-md text-[14px] outline-none transition-[border-color] duration-150`}
               />
               <button
                 type="button"
                 onClick={() => setShowPw(v => !v)}
-                className="text-text-tertiary"
-                style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', fontSize:13 }}
+                className="text-text-tertiary absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 cursor-pointer text-[13px]"
               >
                 {showPw ? '숨김' : '표시'}
               </button>
@@ -155,19 +152,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className={loading ? 'bg-surface-sunken text-text-tertiary font-bold' : 'bg-safe-bar text-text-on-accent font-bold'}
-            style={{
-              padding:'14px', borderRadius:12, border:'none',
-              fontSize:14, cursor:loading?'not-allowed':'pointer',
-              transition:'all .13s', marginTop:4,
-            }}
+            className={`${loading ? 'bg-surface-sunken text-text-tertiary' : 'bg-safe-bar text-text-on-accent'} font-bold p-[14px] rounded-md border-0 text-[14px] transition-all duration-[130ms] mt-1 ${loading ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >
             {loading ? '로그인 중...' : '로그인'}
           </button>
         </form>
       </div>
 
-      <p className="text-caption leading-relaxed text-text-tertiary" style={{ textAlign:'center', marginTop:20 }}>
+      <p className="text-caption leading-relaxed text-text-tertiary text-center mt-5">
         초기 비밀번호: 사번 뒤 4자리<br/>
         문의: 방재팀 내선 ☎ 031-881-7119
       </p>
@@ -177,22 +169,22 @@ export default function LoginPage() {
   // ── 데스크톱 레이아웃 (768px 이상) ──────────────────────
   if (isDesktop) {
     return (
-      <div className="bg-surface-page" style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
-        <div className="bg-surface-raised border border-border-default" style={{ maxWidth:420, width:'100%', borderRadius:20, boxShadow:'0 8px 32px rgba(0,0,0,0.4)', overflow:'hidden' }}>
+      <div className="bg-surface-page min-h-[100dvh] flex items-center justify-center p-5">
+        <div className="bg-surface-raised border border-border-default max-w-[420px] w-full rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
           {/* 카드 헤더 */}
-          <div className="bg-surface-raised border-b border-border-default" style={{ padding:'24px 24px 20px' }}>
-            <div className="flex items-center" style={{ gap:12 }}>
-              <div className="w-[38px] h-[38px] rounded-[11px]" style={{ background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+          <div className="bg-surface-raised border-b border-border-default pt-6 px-6 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-[38px] h-[38px] rounded-[11px] bg-[rgba(37,99,235,0.2)] border border-[rgba(59,130,246,0.3)] flex items-center justify-center overflow-hidden shrink-0">
                 <img src="/icons/icon-192.png" alt="" className="w-[28px] h-[28px] rounded-[7px]" />
               </div>
               <div>
                 <div className="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
-                <div className="text-caption text-text-tertiary leading-none" style={{ marginTop:2 }}>소방안전 통합관리 시스템</div>
+                <div className="text-caption text-text-tertiary leading-none mt-[2px]">소방안전 통합관리 시스템</div>
               </div>
             </div>
           </div>
           {/* 카드 바디 */}
-          <div style={{ padding:'16px 16px 24px' }}>
+          <div className="px-4 pt-4 pb-6">
             {inner}
           </div>
         </div>
@@ -202,20 +194,20 @@ export default function LoginPage() {
 
   // ── 모바일 레이아웃 (768px 미만) — 기존 유지 ────────────
   return (
-    <div className="bg-surface-page" style={{ minHeight:'100dvh', display:'flex', flexDirection:'column' }}>
+    <div className="bg-surface-page min-h-[100dvh] flex flex-col">
       {/* 상단 헤더 */}
-      <div className="bg-surface-raised border-b border-border-default" style={{ padding:'16px 20px 24px' }}>
-        <div className="flex items-center" style={{ gap:12, marginTop:16 }}>
-          <div className="w-[38px] h-[38px] rounded-[11px]" style={{ background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+      <div className="bg-surface-raised border-b border-border-default pt-4 px-5 pb-6">
+        <div className="flex items-center gap-3 mt-4">
+          <div className="w-[38px] h-[38px] rounded-[11px] bg-[rgba(37,99,235,0.2)] border border-[rgba(59,130,246,0.3)] flex items-center justify-center overflow-hidden shrink-0">
             <img src="/icons/icon-192.png" alt="" className="w-[28px] h-[28px] rounded-[7px]" />
           </div>
           <div>
             <div className="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
-            <div className="text-caption text-text-tertiary leading-none" style={{ marginTop:2 }}>소방안전 통합관리 시스템</div>
+            <div className="text-caption text-text-tertiary leading-none mt-[2px]">소방안전 통합관리 시스템</div>
           </div>
         </div>
       </div>
-      <div style={{ flex:1, padding:'16px 16px 32px', overflowY:'auto' }}>
+      <div className="flex-1 px-4 pt-4 pb-[32px] overflow-y-auto">
         {inner}
       </div>
     </div>
