@@ -98,8 +98,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
       })
     }
 
-    // slide2 = 첫 페이지 (텍스트만 패치, 사진은 양식 그대로)
+    // slide2 = 첫 페이지 (텍스트만 패치, rot 제거)
     const slide2OrigXml = strFromU8(files['ppt/slides/slide2.xml'])
+      .replace(/rot="5400000"/g, '') // 양식의 우측 조치 후 사진 회전 제거 (사용자 사진은 회전 X)
     const slide2RelsXml = strFromU8(files['ppt/slides/_rels/slide2.xml.rels'])
     files['ppt/slides/slide2.xml'] = strToU8(patchSlideLabels(slide2OrigXml, pages[0]))
 
@@ -108,7 +109,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
       for (let i = 1; i < pages.length; i++) {
         const slideIdx = i + 2 // slide3, slide4...
         files[`ppt/slides/slide${slideIdx}.xml`] = strToU8(patchSlideLabels(slide2OrigXml, pages[i]))
-        // 각 슬라이드의 rels = slide2 와 동일 (같은 image1-4 참조, 사진 임베딩은 다음 step)
+        // 각 슬라이드의 rels = slide2 와 동일 (image rels 는 6번 단계에서 페이지별 교체)
         files[`ppt/slides/_rels/slide${slideIdx}.xml.rels`] = strToU8(slide2RelsXml)
       }
 
@@ -146,7 +147,56 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
       files['[Content_Types].xml'] = strToU8(ctXml)
     }
 
-    // 6. ZIP 출력
+    // 6. 사진 임베딩 — 페이지별 4 슬롯 = finding 의 실제 R2 사진
+    // 슬롯 매핑 (양식 slide2 의 picture 위치):
+    //   rId3 = 좌상단 = 좌측 조치 전 (page.left.photoKeys[0])
+    //   rId4 = 좌하단 = 좌측 조치 후 (page.left.resolutionPhotoKeys[0])
+    //   rId5 = 우상단 = 우측 조치 전 (page.right.photoKeys[0])
+    //   rId6 = 우(회전) = 우측 조치 후 (page.right.resolutionPhotoKeys[0])
+    const SLOT_R_IDS = ['rId3', 'rId4', 'rId5', 'rId6'] as const
+    let imageCounter = 5 // 양식 image1-4 다음부터
+
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i]
+      const slideIdx = i === 0 ? 2 : i + 2
+      const photoKeys: Array<string | undefined> = [
+        JSON.parse(page.left?.photo_keys || '[]')[0],
+        JSON.parse(page.left?.resolution_photo_keys || '[]')[0],
+        page.right ? JSON.parse(page.right.photo_keys || '[]')[0] : undefined,
+        page.right ? JSON.parse(page.right.resolution_photo_keys || '[]')[0] : undefined,
+      ]
+
+      const slotImageNames: Record<string, string> = {}
+      for (let j = 0; j < 4; j++) {
+        const key = photoKeys[j]
+        if (!key) continue
+        const obj = await env.STORAGE.get(key)
+        if (!obj) continue
+        const buf = await obj.arrayBuffer()
+        const imageName = `image${imageCounter}.jpeg`
+        files[`ppt/media/${imageName}`] = new Uint8Array(buf)
+        slotImageNames[SLOT_R_IDS[j]] = imageName
+        imageCounter++
+      }
+
+      // 슬라이드 rels 의 image target 교체
+      const relsPath = `ppt/slides/_rels/slide${slideIdx}.xml.rels`
+      let relsXml = strFromU8(files[relsPath])
+      for (const [rId, imageName] of Object.entries(slotImageNames)) {
+        // <Relationship Id="rId3"...Target="../media/imageOLD.jpeg"/> → imageNew.jpeg
+        relsXml = relsXml.replace(
+          new RegExp(`(<Relationship\\s+Id="${rId}"[^/]*Target=")[^"]+(")`),
+          `$1../media/${imageName}$2`
+        )
+      }
+      files[relsPath] = strToU8(relsXml)
+    }
+
+    // [Content_Types].xml: jpeg Default 가 이미 양식에 있으므로 (image1-4 가 jpeg) 추가 작업 불필요
+    // 검증: <Default Extension="jpeg" .../> 가 [Content_Types].xml 에 있어야 함
+    // (양식 PPTX 검증 완료, 추가 image 도 같은 Default 로 처리됨)
+
+    // 7. ZIP 출력
     const outBuf = zipSync(files, { level: 6 })
 
     // 7. R2 저장 (timestamp 기반 key — 동시성 충돌 회피)
