@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>S3 — 데스크톱 2열 내부용 탭 (W4)</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --text-primary:    #e6edf3;
+    --text-secondary:  #adb6c0;
+    --text-tertiary:   #8b949e;
+    --border-default:  rgba(255, 255, 255, 0.14);
+    --border-strong:   rgba(255, 255, 255, 0.22);
+    --accent:          #3b82f6;
+    --safe:            #4ade80;
+    --safe-bg:         rgba(34, 197, 94, 0.16);
+    --safe-bar:        #22c55e;
+    --warning:         #fbbf24;
+    --warning-bg:      rgba(245, 158, 11, 0.16);
+    --warning-bar:     #f59e0b;
+    --danger-bar:      #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: #050709;
+    font-family: -apple-system, "Noto Sans KR", sans-serif;
+    color: var(--text-primary);
+    display: flex; gap: 32px; align-items: flex-start;
+  }
+  .col2 {
+    width: 500px;
+    background: var(--surface-page);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    display: flex; flex-direction: column;
+    max-height: 90vh; overflow: hidden;
+  }
+  .col2-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-default);
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .col2-title { font-size: 16px; font-weight: 700; }
+  .col2-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* === 결과내역서 버튼 (보고서 → 이름변경) === */
+  .header-tool {
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    font-size: 11px; font-weight: 700;
+    height: 28px; padding: 0 10px;
+    border-radius: 4px; cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* === 탭 헤더 (신규) === */
+  .sub-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-default);
+    background: var(--surface-raised);
+  }
+  .sub-tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .sub-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--surface-page);
+  }
+  .sub-tab .count {
+    display: inline-block;
+    margin-left: 4px;
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 99px;
+  }
+  .sub-tab.active .count { background: var(--accent); color: var(--text-on-accent); }
+
+  /* === finding 카드 (현재 그대로) === */
+  .findings { padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+  .finding {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-left: 3px solid var(--safe-bar);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    cursor: pointer;
+  }
+  .finding.unresolved { border-left-color: var(--warning-bar); }
+  .finding-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .finding-title { font-size: 13px; font-weight: 700; line-height: 1.4; }
+  .finding-loc { font-size: 12px; color: var(--text-secondary); }
+  .finding-meta { font-size: 11px; color: var(--text-tertiary); }
+  .finding-badge {
+    font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+    background: var(--safe-bg); color: var(--safe); flex-shrink: 0;
+  }
+  .finding-badge.unresolved { background: var(--warning-bg); color: var(--warning); }
+  .finding-actions { display: flex; gap: 8px; margin-top: 6px; }
+  .finding-actions button {
+    background: transparent; border: none; color: var(--text-secondary);
+    font-size: 11px; cursor: pointer; padding: 0;
+  }
+
+  /* annotation */
+  .annot {
+    width: 380px;
+    background: #11151a;
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 12px; line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .annot h2 { margin: 0 0 8px; color: var(--text-primary); font-size: 14px; }
+  .annot h3 { margin: 14px 0 4px; color: var(--text-primary); font-size: 12px; }
+  .annot code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; color: var(--text-primary); font-family: ui-monospace, monospace; font-size: 11px; }
+  .annot ul { margin: 4px 0; padding-left: 16px; }
+  .del { color: var(--text-disabled); text-decoration: line-through; }
+</style>
+</head>
+<body>
+
+  <div class="col2">
+    <div class="col2-header">
+      <div>
+        <div class="col2-title">소방 상반기 종합정밀점검</div>
+        <div class="col2-subtitle">2026.05.13 ~ 05.18</div>
+      </div>
+    </div>
+
+    <div class="sub-tabs">
+      <div class="sub-tab active">내부용 <span class="count">10</span></div>
+      <div class="sub-tab">제출용 <span class="count">0</span></div>
+    </div>
+
+    <div class="findings">
+      <!-- 기존 finding 카드 그대로 — 변경 없음 -->
+      <div class="finding">
+        <div class="finding-head">
+          <div style="flex:1;">
+            <div class="finding-title">유도등 — 예비전원 불량</div>
+            <div class="finding-loc">지하 B3 F3기둥 근처</div>
+            <div class="finding-meta">2026.05.26</div>
+          </div>
+          <div class="finding-badge">완료</div>
+        </div>
+        <div class="finding-actions">
+          <button>수정</button>
+          <button>삭제</button>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-head">
+          <div style="flex:1;">
+            <div class="finding-title">감지기(열) — 감지기 감지부 탈락</div>
+            <div class="finding-loc">연구동 8F ABSL3 실험구역 내부창고 (802f) 맞은편 P/R실 옆 전실</div>
+            <div class="finding-meta">2026.05.20</div>
+          </div>
+          <div class="finding-badge">완료</div>
+        </div>
+        <div class="finding-actions">
+          <button>수정</button>
+          <button>삭제</button>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-head">
+          <div style="flex:1;">
+            <div class="finding-title">유도등 — 배터리</div>
+            <div class="finding-loc">지하 B3 E-5</div>
+            <div class="finding-meta">2026.05.15</div>
+          </div>
+          <div class="finding-badge">완료</div>
+        </div>
+        <div class="finding-actions">
+          <button>수정</button>
+          <button>삭제</button>
+        </div>
+      </div>
+      <!-- ... -->
+    </div>
+  </div>
+
+  <div class="annot">
+    <h2>S3 — 데스크톱 2열 내부용 탭 (W4)</h2>
+
+    <h3>v2 변경점 (사용자 피드백 반영)</h3>
+    <ul>
+      <li>헤더 우측 <span class="del">보고서 / 결과내역서 버튼</span> 제거 (1열 카드에 이미 있음 — 중복 회피)</li>
+      <li>헤더 좌측 <span class="del">미입력 드롭박스 + 저장</span> → 1열로 이동 (S2 참고)</li>
+      <li>탭 헤더 신규: <b>내부용 / 제출용</b></li>
+      <li>내부용 탭 활성 시 본문 = <b>기존 finding 카드 리스트 그대로</b> (수정 0)</li>
+    </ul>
+
+    <h3>탭 count</h3>
+    <ul>
+      <li>내부용 = 전체 finding 수</li>
+      <li>제출용 = <code>submission_selected = 1</code> 인 finding 수 (S4 에서 토글)</li>
+    </ul>
+
+    <h3>본문</h3>
+    <p>내부용 탭 본문은 기존 <code>FindingsPanel</code> 컴포넌트 그대로 재사용. 새 코드 0줄. 3열도 기존 상세보기 그대로.</p>
+  </div>
+
+</body>
+</html>

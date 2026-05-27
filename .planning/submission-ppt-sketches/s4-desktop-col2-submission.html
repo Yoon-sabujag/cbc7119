@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>S4 — 데스크톱 2열 제출용 탭 (W5) v2</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --text-primary:    #e6edf3;
+    --text-secondary:  #adb6c0;
+    --text-tertiary:   #8b949e;
+    --text-disabled:   #5d646e;
+    --text-on-accent:  #ffffff;
+    --border-default:  rgba(255, 255, 255, 0.14);
+    --border-strong:   rgba(255, 255, 255, 0.22);
+    --accent:          #3b82f6;
+    --accent-hover:    #60a5fa;
+    --safe:            #4ade80;
+    --safe-bg:         rgba(34, 197, 94, 0.16);
+    --safe-bar:        #22c55e;
+    --warning:         #fbbf24;
+    --warning-bg:      rgba(245, 158, 11, 0.16);
+    --warning-bar:     #f59e0b;
+    --danger:          #f87171;
+    --danger-bg:       rgba(239, 68, 68, 0.16);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: #050709;
+    font-family: -apple-system, "Noto Sans KR", sans-serif;
+    color: var(--text-primary);
+    display: flex; gap: 32px; align-items: flex-start;
+  }
+  .col2 {
+    width: 540px;
+    background: var(--surface-page);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    display: flex; flex-direction: column;
+    max-height: 90vh; overflow: hidden;
+  }
+  .col2-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-default);
+  }
+  .col2-title { font-size: 16px; font-weight: 700; }
+  .col2-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  .sub-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-default);
+    background: var(--surface-raised);
+  }
+  .sub-tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .sub-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--surface-page);
+  }
+  .sub-tab .count {
+    display: inline-block; margin-left: 4px;
+    background: var(--surface-sunken); color: var(--text-secondary);
+    font-size: 11px; padding: 1px 6px; border-radius: 99px;
+  }
+  .sub-tab.active .count { background: var(--accent); color: var(--text-on-accent); }
+
+  /* === 제출용 finding 카드 (v2) === */
+  .findings {
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow-y: auto;
+  }
+  .sub-finding {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sub-finding.selected {
+    border-color: var(--accent);
+    background: var(--surface-active);
+  }
+
+  /* 첫 줄: prefill 정보 (info-line) */
+  .info-line {
+    font-size: 13px; font-weight: 700; line-height: 1.4;
+    color: var(--text-primary);
+  }
+  .info-line .seg-loc { color: var(--text-secondary); }
+  .info-line .seg-sep { color: var(--text-tertiary); padding: 0 6px; }
+  .info-line .seg-desc { color: var(--text-primary); }
+
+  /* 두번째 줄: 체크박스 + 입력칸 + 저장버튼 (한 라인) */
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .check-wrap {
+    display: flex;
+    align-items: center;        /* 가로축 중앙 정렬 */
+    flex-shrink: 0;
+  }
+  .check {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border-strong);
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .check.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-on-accent);
+    font-size: 18px; font-weight: 700;
+  }
+  .label-input {
+    flex: 1;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    min-height: 36px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .label-input:focus { border-color: var(--accent); outline: none; }
+  .label-input:disabled { color: var(--text-disabled); background: transparent; }
+  .save-btn {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border: none;
+    font-size: 11px; font-weight: 700;
+    padding: 0 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    align-self: stretch;
+  }
+  .save-btn:disabled { background: var(--surface-sunken); color: var(--text-disabled); cursor: not-allowed; }
+
+  /* 세번째 줄: 사진 인디케이터(좌) + 저장 인디케이터(우, 저장버튼과 우측 정렬) */
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    gap: 8px;
+  }
+  .photo-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-tertiary);
+  }
+  .photo-status .label {
+    color: var(--text-tertiary);
+    font-weight: 700;
+    margin-right: 2px;
+  }
+  .photo-status .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 6px; border-radius: 4px;
+    font-weight: 700;
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+  }
+  .photo-status .chip.has { background: var(--safe-bg); color: var(--safe); }
+  .photo-status .chip.missing { background: var(--danger-bg); color: var(--danger); }
+
+  .save-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  .save-indicator.saved   { color: var(--safe); }
+  .save-indicator.dirty   { color: var(--warning); }
+  .save-indicator.saving  { color: var(--accent); }
+  .save-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* annotation */
+  .annot {
+    width: 400px;
+    background: #11151a;
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 12px; line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .annot h2 { margin: 0 0 8px; color: var(--text-primary); font-size: 14px; }
+  .annot h3 { margin: 14px 0 4px; color: var(--text-primary); font-size: 12px; }
+  .annot code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; color: var(--text-primary); font-family: ui-monospace, monospace; font-size: 11px; }
+  .annot ul { margin: 4px 0; padding-left: 16px; }
+  .del { color: var(--text-disabled); text-decoration: line-through; }
+</style>
+</head>
+<body>
+
+  <div class="col2">
+    <div class="col2-header">
+      <div class="col2-title">소방 상반기 종합정밀점검</div>
+      <div class="col2-subtitle">2026.05.13 ~ 05.18</div>
+    </div>
+
+    <div class="sub-tabs">
+      <div class="sub-tab">내부용 <span class="count">10</span></div>
+      <div class="sub-tab active">제출용 <span class="count">3</span></div>
+    </div>
+
+    <div class="findings">
+
+      <!-- 카드 1: 선택됨, 저장됨, 사진 둘 다 있음 -->
+      <div class="sub-finding selected">
+        <div class="info-line">
+          <span class="seg-loc">지하 B3 F3기둥 근처</span>
+          <span class="seg-sep">|</span>
+          <span class="seg-desc">유도등 — 예비전원 불량</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check on">✓</div></div>
+          <textarea class="label-input">지하 B3 F3기둥 근처 유도등 예비전원 불량</textarea>
+          <button class="save-btn">저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip has">조치 후 ✓</span>
+          </div>
+          <div class="save-indicator saved"><span class="dot"></span>저장됨</div>
+        </div>
+      </div>
+
+      <!-- 카드 2: 선택됨, 조치 후 사진 없음 → 저장 버튼 비활성 -->
+      <div class="sub-finding selected">
+        <div class="info-line">
+          <span class="seg-loc">연구동 8F ABSL3 실험구역 내부창고 (802f) 맞은편 P/R실 옆 전실</span>
+          <span class="seg-sep">|</span>
+          <span class="seg-desc">감지기(열) — 감지기 감지부 탈락</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check on">✓</div></div>
+          <textarea class="label-input">연구동 8F ABSL3 실험구역 내부창고(802f) 맞은편 P/R실 옆 전실 감지기 감지부 탈락</textarea>
+          <button class="save-btn" disabled>저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip missing">조치 후 ✗</span>
+          </div>
+          <div class="save-indicator"><span class="dot"></span>사진 부족 — 저장 불가</div>
+        </div>
+      </div>
+
+      <!-- 카드 3: 미선택 — 입력칸 비활성 -->
+      <div class="sub-finding">
+        <div class="info-line">
+          <span class="seg-loc">지하 B3 E-5</span>
+          <span class="seg-sep">|</span>
+          <span class="seg-desc">유도등 — 배터리</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check">&nbsp;</div></div>
+          <textarea class="label-input" placeholder="체크하면 PPT 라벨 입력 가능" disabled></textarea>
+          <button class="save-btn" disabled>저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip has">조치 후 ✓</span>
+          </div>
+          <div class="save-indicator"><span class="dot"></span>—</div>
+        </div>
+      </div>
+
+      <!-- 카드 4: 저장중 -->
+      <div class="sub-finding selected">
+        <div class="info-line">
+          <span class="seg-loc">지하 B3 H-3 옆</span>
+          <span class="seg-sep">|</span>
+          <span class="seg-desc">유도등 — 배터리</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check on">✓</div></div>
+          <textarea class="label-input">지하 B3 H-3 옆 유도등 배터리 불량</textarea>
+          <button class="save-btn">저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip has">조치 후 ✓</span>
+          </div>
+          <div class="save-indicator saving"><span class="dot"></span>저장중...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="annot">
+    <h2>S4 v2 — 데스크톱 2열 제출용 탭 (W5)</h2>
+
+    <h3>v3 변경 (사용자 피드백 반영)</h3>
+    <ul>
+      <li>사진 인디케이터 앞에 <b>"사진 :"</b> 라벨 추가</li>
+      <li>사진이 조치 전/후 둘 중 <b>하나라도 없으면 저장 버튼 비활성화</b> + 인디케이터 자리에 "사진 부족 — 저장 불가" 안내</li>
+    </ul>
+
+    <h3>v2 변경</h3>
+    <ul>
+      <li>체크박스 위치: <b>입력칸 왼쪽 가로축 중앙 정렬</b> (input-row 안)</li>
+      <li>10초 디바운스 제거 — 입력 즉시 저장</li>
+      <li>세번째 줄 2분할: 좌측 = 사진 유무 chip / 우측 = 저장 인디케이터 (저장버튼 우측 모서리 열맞춤)</li>
+    </ul>
+
+    <h3>카드 3줄 구조</h3>
+    <ol>
+      <li><b>info-line</b>: <code>{location} | {description}</code> (읽기 전용)</li>
+      <li><b>input-row</b>: [체크박스][textarea (flex:1)][저장 버튼]</li>
+      <li><b>meta-row</b>: [사진 유무 chip 2개] · · · [저장 인디케이터]</li>
+    </ol>
+
+    <h3>사진 인디케이터 상태</h3>
+    <ul>
+      <li><code>조치 전 ✓</code> safe (녹) — <code>photo_keys.length > 0</code></li>
+      <li><code>조치 전 ✗</code> danger (적) — <code>photo_keys</code> 비어있음</li>
+      <li>조치 후도 동일 로직 (<code>resolution_photo_keys</code>)</li>
+      <li>한쪽이라도 ✗ → <b>저장 버튼 비활성화</b> (PPT 슬라이드 빈 사진 방지)</li>
+    </ul>
+
+    <h3>저장 인디케이터 4 상태</h3>
+    <ul>
+      <li>—  (미선택) tertiary 회색</li>
+      <li>저장됨 — safe (녹)</li>
+      <li>변경됨 — warning (노)</li>
+      <li>저장중... — accent (파)</li>
+    </ul>
+
+    <h3>저장 흐름 (디바운스 제거)</h3>
+    <ul>
+      <li>textarea 변경 시 → 즉시 인디케이터 <code>변경됨</code> → PUT 요청 → 응답 시 <code>저장중</code> → 완료 시 <code>저장됨</code></li>
+      <li>저장 버튼 = 명시적 저장 (디바운스 없이 즉시)</li>
+      <li>체크박스 토글도 즉시 PUT</li>
+    </ul>
+
+    <h3>info-line 의 점검항목 슬롯</h3>
+    <p>기존 v1 의 점검항목 슬롯 생략 유지 — <code>{location} | {description}</code> 만. 사용자 확인 필요.</p>
+  </div>
+
+</body>
+</html>
