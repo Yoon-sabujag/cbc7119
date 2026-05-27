@@ -202,7 +202,7 @@ export default function QRScanPage() {
           <div className="flex-1 flex flex-col items-center px-4 py-5 gap-4">
 
             <div className="w-full max-w-[320px] rounded-[20px] overflow-hidden bg-black ring-1 ring-border-strong relative">
-              <div id={QR_REGION_ID} style={{ width:'100%' }} />
+              <div id={QR_REGION_ID} className="w-full" />
               {loading && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
                   <Loader2 size={28} className="animate-spin text-accent" />

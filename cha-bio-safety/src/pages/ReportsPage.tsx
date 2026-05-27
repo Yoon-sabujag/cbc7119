@@ -175,7 +175,7 @@ function DesktopReportsPage() {
   const selectedCard = REPORT_CARDS.find(c => c.type === selectedType)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── 상단 바 (전체 폭): 연도 + 일괄 다운로드 + 선택 정보 + 개별 다운로드 ── */}
       <div className="toolbar">
@@ -275,7 +275,7 @@ function MobileReportsPage() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-page)' }}>
+    <div className="bg-surface-page flex flex-col h-full overflow-hidden">
       <header className="page-header">
         <button className="back-btn" onClick={() => navigate(-1)} aria-label="뒤로 가기">
           <ChevronLeft size={15} />
@@ -298,7 +298,7 @@ function MobileReportsPage() {
         </div>
       </header>
 
-      <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="page-body flex-1 overflow-y-auto">
         {REPORT_CARDS.map(card => {
           const isLoading = loading === card.type
           const [subLeft, subRight] = card.sub.split(' · ')
