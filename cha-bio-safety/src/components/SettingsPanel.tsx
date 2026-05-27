@@ -98,8 +98,8 @@ function Row({ label, sub, children, onClick }: { label: string; sub?: string; c
       className={`flex items-center justify-between px-3 py-2.5 bg-surface-sunken rounded-[9px] mb-[5px] ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
       <div>
-        {/* W6 §7 #15 — 12 → 13 격상 (label) */}
-        <div className="text-label font-medium text-text-primary">{label}</div>
+        {/* W11 balance v3 — text-label (13) → text-body (16) 통일 (SideMenu item + 노안 마지노선) */}
+        <div className="text-body font-medium text-text-primary">{label}</div>
         {sub && (
           /* W6 §7 #16 — 10 → 12 격상 (caption) */
           <div className="text-caption text-text-tertiary mt-px">{sub}</div>

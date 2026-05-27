@@ -137,9 +137,9 @@ function Layout() {
   const isCctv          = location.pathname === '/cctv'
   const isSchedule      = location.pathname === '/schedule'
 
-  // 모바일 전용: 대시보드 헤더 우측 슬롯
+  // 모바일 전용: 대시보드 헤더 우측 슬롯 (W11 balance v3 — fontSize 12 → text-body 16, 노안 마지노선 + GlobalHeader title 18 과 균형)
   const dashboardRightSlot = (
-    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', whiteSpace: 'nowrap' }}>차바이오컴플렉스 방재팀</span>
+    <span className="text-body font-bold text-text-primary whitespace-nowrap">차바이오컴플렉스 방재팀</span>
   )
 
   // 뒤로가기 버튼 (햄버거 대신) — 직접 진입할 일 없는 페이지에서 사용
