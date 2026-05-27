@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LegalPage Phase B — inline style 141 곳 → tailwind class 변환 (260527-wdc)</title>
+<style>
+  :root {
+    --surface-page: #0a0d12;
+    --surface-raised: #1a1f27;
+    --surface-sunken: #0f1419;
+    --text-primary: #e6edf3;
+    --text-secondary: #adb6c0;
+    --text-tertiary: #8b949e;
+    --text-disabled: #6e7681;
+    --text-on-accent: #ffffff;
+    --accent: #3b82f6;
+    --status-safe-bar: #22c55e;
+    --status-safe-bg: rgba(34, 197, 94, 0.16);
+    --status-safe: #22c55e;
+    --status-warning-bar: #f59e0b;
+    --status-warning-bg: rgba(245, 158, 11, 0.16);
+    --status-warning: #f59e0b;
+    --status-danger-bar: #ef4444;
+    --status-danger-bg: rgba(239, 68, 68, 0.16);
+    --status-danger: #ef4444;
+    --status-fire-bar: #f97316;
+    --border: #2d333b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px 96px;
+  }
+
+  /* Header */
+  .page-header {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .page-header h2 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  /* Section card */
+  .section {
+    background: var(--surface-raised);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .section-subtitle {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+  }
+  .section-caption {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    line-height: 1.6;
+    word-break: break-all;
+  }
+
+  /* Split layout for Before/After */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .split-col {
+    background: var(--surface-sunken);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+  }
+  .split-col .lbl {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .split-col.before .lbl { color: #f59e0b; }
+  .split-col.after  .lbl { color: #22c55e; }
+
+  pre.code {
+    background: #0a0d12;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: #e6edf3;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-bottom: 8px;
+  }
+  pre.code:last-child { margin-bottom: 0; }
+  .ln {
+    color: var(--text-disabled);
+    font-size: 10px;
+    margin-right: 6px;
+  }
+
+  /* Option chip */
+  .opt-chip {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(59, 130, 246, 0.16);
+    color: #3b82f6;
+    margin-right: 6px;
+    margin-bottom: 4px;
+  }
+  .opt-chip.x { background: rgba(34, 197, 94, 0.16); color: #22c55e; }
+  .opt-chip.y { background: rgba(245, 158, 11, 0.16); color: #f59e0b; }
+  .opt-chip.rec { background: rgba(34, 197, 94, 0.24); color: #22c55e; }
+
+  /* Comparison table */
+  table.opt-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 12px;
+  }
+  table.opt-table th, table.opt-table td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+  }
+  table.opt-table th {
+    background: var(--surface-sunken);
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  table.opt-table tr.rec td { background: rgba(34, 197, 94, 0.06); }
+
+  /* Decision list */
+  .decision-list { padding-left: 20px; line-height: 1.9; font-size: 13px; }
+  .decision-list li { color: var(--text-primary); margin-bottom: 6px; }
+  .decision-list code {
+    background: var(--surface-sunken);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: #adb6c0;
+  }
+
+  /* Preview boxes (§5) */
+  .preview-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .preview-grid .ttl {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .preview-row {
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  .preview-row + .preview-row { margin-top: 12px; }
+
+  .pv-inline-pad {
+    /* inline style 시안: padding 2px 8px */
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .pv-tw-pad {
+    /* tailwind 시안: px-2 py-[2px] (=padding 2px 8px) */
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .pv-inline-flex {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--surface-raised);
+    padding: 6px;
+    border-radius: 4px;
+  }
+  .pv-inline-flex span,
+  .pv-tw-flex span {
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+  .pv-tw-flex {
+    display: flex;
+    gap: 12px;          /* gap-3 */
+    align-items: flex-start;
+    background: var(--surface-raised);
+    padding: 6px;
+    border-radius: 4px;
+  }
+  .pv-inline-28 {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+  }
+  .pv-tw-28 {
+    /* tailwind: w-[28px] h-[28px] text-[18px] leading-none */
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+  }
+  .pv-inline-leading {
+    flex: 1;
+    line-height: 1.5;
+    color: var(--text-primary);
+    font-size: 13px;
+  }
+  .pv-tw-leading {
+    /* tailwind: flex-1 leading-[1.5] */
+    flex: 1;
+    line-height: 1.5;
+    color: var(--text-primary);
+    font-size: 13px;
+  }
+  .pv-inline-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 1px 3px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+  }
+  .pv-tw-btn {
+    /* tailwind: bg-transparent border-0 cursor-pointer px-[3px] py-[1px] */
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    padding: 1px 3px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+  }
+
+  .footer-note {
+    margin-top: 32px;
+    padding: 16px;
+    background: var(--surface-sunken);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .footer-note strong { color: var(--text-primary); }
+
+  .danger-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(239, 68, 68, 0.16);
+    color: #ef4444;
+    margin-left: 6px;
+  }
+  .safe-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(34, 197, 94, 0.16);
+    color: #22c55e;
+    margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- 헤더 영역                                                       -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <header class="page-header">
+    <h1>LegalPage Phase B — inline style 141 곳 → tailwind class 변환 (no-op refactor)</h1>
+    <h2>Phase A 완결 (emoji + 색 토큰) 후 잔존 inline style 일괄 변환</h2>
+    <p>시각 결과 0 byte 변화. 비즈니스 로직 / Lucide import / Phase A 색 토큰 결과 모두 보존.</p>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §1 Overview                                                     -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§1 Overview</div>
+    <div class="section-subtitle">전체 변환 범위 + 룰</div>
+    <ul class="decision-list">
+      <li><code>src/pages/LegalPage.tsx</code> — 1250줄 / <strong>141곳</strong> <code>style={{}}</code> 발견 (정적 + 동적 합쳐)</li>
+      <li>Phase B 목표 — <strong>정적 inline style 0</strong> + 동적 inline style 은 className conditional 분기 우선 / 색 변수 잔존 허용</li>
+      <li><strong>시각 결과 변화 0 = 최우선 룰</strong> — 픽셀 단위 동일 보장</li>
+      <li>비즈니스 로직 (onClick / useMutation / useQuery / legalApi / inspectionApi / fetch) — <strong>0 byte 변경</strong></li>
+      <li>Phase A 결과 (Lucide import 7개 / 색 토큰 정리 / emoji 0) — <strong>0 byte 변경</strong></li>
+    </ul>
+    <div class="section-caption">
+      tailwind spacing scale 함정 박제 (메모리 anchor: feedback_tailwind_w8_h8_is_48px.md):<br />
+      w-1=4 / w-2=8 / w-3=12 / w-4=16 / w-5=20 / w-6=24 / <strong>w-7=32 (NOT 28)</strong> / <strong>w-8=48 (NOT 32)</strong>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §2-P1 Padding 상수                                              -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§2-P1 — Padding 상수 (px-N / py-N / arbitrary)</div>
+    <div class="section-subtitle">4 사례 / spacing scale 안에 있는 값은 <code>px-N</code>, 스케일 외 값(2px / 6px 등) 은 <code>py-[Npx]</code></div>
+
+    <div class="split">
+      <div class="split-col before">
+        <div class="lbl">OLD (inline style)</div>
+        <pre class="code"><span class="ln">L74</span>style={{ padding: '2px 8px', flexShrink: 0 }}</pre>
+        <pre class="code"><span class="ln">L158</span>style={{ padding: '16px 16px 12px', flexShrink: 0 }}</pre>
+        <pre class="code"><span class="ln">L675</span>style={{ padding: '6px 16px', textAlign: 'center', flexShrink: 0 }}</pre>
+        <pre class="code"><span class="ln">L971</span>style={{ padding: '6px 12px' }}</pre>
+      </div>
+      <div class="split-col after">
+        <div class="lbl">NEW (tailwind className)</div>
+        <pre class="code"><span class="ln">L74</span>className="... px-2 py-[2px] shrink-0"</pre>
+        <pre class="code"><span class="ln">L158</span>className="px-4 pt-4 pb-3 shrink-0"</pre>
+        <pre class="code"><span class="ln">L675</span>className="... px-4 py-[6px] text-center shrink-0"</pre>
+        <pre class="code"><span class="ln">L971</span>className="px-3 py-[6px]"</pre>
+      </div>
+    </div>
+    <div class="section-caption">
+      px-N 매핑: 2=8 / 3=12 / 4=16. 2px / 6px 는 arbitrary <code>py-[2px]</code> / <code>py-[6px]</code> 강제 (스케일 외).<br />
+      flexShrink: 0 → <code>shrink-0</code> (tailwind 표준).
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §2-P2 Flex layout                                               -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§2-P2 — Flex layout (flex / gap / items / direction)</div>
+    <div class="section-subtitle">display: flex + flexDirection + gap + alignItems 조합</div>
+
+    <div class="split">
+      <div class="split-col before">
+        <div class="lbl">OLD (inline style)</div>
+        <pre class="code"><span class="ln">L105</span>style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}</pre>
+        <pre class="code"><span class="ln">L156</span>style={{ display: 'flex', flexDirection: 'column', height: '100%' }}</pre>
+        <pre class="code"><span class="ln">L164</span>style={{ display: 'flex', flexShrink: 0 }}</pre>
+        <pre class="code"><span class="ln">L587</span>style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}</pre>
+      </div>
+      <div class="split-col after">
+        <div class="lbl">NEW (tailwind className)</div>
+        <pre class="code"><span class="ln">L105</span>className="flex gap-3 items-start"</pre>
+        <pre class="code"><span class="ln">L156</span>className="flex flex-col h-full"</pre>
+        <pre class="code"><span class="ln">L164</span>className="flex shrink-0"</pre>
+        <pre class="code"><span class="ln">L587</span>className="flex items-end gap-[10px]"</pre>
+      </div>
+    </div>
+    <div class="section-caption">
+      gap: 12 = <code>gap-3</code> (scale 안). gap: 10 = <code>gap-[10px]</code> arbitrary (스케일 외).<br />
+      alignItems: flex-start → <code>items-start</code>. flex-end → <code>items-end</code>. flexDirection: column → <code>flex-col</code>.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §2-P3 Sizing — 옵션 X/Y 결정 here                              -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§2-P3 — Sizing (width/height/fontSize) — <span class="opt-chip x">옵션 X</span><span class="opt-chip y">옵션 Y</span> 결정</div>
+    <div class="section-subtitle">스케일 안 값은 <code>w-N</code> / 스케일 외 값(28px / 36px / 18px 등) 은 옵션 분기</div>
+
+    <div class="split">
+      <div class="split-col before">
+        <div class="lbl">OLD (inline style)</div>
+        <pre class="code"><span class="ln">L106</span>style={{ width: 64, flexShrink: 0 }}</pre>
+        <pre class="code"><span class="ln">L379</span>style={{ width: 28, height: 28, fontSize: 18, lineHeight: 1, cursor: ... }}</pre>
+        <pre class="code"><span class="ln">L659</span>style={{ width: 36, height: 36, borderRadius: 6, fontSize: 16, cursor: ... }}</pre>
+        <pre class="code"><span class="ln">L811</span>style={{ width: 64, height: 64, objectFit: 'cover' }}</pre>
+      </div>
+      <div class="split-col after">
+        <div class="lbl">NEW (옵션 X — 정확값 arbitrary)</div>
+        <pre class="code"><span class="ln">L106</span>className="w-16 shrink-0"</pre>
+        <pre class="code"><span class="ln">L379</span>className="w-[28px] h-[28px] text-[18px] leading-none ${... ? 'cursor-not-allowed' : 'cursor-pointer'}"</pre>
+        <pre class="code"><span class="ln">L659</span>className="w-[36px] h-[36px] rounded-md text-[16px] ${... ? 'cursor-not-allowed' : 'cursor-pointer'}"</pre>
+        <pre class="code"><span class="ln">L811</span>className="w-16 h-16 object-cover"</pre>
+      </div>
+    </div>
+
+    <table class="opt-table">
+      <thead><tr><th>옵션</th><th>매핑</th><th>시각 변화</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr class="rec">
+          <td><span class="opt-chip x">옵션 X</span> 정확값</td>
+          <td>28 → <code>w-[28px]</code> / 36 → <code>w-[36px]</code> / 18 → <code>text-[18px]</code></td>
+          <td><strong>0 byte</strong></td>
+          <td><span class="opt-chip rec">권장</span> no-op refactor 원칙</td>
+        </tr>
+        <tr>
+          <td><span class="opt-chip y">옵션 Y</span> 스케일 라운드</td>
+          <td>28 → <code>w-7</code> (=32) / 18 → <code>text-lg</code> / 36 → 라운드 불가</td>
+          <td>미세 변경 +4px</td>
+          <td>비권장 — 시각 변경 발생. 36 은 라운드 불가 → 결국 일관성 깨짐</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="section-caption">
+      메모리 anchor: feedback_tailwind_w8_h8_is_48px.md — w-7=32 (NOT 28). 28 → w-7 변환 시 +4px 사고.<br />
+      width: 64 = <code>w-16</code> (기본 tailwind 4*16=64 ✓ — 우리 spacing 정의에는 w-16 없지만 tailwind default 가 16=64 그대로 살아있음).
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §2-P4 flex-1 + leading — 옵션 P/Q 결정 here                    -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§2-P4 — flex-1 / overflow / lineHeight — <span class="opt-chip x">옵션 P</span><span class="opt-chip y">옵션 Q</span> 결정</div>
+    <div class="section-subtitle">flex: 1 + lineHeight 조합 / text-* 토큰이 이미 lineHeight 가지면 중복 가능</div>
+
+    <div class="split">
+      <div class="split-col before">
+        <div class="lbl">OLD (inline style)</div>
+        <pre class="code"><span class="ln">L107</span>style={{ flex: 1, lineHeight: 1.5 }}
+&lt;span className="text-label ..." ...&gt;</pre>
+        <pre class="code"><span class="ln">L202</span>style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}</pre>
+      </div>
+      <div class="split-col after">
+        <div class="lbl">NEW (옵션 P — 명시 보존)</div>
+        <pre class="code"><span class="ln">L107</span>className="text-label ... flex-1 leading-[1.5]"</pre>
+        <pre class="code"><span class="ln">L202</span>className="flex-1 overflow-y-auto px-4 pt-3 pb-4 flex flex-col gap-[6px]"</pre>
+      </div>
+    </div>
+
+    <table class="opt-table">
+      <thead><tr><th>옵션</th><th>매핑</th><th>시각 변화</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr class="rec">
+          <td><span class="opt-chip x">옵션 P</span> 명시 보존</td>
+          <td><code>leading-[1.5]</code> 명시 — text-* 와 중복이라도 보존</td>
+          <td><strong>0 byte</strong></td>
+          <td><span class="opt-chip rec">권장</span> 의도 추적 용이</td>
+        </tr>
+        <tr>
+          <td><span class="opt-chip y">옵션 Q</span> 간소화</td>
+          <td>text-label 이 이미 lh:1.5 면 leading 생략</td>
+          <td>0 byte (text-* 토큰 동일 lh 일 때)</td>
+          <td>허용 — text-* 가 같은 lh 갖는 경우만 (시각 동일 보장 시)</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="section-caption">
+      gap: 6 = <code>gap-[6px]</code> arbitrary (gap-1.5 는 우리 spacing 정의 X).<br />
+      메모리 anchor: feedback_text_caption_leading_none.md — 작은 컨테이너 안 text-caption 은 leading-none 필요. h-8(=48) 같은 큰 컨테이너에서는 text-* 의 leading 1.5 가 패딩처럼 보임.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §2-P5 Button reset                                              -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§2-P5 — Button reset (background:none / border:none)</div>
+    <div class="section-subtitle">텍스트 버튼 / inline 액션 버튼 — background, border 초기화</div>
+
+    <div class="split">
+      <div class="split-col before">
+        <div class="lbl">OLD (inline style)</div>
+        <pre class="code"><span class="ln">L222</span>style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}</pre>
+        <pre class="code"><span class="ln">L984</span>style={{ display: 'block', margin: '8px auto', border: 'none', padding: '6px 16px', cursor: 'pointer' }}</pre>
+      </div>
+      <div class="split-col after">
+        <div class="lbl">NEW (tailwind className)</div>
+        <pre class="code"><span class="ln">L222</span>className="... bg-transparent border-0 cursor-pointer px-[3px] py-[1px]"</pre>
+        <pre class="code"><span class="ln">L984</span>className="... block mx-auto my-2 border-0 px-4 py-[6px] cursor-pointer"</pre>
+      </div>
+    </div>
+    <div class="section-caption">
+      background: 'none' → <code>bg-transparent</code> (tailwind 표준). border: 'none' → <code>border-0</code>.<br />
+      margin: '8px auto' → <code>mx-auto my-2</code> (block 정렬은 mx-auto, vertical 은 my-2=8).<br />
+      padding: '1px 3px' = px-[3px] py-[1px] arbitrary (스케일 외).
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §2-P6 Dynamic — 옵션 M/N 결정 here                             -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§2-P6 — Dynamic (state/props 기반) — <span class="opt-chip x">옵션 M</span><span class="opt-chip y">옵션 N</span> 결정</div>
+    <div class="section-subtitle">opacity / cursor / border / background 동적 — className conditional 분기 vs 정적만 변환</div>
+
+    <div class="split">
+      <div class="split-col before">
+        <div class="lbl">OLD (inline style)</div>
+        <pre class="code"><span class="ln">L355</span>style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, opacity: cardDisabled && !isSelected ? 0.7 : 1 }}</pre>
+        <pre class="code"><span class="ln">L597</span>style={{ height: 32, padding: '0 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: count === 0 || isLocked || genState === 'saving' ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}</pre>
+        <pre class="code"><span class="ln">L967</span>style={{ flex: 1, height: 38, border: 'none', background: tab === t.key ? undefined : 'transparent', cursor: 'pointer', borderBottom: tab === t.key ? '2px solid var(--accent)' : '2px solid transparent' }}</pre>
+      </div>
+      <div class="split-col after">
+        <div class="lbl">NEW (옵션 M — className conditional)</div>
+        <pre class="code"><span class="ln">L355</span>className={`p-3 flex flex-col gap-2 ${cardDisabled &amp;&amp; !isSelected ? 'opacity-70' : ''}`}</pre>
+        <pre class="code"><span class="ln">L597</span>className={`h-7 px-[14px] rounded-md text-caption font-bold inline-flex items-center gap-[6px] ${count === 0 || isLocked || genState === 'saving' ? 'cursor-not-allowed' : 'cursor-pointer'}`}</pre>
+        <pre class="code"><span class="ln">L967</span>className={`flex-1 h-[38px] border-0 cursor-pointer border-b-2 ${tab === t.key ? 'border-accent' : 'border-transparent bg-transparent'}`}</pre>
+      </div>
+    </div>
+
+    <table class="opt-table">
+      <thead><tr><th>옵션</th><th>매핑</th><th>시각 변화</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr class="rec">
+          <td><span class="opt-chip x">옵션 M</span> className conditional</td>
+          <td><code>${condition ? 'class-A' : 'class-B'}</code> template literal 분기</td>
+          <td><strong>0 byte</strong></td>
+          <td><span class="opt-chip rec">권장</span> 100% inline style 제거 목표</td>
+        </tr>
+        <tr>
+          <td><span class="opt-chip y">옵션 N</span> 잔존</td>
+          <td>정적 부분만 className, 동적 부분은 style 잔존</td>
+          <td><strong>0 byte</strong></td>
+          <td>허용 — 색 변수 / undefined 분기 케이스만 (예: <code>background: cardBg</code> where cardBg from state)</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="section-caption">
+      h-7 = 32px (메모리 anchor 확인). h-[38px] = arbitrary (스케일 외).<br />
+      opacity: 0.7 → <code>opacity-70</code> / opacity: 1 → '' (기본).<br />
+      border-bottom 2px solid var(--accent) → <code>border-b-2 border-accent</code> (border-bottom-style 는 tailwind 가 solid default).<br />
+      <strong>색 변수 잔존 케이스 명시</strong>: var(--accent) 같은 CSS 변수가 dynamic 으로 들어오면 그대로 inline 유지 (옵션 N 적용).
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §3 옵션 분기 요약 표                                            -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§3 옵션 분기 요약 표</div>
+    <div class="section-subtitle">Task 2 checkpoint 에서 사용자가 확정할 결정 사항</div>
+
+    <table class="opt-table">
+      <thead>
+        <tr>
+          <th>옵션 ID</th>
+          <th>영향 패턴</th>
+          <th>권장</th>
+          <th>시각 변화</th>
+          <th>비즈니스 로직</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="rec">
+          <td><span class="opt-chip x">옵션 X</span> 정확값 arbitrary</td>
+          <td>§2-P3 Sizing</td>
+          <td><span class="opt-chip rec">권장</span></td>
+          <td><strong>0 byte</strong></td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td><span class="opt-chip y">옵션 Y</span> 스케일 라운드</td>
+          <td>§2-P3 Sizing</td>
+          <td>비권장</td>
+          <td>미세 변경 (+4px)</td>
+          <td>0</td>
+        </tr>
+        <tr class="rec">
+          <td><span class="opt-chip x">옵션 P</span> lineHeight 명시</td>
+          <td>§2-P4 flex-1 + leading</td>
+          <td><span class="opt-chip rec">권장</span></td>
+          <td><strong>0 byte</strong></td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td><span class="opt-chip y">옵션 Q</span> lineHeight 간소화</td>
+          <td>§2-P4 flex-1 + leading</td>
+          <td>허용</td>
+          <td>0 byte (text-* 동일 lh 일 때)</td>
+          <td>0</td>
+        </tr>
+        <tr class="rec">
+          <td><span class="opt-chip x">옵션 M</span> className conditional</td>
+          <td>§2-P6 Dynamic</td>
+          <td><span class="opt-chip rec">권장</span></td>
+          <td><strong>0 byte</strong></td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td><span class="opt-chip y">옵션 N</span> 잔존</td>
+          <td>§2-P6 Dynamic</td>
+          <td>색 변수만 허용</td>
+          <td><strong>0 byte</strong></td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="section-caption">
+      <strong>권장 조합</strong>: <span class="opt-chip rec">옵션 X + P + M</span> (+ 색 변수 케이스만 N) — 시각 0 byte / 정적 inline style 0 / 동적 className 분기.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §4 사용자 결정 요청 (Task 2 checkpoint 안내)                   -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§4 사용자 결정 요청 (Task 2 checkpoint 안내)</div>
+    <div class="section-subtitle">Task 3 bulk apply 진입 전 확정 필요</div>
+
+    <ol class="decision-list">
+      <li><strong>(a)</strong> 6 패턴 분류 (§2-P1 ~ §2-P6) 및 Old → New 변환 매핑 OK?</li>
+      <li><strong>(b)</strong> <span class="opt-chip x">옵션 X</span> (정확값 <code>[28px]</code> arbitrary, 시각 0 byte) 또는 <span class="opt-chip y">옵션 Y</span> (스케일 라운드 <code>w-7</code>=32, 미세 변경)? <span class="opt-chip rec">권장: X</span></li>
+      <li><strong>(c)</strong> <span class="opt-chip x">옵션 P</span> (<code>leading-[1.5]</code> 명시 보존) 또는 <span class="opt-chip y">옵션 Q</span> (text-* 토큰 동일 lh 일 때 생략)? <span class="opt-chip rec">권장: P</span></li>
+      <li><strong>(d)</strong> <span class="opt-chip x">옵션 M</span> (className conditional 분기 — 100% inline 제거 목표) 또는 <span class="opt-chip y">옵션 N</span> (정적만 변환, 동적 잔존)? <span class="opt-chip rec">권장: M (+ 색 변수만 N)</span></li>
+      <li><strong>(e)</strong> 동적 색 변수 잔존 케이스 (예: <code>background: cardBg</code>, <code>borderBottom: tab === ... ? '2px solid var(--accent)' : ...</code>) 처리 방향 확인 — 옵션 N 으로 색 변수만 inline 잔존 허용?</li>
+    </ol>
+
+    <div class="footer-note">
+      응답 예시:
+      <ul style="margin-top: 8px; padding-left: 20px; line-height: 1.8;">
+        <li><code>OK. 옵션 X + P + M (색 변수만 N)</code> — 권장 조합 확정</li>
+        <li><code>options revise: 옵션 Y 로, P 유지, M 으로</code> — 부분 변경</li>
+        <li><code>sketch fix: §2-P6 dynamic 케이스 예시 더 보여줘</code> — 시안 보강 요청</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- §5 시각 미리보기 박스                                            -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section">
+    <div class="section-title">§5 시각 미리보기 — Old/New 픽셀 동일 확인</div>
+    <div class="section-subtitle">같은 padding / gap / sizing 의 inline 박스 vs tailwind 박스를 좌우 배치 (5 케이스 grid)</div>
+
+    <div class="preview-row">
+      <div class="ttl">P1 — padding 2px 8px 칩 (L74 결과 배지)</div>
+      <div class="preview-grid">
+        <div>
+          <div class="ttl" style="color: #f59e0b;">OLD (inline)</div>
+          <span class="pv-inline-pad">정상</span>
+        </div>
+        <div>
+          <div class="ttl" style="color: #22c55e;">NEW (tailwind)</div>
+          <span class="pv-tw-pad">정상</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-row">
+      <div class="ttl">P2 — flex gap: 12 items-start (L105 KVRow)</div>
+      <div class="preview-grid">
+        <div>
+          <div class="ttl" style="color: #f59e0b;">OLD (inline)</div>
+          <div class="pv-inline-flex"><span></span><span></span><span></span></div>
+        </div>
+        <div>
+          <div class="ttl" style="color: #22c55e;">NEW (tailwind)</div>
+          <div class="pv-tw-flex"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-row">
+      <div class="ttl">P3 — width:28 height:28 fontSize:18 leading:1 (L379 체크 버튼)</div>
+      <div class="preview-grid">
+        <div>
+          <div class="ttl" style="color: #f59e0b;">OLD (inline)</div>
+          <span class="pv-inline-28">✓</span>
+        </div>
+        <div>
+          <div class="ttl" style="color: #22c55e;">NEW (옵션 X)</div>
+          <span class="pv-tw-28">✓</span>
+        </div>
+        <div>
+          <div class="ttl" style="color: #f59e0b;">옵션 Y 비교 (w-7=32)</div>
+          <span class="pv-tw-28" style="width:32px;height:32px;font-size:18px;">✓</span>
+          <span class="danger-pill">+4px</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-row">
+      <div class="ttl">P4 — flex:1 lineHeight:1.5 (L107 KVRow span)</div>
+      <div class="preview-grid">
+        <div>
+          <div class="ttl" style="color: #f59e0b;">OLD (inline)</div>
+          <div style="display:flex;background:var(--surface-sunken);padding:8px;border-radius:4px;">
+            <span class="pv-inline-leading">긴 한국어 텍스트 줄바꿈 lineHeight 1.5 확인용 샘플</span>
+          </div>
+        </div>
+        <div>
+          <div class="ttl" style="color: #22c55e;">NEW (옵션 P)</div>
+          <div style="display:flex;background:var(--surface-sunken);padding:8px;border-radius:4px;">
+            <span class="pv-tw-leading">긴 한국어 텍스트 줄바꿈 lineHeight 1.5 확인용 샘플</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-row">
+      <div class="ttl">P5 — background:none border:none cursor:pointer padding:1px 3px (L222 텍스트 버튼)</div>
+      <div class="preview-grid">
+        <div>
+          <div class="ttl" style="color: #f59e0b;">OLD (inline)</div>
+          <button class="pv-inline-btn">수정</button>
+          <button class="pv-inline-btn">삭제</button>
+        </div>
+        <div>
+          <div class="ttl" style="color: #22c55e;">NEW (tailwind)</div>
+          <button class="pv-tw-btn">수정</button>
+          <button class="pv-tw-btn">삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-caption">
+      위 박스들은 모두 픽셀 단위 동일하게 렌더되어야 함. 차이 발견 시 옵션 X (정확값) 미적용 케이스 의심 → 재변환 필요.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- 푸터                                                            -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="footer-note">
+    <strong>다음 단계 (Task 2 checkpoint):</strong><br />
+    이 sketch 확인 후 옵션 (X/Y, P/Q, M/N) + 색 변수 잔존 처리 (a~e) 확정 → Task 3 bulk apply 진행.<br /><br />
+    <strong>Phase A 결과 보존 (Task 3 자체 검증):</strong><br />
+    • L5 lucide-react import (ChevronLeft, Camera, Loader2, Check, X, Lock, Save) — 0 byte<br />
+    • &lt;Check&gt; &lt;X&gt; &lt;Lock&gt; &lt;Save&gt; JSX 8곳 — 0 byte<br />
+    • 색 토큰 className (bg-warning-bg, border-safe-bar, border-danger-bar 등) — 0 byte<br />
+    • audit-tier1/tier2 followup 결과 (border-{status}-bar 일관성) — 0 byte
+  </div>
+
+</div>
+</body>
+</html>
