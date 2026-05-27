@@ -9,10 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED)
-기준 production: f122572 (cherry-pick 5건 적용 완료 — 5/27 디자인 sweep + doubleCycle fix)
+상태:           안정 (SYNCED) — W1 완료
+진행 작업:       submission-ppt 트랙 W2~W8 대기중
+기준 production: cc57711 (W1 적용 완료 시점)
 마지막 동기화:   2026-05-27
-마지막 배포 URL: https://3919a665.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://9caaecef.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
@@ -45,11 +46,11 @@
 
 ---
 
-## 적용 이력 (다음 작업이 첫 entry)
+## 적용 이력
 
 | 날짜 | 작업명 | 적용된 main commits | production commits | 배포 URL | 메모 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | (이 표가 비어있다는 건 이 노트가 새로 만들어진 직후라는 뜻. 다음 작업이 첫 줄로 들어감) |
+| 2026-05-27 | submission-ppt W1 — 점검 카드 다운로드 2버튼 | (production 직접 작업, main 무관) | `cc57711` | https://9caaecef.cbc7119.pages.dev | LegalPage 카드 하단에 결과내역서/지적조치사진 다운로드. 후자 항상 disabled (W2 이후 활성). 사용자 검증 완료. |
 
 ---
 
