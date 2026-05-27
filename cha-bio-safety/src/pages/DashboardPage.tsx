@@ -16,6 +16,17 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 // iPhone Safari는 spec대로 처리되어 문제 없음. Android에만 min-height 강제.
 const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 
+// §6.1 Progress Color Rule (design-system v0.1.1)
+// 진척률 → 색 매핑. 모든 진척률 도넛/색바에서 일관 적용.
+// 카테고리별 임의 색 배정 폐지 (server stats.ts ITEM_COLORS 회전 폐기).
+function progressColor(pct: number): string {
+  const p = Number.isFinite(pct) ? pct : 0
+  if (p >= 100) return '#22c55e' // --status-safe-bar
+  if (p >= 50)  return '#3b82f6' // --accent
+  if (p >= 1)   return '#f59e0b' // --status-warning-bar
+  return '#8b949e'               // --text-tertiary (0% 미시작)
+}
+
 const MOCK_SCHEDULE: DashboardScheduleItem[] = [
   { id:'1', title:'VIP 투어 업무협조',     date:'', time:'09:30', category:'event',   status:'in_progress', completed:false },
   { id:'2', title:'엘리베이터 5호기 수리', date:'', time:'14:00', category:'elevator', status:'pending',     completed:false },
@@ -318,7 +329,7 @@ export default function DashboardPage() {
                             {m.doubleCycle ? (
                               <Donut
                                 pct={m.pct}
-                                color={m.color}
+                                color={progressColor(m.pct)}
                                 size={76}
                                 doubleCycle={{
                                   earlyPct: m.early_pct ?? 0,
@@ -328,7 +339,7 @@ export default function DashboardPage() {
                                 }}
                               />
                             ) : (
-                              <Donut pct={m.pct} color={m.color} size={76} />
+                              <Donut pct={m.pct} color={progressColor(m.pct)} size={76} />
                             )}
                             <div className="text-caption text-text-secondary text-center leading-snug whitespace-normal [word-break:keep-all]">{m.label}</div>
                             <div className={`text-caption font-mono font-semibold ${m.total > 0 && m.done >= m.total ? 'text-safe' : 'text-text-tertiary'}`}>{m.done}/{m.total}</div>
@@ -667,7 +678,7 @@ export default function DashboardPage() {
                   {m.doubleCycle ? (
                     <Donut
                       pct={m.pct}
-                      color={m.color}
+                      color={progressColor(m.pct)}
                       size={44}
                       doubleCycle={{
                         earlyPct: m.early_pct ?? 0,
@@ -677,7 +688,7 @@ export default function DashboardPage() {
                       }}
                     />
                   ) : (
-                    <Donut pct={m.pct} color={m.color} size={44} />
+                    <Donut pct={m.pct} color={progressColor(m.pct)} size={44} />
                   )}
                   <div className="text-caption text-text-tertiary text-center leading-snug max-w-[72px] [word-break:keep-all]">{m.label}</div>
                   <div className={`text-caption ${m.total > 0 && m.done >= m.total ? 'text-safe' : 'text-text-tertiary'}`}>{m.done}/{m.total}</div>
