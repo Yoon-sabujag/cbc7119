@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -89,19 +89,15 @@ function KVRow({ label, children }: { label: string; children: React.ReactNode }
 // ══════════════════════════════════════════════════════════════════
 // ── 데스크톱: 중앙 패널 (지적사항 목록) ─────────────────────────────
 // ══════════════════════════════════════════════════════════════════
-function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
+function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab, setActiveTab }: {
   roundId: string
   onSelectFinding: (fid: string) => void
   selectedFindingId: string | null
+  activeTab: 'internal' | 'submission'
+  setActiveTab: (t: 'internal' | 'submission') => void
 }) {
   const queryClient = useQueryClient()
-  const { staff } = useAuthStore()
-  const role = staff?.role
-  const [selectedResult, setSelectedResult] = useState('')
-  const [savingResult, setSavingResult] = useState(false)
-  const [uploadingReport, setUploadingReport] = useState(false)
   const [editingFinding, setEditingFinding] = useState<LegalFinding | null>(null)
-  const reportInputRef = useRef<HTMLInputElement>(null)
 
   const { data: round } = useQuery({
     queryKey: ['legal-round', roundId],
@@ -114,35 +110,6 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
     enabled: !!roundId,
     staleTime: 30_000,
   })
-
-  const effectiveResult = selectedResult || (round?.result ?? '')
-
-  const handleSaveResult = async () => {
-    setSavingResult(true)
-    try {
-      await legalApi.updateResult(roundId, { result: effectiveResult || undefined })
-      queryClient.invalidateQueries({ queryKey: ['legal-round', roundId] })
-      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
-      toast.success('점검 결과 저장')
-    } catch { toast.error('저장 실패') }
-    finally { setSavingResult(false) }
-  }
-
-  const handleReportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return; e.target.value = ''
-    setUploadingReport(true)
-    try {
-      const form = new FormData(); form.append('file', file, file.name); form.append('folder', `legal/${roundId}/report`)
-      const token = useAuthStore.getState().token
-      const res = await fetch('/api/uploads', { method: 'POST', body: form, headers: { Authorization: `Bearer ${token}` } })
-      const json = await res.json() as { success: boolean; data?: { key: string } }
-      if (!json.success || !json.data?.key) throw new Error()
-      await legalApi.updateResult(roundId, { report_file_key: json.data.key })
-      queryClient.invalidateQueries({ queryKey: ['legal-round', roundId] })
-      toast.success('보고서 업로드 완료')
-    } catch { toast.error('업로드 실패') }
-    finally { setUploadingReport(false) }
-  }
 
   const handleDelete = async (finding: LegalFinding) => {
     try {
@@ -160,61 +127,90 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
     return b.createdAt.localeCompare(a.createdAt)
   })
 
+  const selectedCount = (findings ?? []).filter(f => f.submissionSelected).length
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* 헤더 */}
-      <div style={{ padding: '16px 16px 8px', flexShrink: 0 }}>
+      {/* 헤더 (title + date 만; result/저장/보고서 UI 는 1열 카드로 이동 또는 제거됨 — W3 / W4) */}
+      <div style={{ padding: '16px 16px 12px', flexShrink: 0 }}>
         <div className="text-body-sm font-bold text-text-primary">{round?.title ?? '지적사항 목록'}</div>
         {round && <div className="text-caption leading-none text-text-secondary" style={{ marginTop: 2 }}>{fmtDate(round.date)}{round.endDate ? ` ~ ${fmtDate(round.endDate)}` : ''}</div>}
       </div>
 
-      {/* 관리자 도구 */}
-      {role === 'admin' && round && (
-        <div style={{ padding: '0 16px 8px', display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
-          <select value={effectiveResult} onChange={e => setSelectedResult(e.target.value)} className="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style={{ padding: '4px 8px', appearance: 'none', cursor: 'pointer' }}>
-            <option value="">미입력</option>
-            <option value="pass">적합</option>
-            <option value="fail">부적합</option>
-            <option value="conditional">조건부적합</option>
-          </select>
-          <button onClick={handleSaveResult} disabled={savingResult} className="bg-accent text-text-on-accent text-caption font-bold leading-none rounded-sm" style={{ height: 28, padding: '0 10px', border: 'none', cursor: 'pointer', opacity: savingResult ? 0.6 : 1 }}>저장</button>
-          <input ref={reportInputRef} type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleReportUpload} />
-          {round.reportFileKey ? (
-            <button onClick={() => window.open('/api/uploads/' + round.reportFileKey, '_blank')} className="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style={{ height: 28, padding: '0 10px', cursor: 'pointer' }}>보고서</button>
-          ) : (
-            <button onClick={() => reportInputRef.current?.click()} disabled={uploadingReport} className="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-secondary rounded-sm" style={{ height: 28, padding: '0 10px', cursor: 'pointer', opacity: uploadingReport ? 0.6 : 1 }}>{uploadingReport ? '...' : '보고서 업로드'}</button>
-          )}
-        </div>
-      )}
+      {/* 탭 헤더 */}
+      <div className="border-b border-border-default" style={{ display: 'flex', flexShrink: 0 }}>
+        {([
+          { key: 'internal' as const, label: '내부용', count: sorted.length },
+          { key: 'submission' as const, label: '제출용', count: selectedCount },
+        ]).map(t => {
+          const isActive = activeTab === t.key
+          return (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`text-label font-bold leading-none ${isActive ? 'text-accent' : 'text-text-tertiary'}`}
+              style={{
+                flex: 1,
+                padding: '12px 8px',
+                background: isActive ? 'var(--surface-page)' : 'var(--surface-raised)',
+                border: 'none',
+                borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                cursor: 'pointer',
+              }}
+            >
+              {t.label}
+              <span
+                className="text-caption font-bold leading-none"
+                style={{
+                  marginLeft: 6,
+                  padding: '2px 7px',
+                  borderRadius: 99,
+                  background: isActive ? 'var(--accent)' : 'var(--surface-sunken)',
+                  color: isActive ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                }}
+              >{t.count}</span>
+            </button>
+          )
+        })}
+      </div>
 
-      {/* 목록 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {isLoading && <div className={SKELETON_CLS} style={SKELETON_STYLE} />}
-        {sorted.length === 0 && !isLoading && (
-          <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>지적사항 없음</div>
-        )}
-        {sorted.map(f => (
-          <div
-            key={f.id}
-            onClick={() => onSelectFinding(f.id)}
-            className={`bg-surface-sunken rounded-md ${selectedFindingId === f.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${f.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'}`}
-            style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span className="text-label font-medium text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description}</span>
-              <span className={`${f.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'} text-caption font-bold leading-none rounded-sm`} style={{ padding: '1px 6px', flexShrink: 0 }}>{f.status === 'open' ? '미조치' : '완료'}</span>
-            </div>
-            <div className="text-caption leading-none text-text-secondary">{f.location ?? '위치 미지정'}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span className="text-caption leading-none text-text-tertiary">{fmtDate(f.createdAt)}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button onClick={e => { e.stopPropagation(); setEditingFinding(f) }} className="text-caption leading-none text-text-tertiary" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>수정</button>
-                <button onClick={e => { e.stopPropagation(); handleDelete(f) }} className="text-caption leading-none text-text-tertiary" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>삭제</button>
+      {/* 본문 */}
+      {activeTab === 'internal' ? (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {isLoading && <div className={SKELETON_CLS} style={SKELETON_STYLE} />}
+          {sorted.length === 0 && !isLoading && (
+            <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>지적사항 없음</div>
+          )}
+          {sorted.map(f => (
+            <div
+              key={f.id}
+              onClick={() => onSelectFinding(f.id)}
+              className={`bg-surface-sunken rounded-md ${selectedFindingId === f.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${f.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'}`}
+              style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span className="text-label font-medium text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description}</span>
+                <span className={`${f.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'} text-caption font-bold leading-none rounded-sm`} style={{ padding: '1px 6px', flexShrink: 0 }}>{f.status === 'open' ? '미조치' : '완료'}</span>
+              </div>
+              <div className="text-caption leading-none text-text-secondary">{f.location ?? '위치 미지정'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="text-caption leading-none text-text-tertiary">{fmtDate(f.createdAt)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button onClick={e => { e.stopPropagation(); setEditingFinding(f) }} className="text-caption leading-none text-text-tertiary" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>수정</button>
+                  <button onClick={e => { e.stopPropagation(); handleDelete(f) }} className="text-caption leading-none text-text-tertiary" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>삭제</button>
+                </div>
               </div>
             </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <div className="text-label text-text-tertiary" style={{ lineHeight: 1.6 }}>
+            제출용 탭 (W5에서 구현)<br />
+            <span className="text-caption text-text-disabled">체크박스 + 라벨 입력 + 자동저장</span>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* 수정 모달 — FindingEditModal 이 조치 완료 메모/사진 편집 capability 보유 (260520-x4q) */}
       {editingFinding && (
@@ -412,6 +408,8 @@ export default function LegalPage() {
   // 데스크톱 3분할 상태
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null)
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null)
+  // 2열 탭 (internal=기존 finding list / submission=PPT 제출용 W5)
+  const [activeTab, setActiveTab] = useState<'internal' | 'submission'>('internal')
 
   const { data: rounds, isLoading, isError, refetch } = useQuery({
     queryKey: ['legal-rounds', year],
@@ -579,6 +577,8 @@ export default function LegalPage() {
               roundId={selectedRoundId}
               onSelectFinding={fid => setSelectedFindingId(fid)}
               selectedFindingId={selectedFindingId}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
             />
           ) : (
             <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>좌측에서 점검을 선택하세요</div>
