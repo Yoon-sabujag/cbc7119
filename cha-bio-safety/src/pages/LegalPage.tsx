@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ChevronLeft, Camera, Loader2 } from 'lucide-react'
+import { ChevronLeft, Camera, Loader2, Check, X, Lock, Save } from 'lucide-react'
 import { legalApi } from '../utils/api'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useAuthStore } from '../stores/authStore'
@@ -377,7 +377,7 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
                         : 'border-2 border-border-strong text-text-disabled'
                   }`}
                   style={{ width: 28, height: 28, fontSize: 18, lineHeight: 1, cursor: cardDisabled ? 'not-allowed' : 'pointer' }}
-                >{isSelected ? '✓' : ''}</button>
+                >{isSelected ? <Check size={14} className="inline-block" /> : null}</button>
               </div>
               <textarea
                 value={label}
@@ -401,17 +401,17 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <span className="text-caption font-bold text-text-tertiary">사진 :</span>
                 <span className={`text-caption font-bold leading-none rounded-sm ${hasBefore ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
-                  조치 전 {hasBefore ? '✓' : '✗'}
+                  조치 전 {hasBefore ? <Check size={12} className="inline-block align-text-bottom ml-0.5" /> : <X size={12} className="inline-block align-text-bottom ml-0.5" />}
                 </span>
                 <span className={`text-caption font-bold leading-none rounded-sm ${hasAfter ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
-                  조치 후 {hasAfter ? '✓' : '✗'}
+                  조치 후 {hasAfter ? <Check size={12} className="inline-block align-text-bottom ml-0.5" /> : <X size={12} className="inline-block align-text-bottom ml-0.5" />}
                 </span>
               </div>
               <div className="text-caption leading-none" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 {!photosOk ? (
                   <span className="text-danger">사진 부족 — 저장 불가</span>
                 ) : isLocked ? (
-                  <span className="text-text-tertiary">🔒 제출 완료</span>
+                  <span className="text-text-tertiary inline-flex items-center gap-1"><Lock size={12} />제출 완료</span>
                 ) : !isSelected ? (
                   <span className="text-text-tertiary">—</span>
                 ) : saveState === 'saving' ? (
@@ -535,7 +535,7 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
   // 인디케이터 라벨
   const indicatorLabel = (() => {
     if (count === 0) return '대상 없음'
-    if (isLocked) return '🔒 제출 완료'
+    if (isLocked) return <><Lock size={12} className="inline-block align-text-bottom mr-1" />제출 완료</>
     if (genState === 'saving') return '저장중...'
     if (genState === 'error') return '저장 실패'
     if (genState === 'dirty') return '변경됨 · 자동저장 대기'
@@ -593,10 +593,10 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
             type="button"
             onClick={handleSaveNow}
             disabled={count === 0 || isLocked || genState === 'saving'}
-            className={`border-0 ${count === 0 || isLocked || genState === 'saving' ? 'bg-surface-sunken text-text-disabled' : genState === 'dirty' || genState === 'error' ? 'bg-warning text-text-on-accent' : 'bg-accent text-text-on-accent'}`}
+            className={`border-0 ${count === 0 || isLocked || genState === 'saving' ? 'bg-surface-sunken text-text-disabled' : genState === 'dirty' || genState === 'error' ? 'bg-warning-bg text-warning' : 'bg-accent text-text-on-accent'}`}
             style={{ height: 32, padding: '0 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: count === 0 || isLocked || genState === 'saving' ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            {genState === 'saving' ? '저장중...' : '💾 저장하기'}
+            {genState === 'saving' ? '저장중...' : <><Save size={14} className="inline-block align-text-bottom mr-1" />저장하기</>}
           </button>
         </div>
       </div>
@@ -673,7 +673,7 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
 
       {isLocked && (
         <div className="bg-safe-bg text-safe text-caption font-bold" style={{ padding: '6px 16px', textAlign: 'center', flexShrink: 0 }}>
-          🔒 제출 완료된 점검 — 재생성 불가
+          <Lock size={14} className="inline-block align-text-bottom mr-1" />제출 완료된 점검 — 재생성 불가
         </div>
       )}
     </div>
@@ -1010,7 +1010,7 @@ export default function LegalPage() {
                       if (!isAdmin || isLocked) return
                       setPendingStatuses(prev => ({ ...prev, [round.id]: effectiveStatus === 'completed' ? 'pending' : 'completed' }))
                     }}
-                    className={`text-caption font-bold leading-none rounded-sm border ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe border-safe' : 'bg-warning-bg text-warning border-warning'}`}
+                    className={`text-caption font-bold leading-none rounded-sm ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}
                     style={{ height: 26, padding: '0 10px', cursor: isAdmin && !isLocked ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
                   >
                     제출 {effectiveStatus === 'completed' ? '완료' : '미완료'}
@@ -1019,9 +1019,9 @@ export default function LegalPage() {
                     <button
                       type="button"
                       disabled
-                      className="text-caption font-bold leading-none rounded-sm border border-safe bg-safe-bg text-safe"
+                      className="text-caption font-bold leading-none rounded-sm bg-safe-bg text-safe"
                       style={{ height: 26, padding: '0 10px', cursor: 'default', whiteSpace: 'nowrap' }}
-                    >🔒 종결</button>
+                    ><Lock size={12} className="inline-block align-text-bottom mr-1" />종결</button>
                   ) : (
                     <button
                       type="button"
@@ -1030,7 +1030,7 @@ export default function LegalPage() {
                         if (!isAdmin || !isDirty) return
                         saveStatusMutation.mutate({ id: round.id, status: effectiveStatus })
                       }}
-                      className={`text-caption font-bold leading-none rounded-sm border-0 ${isDirty ? 'bg-warning text-text-on-accent' : 'bg-accent text-text-on-accent'} disabled:bg-surface-sunken disabled:text-text-disabled`}
+                      className={`text-caption font-bold leading-none rounded-sm border-0 ${isDirty ? 'bg-warning-bg text-warning' : 'bg-accent text-text-on-accent'} disabled:bg-surface-sunken disabled:text-text-disabled`}
                       style={{ height: 26, padding: '0 10px', cursor: isAdmin && isDirty ? 'pointer' : 'not-allowed' }}
                     >
                       {isSaving ? '저장중...' : isDirty ? '저장 *' : '저장'}
@@ -1040,7 +1040,7 @@ export default function LegalPage() {
               )}
               {!isDesktop && (
                 <span
-                  className={`text-caption font-bold leading-none rounded-sm border ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe border-safe' : 'bg-warning-bg text-warning border-warning'}`}
+                  className={`text-caption font-bold leading-none rounded-sm ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}
                   style={{ padding: '3px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
                 >
                   제출 {effectiveStatus === 'completed' ? '완료' : '미완료'}
