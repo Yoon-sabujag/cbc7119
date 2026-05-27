@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — W2 완료
-진행 작업:       submission-ppt 트랙 W3~W8 대기중
-기준 production: e0659bf (W2 적용 완료 시점)
+상태:           안정 (SYNCED) — submission-ppt 트랙 완결
+진행 작업:       없음
+기준 production: (W9 fix 완료 후 HEAD — git log -1 확인)
 마지막 동기화:   2026-05-27
-마지막 배포 URL: https://ace4dfdc.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://4b396dd0.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
@@ -52,6 +52,13 @@
 |---|---|---|---|---|---|
 | 2026-05-27 | submission-ppt W1 — 점검 카드 다운로드 2버튼 | (production 직접 작업, main 무관) | `cc57711` | https://9caaecef.cbc7119.pages.dev | LegalPage 카드 하단에 결과내역서/지적조치사진 다운로드. 후자 항상 disabled (W2 이후 활성). 사용자 검증 완료. |
 | 2026-05-27 | submission-ppt W2 — DB 0087 + lock guard | (production 직접 작업) | `e0659bf` | https://ace4dfdc.cbc7119.pages.dev | 4 컬럼 추가 (submission_status / ppt_file_key / submission_selected / submission_label). API GET 응답 확장 + mutation lock 가드 추가. 시각 변화 없음. prod D1 fire 카드 2건 모두 submission_status='pending' default 확인. |
+| 2026-05-27 | submission-ppt W3 — 1열 토글/저장 + strip 색 단일화 | (production 직접 작업) | (push hook auto) | https://93b9530e.cbc7119.pages.dev | 1열 카드 우측에 제출 미완료/완료 토글 + 저장. admin only. lock 시 🔒 종결. strip 색 = submission_status 기반 (완료=safe, 미완료=warning). |
+| 2026-05-27 | submission-ppt W4 — 2열 헤더 정리 + 내부용/제출용 탭 + 결과내역서 업로드/삭제 | (production 직접 작업) | (push hook auto) | https://4df0dedb.cbc7119.pages.dev | FindingsPanel 헤더 단순화. 탭 분리. 1열 카드 결과내역서 버튼 = 업로드/다운로드 분기 + X 삭제 (admin+!locked). PATCH null 처리. |
+| 2026-05-27 | submission-ppt W5 — 제출용 탭 (체크 + 라벨 + 자동저장) + textarea 커서 fix | (production 직접 작업) | (push hook auto) | https://2ce0ba11.cbc7119.pages.dev | SubmissionTabPanel 신설. 500ms 디바운스. 사진 부족 시 저장 disabled. localLabels 유지로 커서 점프 사고 해결. |
+| 2026-05-27 | submission-ppt W6 — 3열 PPT 미리보기 UI | (production 직접 작업) | (push hook auto) | https://fcb13cea.cbc7119.pages.dev | SubmissionPreviewPanel 신설. 표지 + 본문 슬라이드 + 페이지 네비. 사진은 R2 실제 미리보기 (a4 가로 비율). |
+| 2026-05-27 | submission-ppt W7 — 양식 슬림화 + R2 + 서버측 PPT 생성 (표지) | (production 직접 작업) | (push hook auto) | https://89aa8a8b.cbc7119.pages.dev | 양식 PPTX 1.17MB (slide1+slide2) R2 업로드. fflate 로 서버측 생성 (JSZip 호환 안 됨). 표지 동적 ({YYYY}년 {종합정밀/작동기능}점검). 클라이언트 10초 자동저장. |
+| 2026-05-27 | submission-ppt W8 — 본문 라벨 + 사진 임베딩 + 페이지 복제 + 다운로드 파일명 | (production 직접 작업) | (push hook auto) | https://1409a619.cbc7119.pages.dev | slide2 4 라벨 셀 패치. 페이지 복제 (ceil(N/2)). 사진 페이지별 R2 GET → media/image{N}.jpeg 추가 + rels redirect. rot 회전 제거. 다운로드 파일명 {YYYY.MM)차바이오... 형식. |
+| 2026-05-27 | submission-ppt W9 — 결과내역서 와치독 API + ps1 패턴 | (production 직접 작업) | (push hook auto) | https://4b396dd0.cbc7119.pages.dev | 신규 API /api/legal/upload-report (admin only, 매칭 + reportFileKey 갱신). watchdog.ps1 GROUPS 에 legal_report/legal_ppt 추가. Process-LegalReportPdf = R2 업로드 + 매칭 + 폴더 이동. ps1 사용자 Windows 컴퓨터에 별도 복사 필요. |
 
 ---
 
