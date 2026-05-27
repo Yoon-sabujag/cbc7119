@@ -130,9 +130,9 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
           transition: 'transform 0.3s cubic-bezier(.4,0,.2,1)',
         }}
       >
-        {/* 헤더 — SettingsPanel 시각 통일 (W11 balance): icon + 단일 title 18px + close X=14, 부제 제거 */}
+        {/* 헤더 — SettingsPanel 시각 통일 (W11 balance v2): 로고 24x24 (gear 16과 시각 비중 균형) + 단일 title 18px text-title + close X=14, 부제 제거 */}
         <div className="flex items-center gap-2.5 px-[15px] py-3 border-b border-border-default shrink-0">
-          <img src="/icons/icon-192.png" alt="" className="w-[30px] h-[30px] rounded-[8px] shrink-0" />
+          <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-[8px] shrink-0" />
           <span className="text-title font-bold text-text-primary flex-1">차바이오컴플렉스</span>
           <button
             onClick={onClose}
