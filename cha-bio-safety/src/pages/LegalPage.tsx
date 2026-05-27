@@ -1070,7 +1070,7 @@ export default function LegalPage() {
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleDeleteReport(round) }}
                       title="결과내역서 삭제 (새 파일 업로드 시)"
-                      className="bg-surface-active text-text-secondary border border-border-strong"
+                      className="bg-danger-bar text-text-on-accent border-0"
                       style={{
                         position: 'absolute',
                         top: -6, right: -6,
