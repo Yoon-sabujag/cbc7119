@@ -68,8 +68,83 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
       files['ppt/slides/slide1.xml'] = strToU8(s)
     }
 
-    // 5. 본문 슬라이드 (slide2) — W7 에선 양식 그대로 (W8 에서 라벨/사진/페이지 복제)
-    // 사용자 데이터는 W8 까지 안 들어감
+    // 5. 본문 슬라이드 (slide2) — 라벨 패치 + 페이지 복제 (사진 임베딩은 다음 step)
+    // labelFor: submission_label 우선 / 없으면 location + description prefill
+    const labelFor = (f: { location: string | null; description: string; submission_label: string | null }) =>
+      (f.submission_label ?? `${f.location ?? ''} ${f.description}`).trim()
+
+    // 페이지 분할 (2건씩)
+    const pages: Array<{ left: typeof eligible[number]; right: typeof eligible[number] | null }> = []
+    for (let i = 0; i < eligible.length; i += 2) {
+      pages.push({ left: eligible[i], right: eligible[i + 1] ?? null })
+    }
+
+    // 단일 슬라이드 라벨 패치 함수 — 4 라벨 셀 (Row 0 좌/우 = 조치 전, Row 2 좌/우 = 조치 후)
+    const patchSlideLabels = (xml: string, page: typeof pages[number]): string => {
+      const leftBefore = page.left ? `${labelFor(page.left)} 조치 전` : ''
+      const rightBefore = page.right ? `${labelFor(page.right)} 조치 전` : ''
+      const leftAfter = page.left ? `${labelFor(page.left)} 조치 후` : ''
+      const rightAfter = page.right ? `${labelFor(page.right)} 조치 후` : ''
+      const labelMap: Record<number, string> = { 0: leftBefore, 1: rightBefore, 4: leftAfter, 5: rightAfter }
+      const newP = (text: string) =>
+        `<a:p><a:pPr algn="ctr" latinLnBrk="1"/><a:r><a:rPr lang="ko-KR" altLang="en-US" sz="1000" b="1" dirty="0"><a:solidFill><a:schemeClr val="tx1"/></a:solidFill><a:latin typeface="맑은 고딕" pitchFamily="50" charset="-127"/><a:ea typeface="맑은 고딕" pitchFamily="50" charset="-127"/></a:rPr><a:t>${escapeXml(text)}</a:t></a:r></a:p>`
+      let cellIdx = 0
+      return xml.replace(/<a:tc[^>]*>[\s\S]*?<\/a:tc>/g, (match) => {
+        const idx = cellIdx++
+        if (idx in labelMap) {
+          return match.replace(/<a:p>[\s\S]*?<\/a:p>/, newP(labelMap[idx]))
+        }
+        return match
+      })
+    }
+
+    // slide2 = 첫 페이지 (텍스트만 패치, 사진은 양식 그대로)
+    const slide2OrigXml = strFromU8(files['ppt/slides/slide2.xml'])
+    const slide2RelsXml = strFromU8(files['ppt/slides/_rels/slide2.xml.rels'])
+    files['ppt/slides/slide2.xml'] = strToU8(patchSlideLabels(slide2OrigXml, pages[0]))
+
+    // 추가 페이지 (3건+) = slide3, slide4, ... 복제 + 각자 라벨 패치
+    if (pages.length > 1) {
+      for (let i = 1; i < pages.length; i++) {
+        const slideIdx = i + 2 // slide3, slide4...
+        files[`ppt/slides/slide${slideIdx}.xml`] = strToU8(patchSlideLabels(slide2OrigXml, pages[i]))
+        // 각 슬라이드의 rels = slide2 와 동일 (같은 image1-4 참조, 사진 임베딩은 다음 step)
+        files[`ppt/slides/_rels/slide${slideIdx}.xml.rels`] = strToU8(slide2RelsXml)
+      }
+
+      // presentation.xml: sldIdLst 에 slide3+ 추가
+      let presXml = strFromU8(files['ppt/presentation.xml'])
+      const newSldIds: string[] = []
+      for (let i = 1; i < pages.length; i++) {
+        const slideIdx = i + 2
+        const sldId = 1000 + slideIdx // 양식 ID 와 충돌 회피 (큰 값)
+        const rId = `rId${100 + i}` // 양식 rId1~3 와 충돌 회피
+        newSldIds.push(`<p:sldId id="${sldId}" r:id="${rId}"/>`)
+      }
+      presXml = presXml.replace(/<\/p:sldIdLst>/, newSldIds.join('') + '</p:sldIdLst>')
+      files['ppt/presentation.xml'] = strToU8(presXml)
+
+      // presentation.xml.rels: slide3+ entry 추가
+      let presRelsXml = strFromU8(files['ppt/_rels/presentation.xml.rels'])
+      const newRels: string[] = []
+      for (let i = 1; i < pages.length; i++) {
+        const slideIdx = i + 2
+        const rId = `rId${100 + i}`
+        newRels.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${slideIdx}.xml"/>`)
+      }
+      presRelsXml = presRelsXml.replace(/<\/Relationships>/, newRels.join('') + '</Relationships>')
+      files['ppt/_rels/presentation.xml.rels'] = strToU8(presRelsXml)
+
+      // [Content_Types].xml: slide3+ Override 추가
+      let ctXml = strFromU8(files['[Content_Types].xml'])
+      const newOverrides: string[] = []
+      for (let i = 1; i < pages.length; i++) {
+        const slideIdx = i + 2
+        newOverrides.push(`<Override PartName="/ppt/slides/slide${slideIdx}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`)
+      }
+      ctXml = ctXml.replace(/<\/Types>/, newOverrides.join('') + '</Types>')
+      files['[Content_Types].xml'] = strToU8(ctXml)
+    }
 
     // 6. ZIP 출력
     const outBuf = zipSync(files, { level: 6 })

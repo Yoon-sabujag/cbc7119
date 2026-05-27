@@ -37,6 +37,29 @@ function stripBySubmission(status: 'pending' | 'completed'): string {
   return status === 'completed' ? 'border-safe-bar' : 'border-warning-bar'
 }
 
+// ── 다운로드 파일명 — "{YYYY}.{MM})차바이오컴플렉스 {종합점검|작동기능점검} {결과내역서|지적사항 조치 작업사진}.{ext}"
+function pptFileName(round: LegalRound): string {
+  const year = round.date.slice(0, 4)
+  const month = round.date.slice(5, 7)
+  const kind = round.title.includes('종합') ? '종합점검' : '작동기능점검'
+  return `${year}.${month})차바이오컴플렉스 ${kind} 지적사항 조치 작업사진.pptx`
+}
+function reportFileName(round: LegalRound): string {
+  const year = round.date.slice(0, 4)
+  const month = round.date.slice(5, 7)
+  const kind = round.title.includes('종합') ? '종합점검' : '작동기능점검'
+  // 결과내역서는 PDF 확장자 가정 (와치독/수동 업로드 모두 PDF)
+  return `${year}.${month})차바이오컴플렉스 ${kind} 결과내역서.pdf`
+}
+function downloadWithName(url: string, fileName: string) {
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 // ── 결과 배지 ──────────────────────────────────────────────────────
 function ResultBadge({ result }: { result: LegalInspectionResult | null }) {
   const map: Record<string, { cls: string; label: string }> = {
@@ -1035,7 +1058,9 @@ export default function LegalPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      window.open('/api/uploads/' + round.reportFileKey, '_blank')
+                      if (round.reportFileKey) {
+                        downloadWithName('/api/uploads/' + round.reportFileKey, reportFileName(round))
+                      }
                     }}
                     className="text-caption font-bold leading-none rounded-sm bg-surface-raised border border-border-strong text-text-primary"
                     style={{ width: '100%', height: 32, cursor: 'pointer' }}
@@ -1084,7 +1109,9 @@ export default function LegalPage() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (round.pptFileKey) window.open('/api/uploads/' + round.pptFileKey, '_blank')
+                  if (round.pptFileKey) {
+                    downloadWithName('/api/uploads/' + round.pptFileKey, pptFileName(round))
+                  }
                 }}
                 disabled={!round.pptFileKey}
                 className={`text-caption font-bold leading-none rounded-sm ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
