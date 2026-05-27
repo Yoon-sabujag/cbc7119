@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Map as MapIcon, BarChart3, Siren, Users } from 'lucide-react'
+import { Map as MapIcon, BarChart3, Siren, Users, Flame, Clock, ClipboardList } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, CatBar } from '../components/ui'
@@ -526,7 +526,7 @@ export default function DashboardPage() {
             <span className="text-caption font-bold text-text-secondary">오늘 현황</span>
             {stats.streakDays > 0 && (
               <span className="font-mono text-caption font-semibold text-safe bg-safe-bg border border-safe px-2 py-0.5 rounded-pill">
-                연속 {stats.streakDays}일 점검 달성 🔥
+                연속 {stats.streakDays}일 점검 달성 <Flame size={12} className="inline-block align-text-bottom ml-0.5" />
               </span>
             )}
           </div>
@@ -635,13 +635,13 @@ export default function DashboardPage() {
           <div className="overflow-y-auto flex-1">
             {timed.length > 0 && (
               <>
-                <div className="px-2.5 pt-1 pb-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase">⏰ 시간 확정</div>
+                <div className="px-2.5 pt-1 pb-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase"><Clock size={11} className="inline-block align-text-bottom mr-1" />시간 확정</div>
                 {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
               </>
             )}
             {untimed.length > 0 && (
               <>
-                <div className="px-2.5 pt-1 pb-0.5 mt-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase border-t border-border-default">📋 시간 미정</div>
+                <div className="px-2.5 pt-1 pb-0.5 mt-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase border-t border-border-default"><ClipboardList size={11} className="inline-block align-text-bottom mr-1" />시간 미정</div>
                 {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
               </>
             )}

@@ -3,6 +3,7 @@ import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { Wrench } from 'lucide-react'
 import { elevatorInspectionApi, elevatorRepairApi } from '../utils/api'
 
 // ── 이미지 뷰어 (핀치투줌 + 패닝) ─────────────────────────────────
@@ -320,8 +321,9 @@ export default function ElevatorFindingDetailPage() {
               {/* 수리이력에서 선택 */}
               {!linkedRepair && (
                 <button onClick={() => setShowRepairPicker(!showRepairPicker)}
-                  style={{ width:'100%', marginBottom:12, padding:'10px', borderRadius:8, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.2)', color:'var(--info)', fontSize:12, fontWeight:700, cursor:'pointer' }}>
-                  🔧 수리이력에서 조치 선택
+                  style={{ width:'100%', marginBottom:12, padding:'10px', borderRadius:8, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.2)', color:'var(--info)', fontSize:12, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                  <Wrench size={14} />
+                  수리이력에서 조치 선택
                 </button>
               )}
               {showRepairPicker && !linkedRepair && (
@@ -345,7 +347,7 @@ export default function ElevatorFindingDetailPage() {
               {linkedRepair && (
                 <div style={{ marginBottom:12, background:'rgba(34,197,94,.06)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'8px 12px', display:'flex', alignItems:'center', gap:8 }}>
                   <div style={{ flex:1, fontSize:11 }}>
-                    <span style={{ fontWeight:700, color:'var(--safe)' }}>🔧 연결됨: </span>
+                    <span style={{ fontWeight:700, color:'var(--safe)', display:'inline-flex', alignItems:'center', gap:4, verticalAlign:'middle' }}><Wrench size={14} />연결됨: </span>
                     <span style={{ color:'var(--t1)' }}>{linkedRepair.date} · {linkedRepair.title}</span>
                   </div>
                   <button onClick={() => setLinkedRepair(null)} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:14, cursor:'pointer' }}>✕</button>

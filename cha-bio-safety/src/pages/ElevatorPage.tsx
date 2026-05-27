@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2, Camera, Loader2, ClipboardList, Search, User, BookOpen, Building2 } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, AlertCircle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2, Camera, Loader2, ClipboardList, Search, User, BookOpen, Building2 } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -717,8 +717,9 @@ export default function ElevatorPage() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{pure}</span>
                                 {floorMatch && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--info)', background: 'rgba(14,165,233,.12)', padding: '2px 6px', borderRadius: 6 }}>{floorMatch[1]}</span>}
-                                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: f.is_resolved ? 'var(--safe)' : 'var(--danger)' }}>
-                                  {f.is_resolved ? '✅ 수리완료' : '🚨 미해결'}
+                                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: f.is_resolved ? 'var(--safe)' : 'var(--danger)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                  {f.is_resolved ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                                  {f.is_resolved ? '수리완료' : '미해결'}
                                 </span>
                               </div>
                               <div style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtKstDateTime(f.fault_at)} · {f.reporter_name}</div>
@@ -851,8 +852,9 @@ export default function ElevatorPage() {
                               {/* 이상 항목 — 그리드 */}
                               {evKoelsa.issues.length > 0 && (
                                 <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
-                                  <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--warn)' }}>
-                                    ⚠️ 주의관찰 항목
+                                  <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--warn)', display:'flex', alignItems:'center', gap:4 }}>
+                                    <AlertTriangle size={12} />
+                                    주의관찰 항목
                                   </div>
                                   <div style={{ display:'grid', gridTemplateColumns:'50px 1fr auto', background:'var(--bg3)' }}>
                                     {evKoelsa.issues.map((issue, idx) => {
@@ -2627,7 +2629,10 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate, h
             </div>
           )}
           {f.status === 'resolved' && f.resolutionMemo && (
-            <div style={{ fontSize:9, color:'var(--safe)', marginTop:2 }}>✅ {f.resolutionMemo}</div>
+            <div style={{ fontSize:9, color:'var(--safe)', marginTop:2, display:'flex', alignItems:'center', gap:3 }}>
+              <CheckCircle2 size={10} style={{ flexShrink:0 }} />
+              <span>{f.resolutionMemo}</span>
+            </div>
           )}
         </div>
       ))}
@@ -3423,7 +3428,10 @@ function MinwonFindingsPanel({ elevatorId, year, order, repairs }: { elevatorId:
 
   return (
     <div style={{ background:'rgba(245,158,11,.06)', border:'1px solid rgba(245,158,11,.2)', borderRadius:10, padding:'12px 14px', marginTop:4 }}>
-      <div style={{ fontSize:12, fontWeight:700, color:'var(--warn)', marginBottom:8 }}>⚠️ 지적사항 및 조치</div>
+      <div style={{ fontSize:12, fontWeight:700, color:'var(--warn)', marginBottom:8, display:'flex', alignItems:'center', gap:4 }}>
+        <AlertTriangle size={12} />
+        지적사항 및 조치
+      </div>
 
       {/* 기존 지적사항 목록 */}
       {findings.map((f: any) => (
