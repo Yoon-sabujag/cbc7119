@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — LegalPage design sweep 적용
+상태:           안정 (SYNCED) — color token audit sweep 3건 적용
 진행 작업:       없음
-기준 production: `4baf5d2` (tb3-03: LegalPage emoji 8곳 + 색 토큰 4곳)
+기준 production: `068a7c8` (audit-tier2 border 일관성)
 마지막 동기화:   2026-05-27
-마지막 배포 URL: https://6d353eb9.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://c92fc8e3.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
@@ -61,6 +61,9 @@
 | 2026-05-27 | submission-ppt W9 — 결과내역서 와치독 API + ps1 패턴 | (production 직접 작업) | (push hook auto) | https://4b396dd0.cbc7119.pages.dev | 신규 API /api/legal/upload-report (admin only, 매칭 + reportFileKey 갱신). watchdog.ps1 GROUPS 에 legal_report/legal_ppt 추가. Process-LegalReportPdf = R2 업로드 + 매칭 + 폴더 이동. ps1 사용자 Windows 컴퓨터에 별도 복사 필요. |
 | 2026-05-27 | submission-ppt W8c — pic geometry + right-column null guard | (production 직접 작업) | `ab6a45c` | https://aefeba6a.cbc7119.pages.dev | slide2 picture 4개 모두 셀 좌표(CELLS)로 xfrm 재작성. rot="5400000" 제거 + rId6 portrait ext (2700000×4428000) → landscape (4428492×2700000) 보정. `<a:stretch/>` → `<a:stretch><a:fillRect/></a:stretch>` 명시화로 세로사진 4귀퉁이 강제 fit. page.right=null 일 때 rId5/rId6 picture shape 제거 — 홀수 finding 마지막 페이지의 우측 템플릿 잔존 사고 차단. 사용자 검증 완료 후 origin push 완료 (`cba84ca`). |
 | 2026-05-27 | tb3-03 LegalPage 디자인 sweep — emoji 8곳 → Lucide + 색 토큰 4곳 | `47b9088` | `4baf5d2` | https://6d353eb9.cbc7119.pages.dev | LegalPage.tsx 14+/14- 단일 hunk. emoji ✓/✗/🔒/💾 → Check/X/Lock/Save lucide. 저장버튼 옵션 B (bg-warning-bg text-warning outline). pill border 제거 (옵션 1). L538 string→JSX fragment (방법 A, ReactNode 자연 widen). inline style 141곳 무침범 (phase B 별도). cherry-pick 깔끔 (충돌 0). |
+| 2026-05-27 | color audit tier1 — 비표준 bg-{status} 7곳 → -bar | `7031815` | `f5117b4` | (배치 끝에 deploy) | InspectionPage 3 + DivPage 2 + ElevatorPage 1 + LegalFindingDetailPage 1. 솔리드 fill 용도는 -bar 변종 (text-on-accent 흰글 fill). cherry-pick 충돌 0. |
+| 2026-05-27 | color audit tier1 followup — LegalPage 결과내역서 X 빨강 | `df0f99d` | `94f31bc` | (배치 끝에 deploy) | LegalPage.tsx L1073 회색 X (bg-surface-active text-text-secondary border-strong) → 빨강 (bg-danger-bar text-text-on-accent border-0) — 같은 페이지 다른 사진제거 X 패턴 일관. cherry-pick 충돌 0. |
+| 2026-05-27 | color audit tier2 — border-{status} 57곳 → border-{status}-bar | `1270ce7` | `068a7c8` | https://c92fc8e3.cbc7119.pages.dev | InspectionPage 44 + FloorPlanPage 10 + DashboardPage 2 + SchedulePage 1. perl lookahead (?![-\w]) 로 -bar/-bg variant 보호. 시각 변화 미미 (border 살짝 더 saturated). 3건 배치로 단일 deploy. cherry-pick 충돌 0. |
 
 ---
 
