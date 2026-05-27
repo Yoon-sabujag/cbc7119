@@ -32,6 +32,11 @@ function accentColor(result: LegalInspectionResult | null): string {
   return 'border-border-strong'
 }
 
+// ── 1열 카드 strip 색 (submission_status 기준) ──────────────────────────
+function stripBySubmission(status: 'pending' | 'completed'): string {
+  return status === 'completed' ? 'border-safe-bar' : 'border-warning-bar'
+}
+
 // ── 결과 배지 ──────────────────────────────────────────────────────
 function ResultBadge({ result }: { result: LegalInspectionResult | null }) {
   const map: Record<string, { cls: string; label: string }> = {
@@ -382,6 +387,27 @@ export default function LegalPage() {
 
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const years = genYears()
+  const { staff } = useAuthStore()
+  const isAdmin = staff?.role === 'admin'
+  const queryClient = useQueryClient()
+
+  // 카드별 토글 미저장 상태 (사용자가 토글했지만 저장 안 한 값)
+  const [pendingStatuses, setPendingStatuses] = useState<Record<string, 'pending' | 'completed'>>({})
+  const [savingRoundId, setSavingRoundId] = useState<string | null>(null)
+
+  const saveStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'pending' | 'completed' }) =>
+      legalApi.updateResult(id, { submission_status: status }),
+    onMutate: ({ id }) => setSavingRoundId(id),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', id] })
+      setPendingStatuses(prev => { const next = { ...prev }; delete next[id]; return next })
+      toast.success('제출 상태 저장됨')
+    },
+    onError: (err: any) => toast.error(err?.message ?? '저장 실패'),
+    onSettled: () => setSavingRoundId(null),
+  })
 
   // 데스크톱 3분할 상태
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null)
@@ -438,16 +464,65 @@ export default function LegalPage() {
         {!isLoading && !isError && filtered.length === 0 && (
           <div className="text-caption leading-none text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 16 }}>점검 이력 없음</div>
         )}
-        {!isLoading && !isError && filtered.map(round => (
+        {!isLoading && !isError && filtered.map(round => {
+          const effectiveStatus = pendingStatuses[round.id] ?? round.submissionStatus
+          const isDirty = effectiveStatus !== round.submissionStatus
+          const isLocked = round.submissionStatus === 'completed' && !isDirty
+          const isSaving = savingRoundId === round.id
+          return (
           <div
             key={round.id}
             onClick={() => handleRoundClick(round)}
-            className={`bg-surface-sunken rounded-md ${selectedRoundId === round.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${accentColor(round.result)}`}
+            className={`bg-surface-sunken rounded-md ${selectedRoundId === round.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${stripBySubmission(effectiveStatus)}`}
             style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span className="text-label font-bold text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.title}</span>
-              <ResultBadge result={round.result} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+              <span className="text-label font-bold text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingTop: 4 }}>{round.title}</span>
+              {isDesktop && (
+                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    disabled={!isAdmin || isLocked || isSaving}
+                    onClick={() => {
+                      if (!isAdmin || isLocked) return
+                      setPendingStatuses(prev => ({ ...prev, [round.id]: effectiveStatus === 'completed' ? 'pending' : 'completed' }))
+                    }}
+                    className={`text-caption font-bold leading-none rounded-sm border ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe border-safe' : 'bg-warning-bg text-warning border-warning'}`}
+                    style={{ height: 26, padding: '0 10px', cursor: isAdmin && !isLocked ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+                  >
+                    제출 {effectiveStatus === 'completed' ? '완료' : '미완료'}
+                  </button>
+                  {isLocked ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="text-caption font-bold leading-none rounded-sm border border-safe bg-safe-bg text-safe"
+                      style={{ height: 26, padding: '0 10px', cursor: 'default', whiteSpace: 'nowrap' }}
+                    >🔒 종결</button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={!isAdmin || !isDirty || isSaving}
+                      onClick={() => {
+                        if (!isAdmin || !isDirty) return
+                        saveStatusMutation.mutate({ id: round.id, status: effectiveStatus })
+                      }}
+                      className={`text-caption font-bold leading-none rounded-sm border-0 ${isDirty ? 'bg-warning text-text-on-accent' : 'bg-accent text-text-on-accent'} disabled:bg-surface-sunken disabled:text-text-disabled`}
+                      style={{ height: 26, padding: '0 10px', cursor: isAdmin && isDirty ? 'pointer' : 'not-allowed' }}
+                    >
+                      {isSaving ? '저장중...' : isDirty ? '저장 *' : '저장'}
+                    </button>
+                  )}
+                </div>
+              )}
+              {!isDesktop && (
+                <span
+                  className={`text-caption font-bold leading-none rounded-sm border ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe border-safe' : 'bg-warning-bg text-warning border-warning'}`}
+                  style={{ padding: '3px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                >
+                  제출 {effectiveStatus === 'completed' ? '완료' : '미완료'}
+                </span>
+              )}
             </div>
             <div className="text-caption leading-none text-text-secondary">
               {fmtDate(round.date)} · 지적 {round.findingCount} · 완료 {round.resolvedCount}
@@ -467,16 +542,20 @@ export default function LegalPage() {
               </button>
               <button
                 type="button"
-                disabled
-                onClick={(e) => e.stopPropagation()}
-                className="text-caption font-bold leading-none rounded-sm border border-border-default text-text-disabled"
-                style={{ flex: 1, height: 32, cursor: 'not-allowed', background: 'transparent' }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (round.pptFileKey) window.open('/api/uploads/' + round.pptFileKey, '_blank')
+                }}
+                disabled={!round.pptFileKey}
+                className={`text-caption font-bold leading-none rounded-sm ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
+                style={{ flex: 1, height: 32, cursor: round.pptFileKey ? 'pointer' : 'not-allowed', background: round.pptFileKey ? undefined : 'transparent' }}
               >
-                ↓ 지적조치사진 (미생성)
+                ↓ 지적조치사진{round.pptFileKey ? '' : ' (미생성)'}
               </button>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
