@@ -184,8 +184,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
       let relsXml = strFromU8(files[relsPath])
       for (const [rId, imageName] of Object.entries(slotImageNames)) {
         // <Relationship Id="rId3"...Target="../media/imageOLD.jpeg"/> → imageNew.jpeg
+        // ※ [^/]* 쓰면 Type URL 안의 "://schemas..." 의 / 때문에 매칭 실패 (W8 사고). [^>]* 사용
         relsXml = relsXml.replace(
-          new RegExp(`(<Relationship\\s+Id="${rId}"[^/]*Target=")[^"]+(")`),
+          new RegExp(`(<Relationship\\s+Id="${rId}"[^>]*Target=")[^"]+(")`),
           `$1../media/${imageName}$2`
         )
       }
