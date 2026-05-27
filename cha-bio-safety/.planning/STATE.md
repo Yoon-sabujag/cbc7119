@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-27 - Completed quick task 260527-gql: 코드베이스 잔존 emoji → Lucide sweep (5 파일 18 곳 + dead icon 필드 정리)
+Last activity: 2026-05-27 - Completed quick task 260527-tb3: LegalPage 디자인 sweep — emoji 8곳 → Lucide + 비표준 색 토큰 4곳 정리 (옵션 B/1/Save동반)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -108,6 +108,7 @@ Recent decisions affecting current work:
 | 260527-egj | 대시보드 월간 도넛 §6.1 Progress Color Rule 적용 (클라이언트 derive — progressColor helper + 4 곳 color prop 교체, API stats.ts 무수정, doubleCycle overlay 보존) | 2026-05-27 | a780d60 | [260527-egj-6-1-progress-color-rule-derive](./quick/260527-egj-6-1-progress-color-rule-derive/) |
 | 260527-fcd | 모바일 점검 카테고리 카드 강조 반전 (InspectionPage.tsx:5187 — 미시작 opacity-60 제거 / 완료에 opacity-50 추가 + safe-bg/safe-bar 유지, 옵션 B. 데스크톱 카드 무수정) | 2026-05-27 | 156f933 | [260527-fcd-dim-highlight](./quick/260527-fcd-dim-highlight/) |
 | 260527-gql | 코드베이스 잔존 unicode 이모지 → Lucide 전면 교체 (Dashboard 🔥⏰📋 / Inspection 🧯✅📋🔧 / Elevator ✅🚨⚠️ / Extinguishers 🔍 / FindingDetail 🔧 — 18 곳 live + INSPECT_RESULT_OPTIONS / CATEGORY_GROUPS / ZONE_CONFIG dead icon 필드 정리. §7.1 룰 enforce. 데스크톱 카드 byte 무수정) | 2026-05-27 | aa381be | [260527-gql-emoji-lucide-sweep-5-18-7-1-enforce](./quick/260527-gql-emoji-lucide-sweep-5-18-7-1-enforce/) |
+| 260527-tb3 | LegalPage (소방점검 관리) 디자인 sweep — production submission-ppt 트랙 (W1~W9) 머지 후 잔존 emoji 8곳 (체크박스 ✓ / 사진상태 ✓✗ / 잠금 🔒 ×4 / 저장 💾) → Lucide (Check/X/Lock/Save) + 비표준 색 토큰 5곳 (bg-warning / border-safe / border-warning) 정리. 옵션 B (dirty=warning-bg outline) / 옵션 1 (pill border 제거) / Save 아이콘 동반. inline style 141곳 별도 phase. 비즈니스 로직 0 변경. | 2026-05-27 | 47b9088 | [260527-tb3-legalpage-sweep-emoji-8-lucide-4](./quick/260527-tb3-legalpage-sweep-emoji-8-lucide-4/) |
 
 ## Session Continuity
 
