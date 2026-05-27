@@ -19,6 +19,7 @@ $global:notifyIcon = $null
 $global:SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $global:MENU_PDF_PATTERN = '^CBC Weekly MENU \((\d{2})\.(\d{2})_(\d{2})\.(\d{2})\)\.pdf$'
 $global:ELEV_CERT_PATTERN = '^Secure document \(2D Barcode\)(\s*\(\d+\))?\.pdf$'
+$global:LEGAL_REPORT_PATTERN = '^(\d{4})\.(\d{2})\)차바이오컴플렉스 (종합점검|작동기능점검) 결과내역서\.pdf$'
 
 # TLS 1.2 (Cloudflare 요구) + Windows 7 SSL 인증서 우회
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -370,6 +371,112 @@ function Process-MenuPdf($filePath) {
         }
     } catch {
         Show-Balloon "식단표 오류" "메뉴 등록 실패: $_"
+    }
+
+    return $true
+}
+
+# ── Process Legal Report PDF (소방점검 결과내역서 자동 R2 업로드) ────
+# 파일명: YYYY.MM)차바이오컴플렉스 (종합점검|작동기능점검) 결과내역서.pdf
+# 동작: API 로그인 → /api/uploads POST (R2) → /api/legal/upload-report POST (DB reportFileKey 매칭+갱신)
+# 식단표/검사성적서와 동일하게 R2 업로드 후 파일 이동은 안 함 (다운로드 폴더에 그대로 둠 — 사용자 수동 정리)
+function Process-LegalReportPdf($filePath) {
+    $fileName = Split-Path $filePath -Leaf
+    $reportMatch = [regex]::Match($fileName, $global:LEGAL_REPORT_PATTERN)
+    if (-not $reportMatch.Success) { return $false }
+
+    $year = [int]$reportMatch.Groups[1].Value
+    $month = [int]$reportMatch.Groups[2].Value
+    $kindKR = $reportMatch.Groups[3].Value
+    $kind = if ($kindKR -eq '종합점검') { 'comprehensive' } else { 'functional' }
+
+    # 다운로드 완료 대기
+    $prevSize = -1
+    for ($i = 0; $i -lt 15; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (-not (Test-Path $filePath)) { return $true }
+        $curSize = (Get-Item $filePath).Length
+        if ($curSize -eq $prevSize -and $curSize -gt 0) { break }
+        $prevSize = $curSize
+    }
+
+    Show-Balloon "결과내역서 감지" "$kindKR ${year}.${month} R2 업로드 중..."
+
+    $cfg = Load-Config
+    $apiBase = $global:WEB_APP_URL
+    $staffId = $cfg["api_staff_id"]
+    $password = $cfg["api_password"]
+    if (-not $staffId -or $staffId -eq "" -or -not $password -or $password -eq "") {
+        Show-Balloon "결과내역서 오류" "설정에서 관리자 사번/비밀번호를 입력하세요"
+        return $true
+    }
+
+    # 로그인
+    try {
+        $loginBody = @{ staffId = $staffId; password = $password } | ConvertTo-Json
+        $loginResp = Invoke-RestMethod -Uri "$apiBase/api/auth/login" -Method POST `
+            -Body ([System.Text.Encoding]::UTF8.GetBytes($loginBody)) `
+            -ContentType "application/json; charset=utf-8"
+        $token = $loginResp.data.token
+    } catch {
+        Show-Balloon "결과내역서 오류" "API 로그인 실패"
+        return $true
+    }
+
+    # PDF 업로드 (R2)
+    $pdfKey = $null
+    try {
+        $boundary = [System.Guid]::NewGuid().ToString()
+        $fileBytes = [System.IO.File]::ReadAllBytes($filePath)
+        $enc = [System.Text.Encoding]::UTF8
+        $crlf = "`r`n"
+        $hdr = "--$boundary$crlf" +
+               "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"$crlf" +
+               "Content-Type: application/pdf$crlf$crlf"
+        $folder = "legal/auto/$year-$($month.ToString('00'))"
+        $hdr = $hdr + "--$boundary$crlf" +
+               "Content-Disposition: form-data; name=`"folder`"$crlf$crlf" +
+               "$folder$crlf"
+        $ftr = "--$boundary--$crlf"
+        $hdrB = $enc.GetBytes($hdr)
+        $ftrB = $enc.GetBytes($ftr)
+        $body = New-Object byte[] ($hdrB.Length + $fileBytes.Length + $ftrB.Length)
+        [System.Buffer]::BlockCopy($hdrB, 0, $body, 0, $hdrB.Length)
+        [System.Buffer]::BlockCopy($fileBytes, 0, $body, $hdrB.Length, $fileBytes.Length)
+        [System.Buffer]::BlockCopy($ftrB, 0, $body, ($hdrB.Length + $fileBytes.Length), $ftrB.Length)
+
+        $uploadResp = Invoke-RestMethod -Uri "$apiBase/api/uploads" -Method POST -Body $body `
+            -ContentType "multipart/form-data; boundary=$boundary" `
+            -Headers @{ Authorization = "Bearer $token" }
+        $pdfKey = $uploadResp.data.key
+    } catch {
+        Show-Balloon "결과내역서 오류" "R2 업로드 실패: $_"
+        return $true
+    }
+
+    if (-not $pdfKey) {
+        Show-Balloon "결과내역서 오류" "업로드 응답에 key 없음"
+        return $true
+    }
+
+    # 매칭 + DB 갱신
+    try {
+        $linkBody = @{ year = $year; month = $month; kind = $kind; file_key = $pdfKey } | ConvertTo-Json
+        $linkResp = Invoke-RestMethod -Uri "$apiBase/api/legal/upload-report" -Method POST `
+            -Body ([System.Text.Encoding]::UTF8.GetBytes($linkBody)) `
+            -ContentType "application/json; charset=utf-8" `
+            -Headers @{ Authorization = "Bearer $token" }
+
+        if ($linkResp.success) {
+            $r = $linkResp.data
+            $msg = "$($r.title) ($($r.date))"
+            if ($r.replaced) { $msg += " — 이전 파일 교체" }
+            Show-Balloon "결과내역서 등록 완료" $msg
+        } else {
+            Show-Balloon "결과내역서 매칭 실패" $linkResp.error
+        }
+    } catch {
+        Show-Balloon "결과내역서 오류" "매칭 API 실패: $_"
     }
 
     return $true
@@ -742,6 +849,9 @@ function Handle-DownloadFile($path) {
 
     # 승강기 검사성적서 PDF 체크
     if (Process-ElevCertPdf $path) { return }
+
+    # 소방점검 결과내역서 PDF 체크
+    if (Process-LegalReportPdf $path) { return }
 
     $cfg = Load-Config
     foreach ($pat in $global:ALL_PATTERNS) {
