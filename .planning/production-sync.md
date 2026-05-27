@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — W1 완료
-진행 작업:       submission-ppt 트랙 W2~W8 대기중
-기준 production: cc57711 (W1 적용 완료 시점)
+상태:           안정 (SYNCED) — W2 완료
+진행 작업:       submission-ppt 트랙 W3~W8 대기중
+기준 production: e0659bf (W2 적용 완료 시점)
 마지막 동기화:   2026-05-27
-마지막 배포 URL: https://9caaecef.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://ace4dfdc.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
@@ -51,6 +51,7 @@
 | 날짜 | 작업명 | 적용된 main commits | production commits | 배포 URL | 메모 |
 |---|---|---|---|---|---|
 | 2026-05-27 | submission-ppt W1 — 점검 카드 다운로드 2버튼 | (production 직접 작업, main 무관) | `cc57711` | https://9caaecef.cbc7119.pages.dev | LegalPage 카드 하단에 결과내역서/지적조치사진 다운로드. 후자 항상 disabled (W2 이후 활성). 사용자 검증 완료. |
+| 2026-05-27 | submission-ppt W2 — DB 0087 + lock guard | (production 직접 작업) | `e0659bf` | https://ace4dfdc.cbc7119.pages.dev | 4 컬럼 추가 (submission_status / ppt_file_key / submission_selected / submission_label). API GET 응답 확장 + mutation lock 가드 추가. 시각 변화 없음. prod D1 fire 카드 2건 모두 submission_status='pending' default 확인. |
 
 ---
 
