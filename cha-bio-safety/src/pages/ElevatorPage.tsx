@@ -3197,7 +3197,7 @@ function MultiPhotoUpload({ label, keys, setKeys, max = 5 }: { label: string; ke
             />
             <button
               onClick={() => setKeys(keys.filter((_,i) => i !== idx))}
-              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-danger text-white border-0 cursor-pointer flex items-center justify-center"
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-danger-bar text-white border-0 cursor-pointer flex items-center justify-center"
             >
               <X size={9} strokeWidth={3} />
             </button>

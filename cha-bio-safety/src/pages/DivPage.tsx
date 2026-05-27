@@ -865,7 +865,7 @@ export default function DivPage() {
                       }`}
                     >
                       <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold flex-shrink-0 min-w-[56px] ${isDanger ? 'text-danger' : 'text-warning-bar'}`}>
-                        <span className={`w-2 h-2 rounded-full inline-block ${isDanger ? 'bg-danger' : 'bg-warning-bar'}`} />
+                        <span className={`w-2 h-2 rounded-full inline-block ${isDanger ? 'bg-danger-bar' : 'bg-warning-bar'}`} />
                         {isDanger ? '이상' : '주의'}
                       </span>
                       <span className="text-[14px] font-bold text-text-primary font-mono flex-shrink-0 min-w-[80px]">
@@ -974,7 +974,7 @@ export default function DivPage() {
                   : 'border-warning-bar/40 bg-warning-bg text-warning-bar'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full inline-block ${item.status === 'danger' ? 'bg-danger' : 'bg-warning-bar'}`} />
+              <span className={`w-2 h-2 rounded-full inline-block ${item.status === 'danger' ? 'bg-danger-bar' : 'bg-warning-bar'}`} />
               {item.point.id} {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
             </button>
           ))}

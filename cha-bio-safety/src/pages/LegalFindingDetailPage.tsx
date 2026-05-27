@@ -252,7 +252,7 @@ export default function LegalFindingDetailPage() {
                       <button
                         aria-label="사진 제거"
                         onClick={() => resolutionPhotos.removeSlot(i)}
-                        className="bg-danger rounded-full text-text-on-accent text-caption font-bold leading-none flex items-center justify-center"
+                        className="bg-danger-bar rounded-full text-text-on-accent text-caption font-bold leading-none flex items-center justify-center"
                         style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, border: 'none', cursor: 'pointer' }}
                       >✕</button>
                       {slot.uploading && (
