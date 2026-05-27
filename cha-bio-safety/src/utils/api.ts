@@ -351,7 +351,7 @@ export const legalApi = {
     api.get<import('../types').LegalRound[]>(`/legal${year ? `?year=${year}` : ''}`),
   get: (id: string) =>
     api.get<import('../types').LegalRound>(`/legal/${id}`),
-  updateResult: (id: string, body: { result?: string; report_file_key?: string; submission_status?: 'pending' | 'completed'; ppt_file_key?: string }) =>
+  updateResult: (id: string, body: { result?: string | null; report_file_key?: string | null; submission_status?: 'pending' | 'completed'; ppt_file_key?: string | null }) =>
     api.patch<void>(`/legal/${id}`, body),
   getFindings: (scheduleItemId: string) =>
     api.get<import('../types').LegalFinding[]>(`/legal/${scheduleItemId}/findings`),

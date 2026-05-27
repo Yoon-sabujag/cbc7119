@@ -71,19 +71,29 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, p
     return Response.json({ success: false, error: '관리자만 가능합니다' }, { status: 403 })
   }
 
-  let body: { result?: string; report_file_key?: string; submission_status?: string; ppt_file_key?: string }
+  let body: Record<string, any>
   try {
     body = await request.json()
   } catch {
     return Response.json({ success: false, error: '요청 본문 파싱 실패' }, { status: 400 })
   }
 
-  if (body.result !== undefined && !['pass', 'fail', 'conditional'].includes(body.result)) {
-    return Response.json({ success: false, error: "result는 'pass', 'fail', 'conditional' 중 하나여야 합니다" }, { status: 400 })
+  // 필드별 명시 존재 여부 체크 ('field' in body) — null 명시 vs undefined 구분
+  const hasResult = 'result' in body
+  const hasReportFileKey = 'report_file_key' in body
+  const hasSubmissionStatus = 'submission_status' in body
+  const hasPptFileKey = 'ppt_file_key' in body
+
+  if (hasResult && body.result !== null && !['pass', 'fail', 'conditional'].includes(body.result)) {
+    return Response.json({ success: false, error: "result는 'pass', 'fail', 'conditional' 또는 null 이어야 합니다" }, { status: 400 })
   }
 
-  if (body.submission_status !== undefined && !['pending', 'completed'].includes(body.submission_status)) {
+  if (hasSubmissionStatus && !['pending', 'completed'].includes(body.submission_status)) {
     return Response.json({ success: false, error: "submission_status는 'pending' 또는 'completed' 여야 합니다" }, { status: 400 })
+  }
+
+  if (!hasResult && !hasReportFileKey && !hasSubmissionStatus && !hasPptFileKey) {
+    return Response.json({ success: false, error: '수정할 필드가 없습니다' }, { status: 400 })
   }
 
   try {
@@ -96,30 +106,23 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, p
     }
 
     // Lock: 이미 completed 상태에서 submission_status 외 다른 필드 수정 시 거부
-    const onlyTogglingSubmissionStatus =
-      body.submission_status !== undefined &&
-      body.result === undefined &&
-      body.report_file_key === undefined &&
-      body.ppt_file_key === undefined
+    const onlyTogglingSubmissionStatus = hasSubmissionStatus && !hasResult && !hasReportFileKey && !hasPptFileKey
     if (existing.submission_status === 'completed' && !onlyTogglingSubmissionStatus) {
       return lockedResponse()
     }
 
-    await env.DB.prepare(`
-      UPDATE schedule_items
-      SET
-        result            = COALESCE(?, result),
-        report_file_key   = COALESCE(?, report_file_key),
-        submission_status = COALESCE(?, submission_status),
-        ppt_file_key      = COALESCE(?, ppt_file_key)
-      WHERE id = ?
-    `).bind(
-      body.result ?? null,
-      body.report_file_key ?? null,
-      body.submission_status ?? null,
-      body.ppt_file_key ?? null,
-      id,
-    ).run()
+    // 동적 SET: 명시된 필드만 업데이트 (null 도 그대로 반영)
+    const sets: string[] = []
+    const binds: any[] = []
+    if (hasResult)            { sets.push('result = ?');            binds.push(body.result ?? null) }
+    if (hasReportFileKey)     { sets.push('report_file_key = ?');   binds.push(body.report_file_key ?? null) }
+    if (hasSubmissionStatus)  { sets.push('submission_status = ?'); binds.push(body.submission_status) }
+    if (hasPptFileKey)        { sets.push('ppt_file_key = ?');      binds.push(body.ppt_file_key ?? null) }
+    binds.push(id)
+
+    await env.DB.prepare(
+      `UPDATE schedule_items SET ${sets.join(', ')} WHERE id = ?`
+    ).bind(...binds).run()
 
     return Response.json({ success: true })
   } catch (e) {

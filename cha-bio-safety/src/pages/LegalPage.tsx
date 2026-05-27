@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -405,6 +405,55 @@ export default function LegalPage() {
     onSettled: () => setSavingRoundId(null),
   })
 
+  // 결과내역서 업로드 (admin 전용; 카드 클릭 시 hidden file input 트리거)
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null)
+  const [uploadingRoundId, setUploadingRoundId] = useState<string | null>(null)
+  const triggerUpload = (roundId: string) => {
+    setUploadTargetId(roundId)
+    uploadInputRef.current?.click()
+  }
+  const handleReportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    const targetId = uploadTargetId
+    e.target.value = ''
+    setUploadTargetId(null)
+    if (!file || !targetId) return
+    setUploadingRoundId(targetId)
+    try {
+      const form = new FormData()
+      form.append('file', file, file.name)
+      form.append('folder', `legal/${targetId}/report`)
+      const token = useAuthStore.getState().token
+      const res = await fetch('/api/uploads', { method: 'POST', body: form, headers: { Authorization: `Bearer ${token}` } })
+      const json = await res.json() as { success: boolean; data?: { key: string } }
+      if (!json.success || !json.data?.key) throw new Error('upload failed')
+      await legalApi.updateResult(targetId, { report_file_key: json.data.key })
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', targetId] })
+      toast.success('결과내역서 업로드')
+    } catch (err: any) {
+      toast.error(err?.message ?? '업로드 실패')
+    } finally {
+      setUploadingRoundId(null)
+    }
+  }
+
+  // 결과내역서 삭제 (admin 전용, 새 파일 업로드 대비)
+  const deleteReportMutation = useMutation({
+    mutationFn: (id: string) => legalApi.updateResult(id, { report_file_key: null }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', id] })
+      toast.success('결과내역서 삭제')
+    },
+    onError: (err: any) => toast.error(err?.message ?? '삭제 실패'),
+  })
+  const handleDeleteReport = (round: LegalRound) => {
+    if (!confirm(`"${round.title}" 의 결과내역서를 삭제하시겠습니까?\n(R2 의 파일도 함께 정리 권장)`)) return
+    deleteReportMutation.mutate(round.id)
+  }
+
   // 데스크톱 3분할 상태
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null)
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null)
@@ -526,18 +575,58 @@ export default function LegalPage() {
               {fmtDate(round.date)} · 지적 {round.findingCount} · 완료 {round.resolvedCount}
             </div>
             <div style={{ display: 'flex', gap: 6, paddingTop: 6, borderTop: '1px dashed var(--border-default)' }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (round.reportFileKey) window.open('/api/uploads/' + round.reportFileKey, '_blank')
-                }}
-                disabled={!round.reportFileKey}
-                className={`text-caption font-bold leading-none rounded-sm ${round.reportFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
-                style={{ flex: 1, height: 32, cursor: round.reportFileKey ? 'pointer' : 'not-allowed', background: round.reportFileKey ? undefined : 'transparent' }}
-              >
-                ↓ 결과내역서{round.reportFileKey ? '' : ' (미업로드)'}
-              </button>
+              {/* 결과내역서: reportFileKey 있으면 다운로드 + (데스크톱 admin && !locked) X 삭제 / 없으면 (데스크톱 admin) 업로드 */}
+              {round.reportFileKey ? (
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      window.open('/api/uploads/' + round.reportFileKey, '_blank')
+                    }}
+                    className="text-caption font-bold leading-none rounded-sm bg-surface-raised border border-border-strong text-text-primary"
+                    style={{ width: '100%', height: 32, cursor: 'pointer' }}
+                  >↓ 결과내역서</button>
+                  {isDesktop && isAdmin && !isLocked && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteReport(round) }}
+                      title="결과내역서 삭제 (새 파일 업로드 시)"
+                      className="bg-surface-active text-text-secondary border border-border-strong"
+                      style={{
+                        position: 'absolute',
+                        top: -6, right: -6,
+                        width: 18, height: 18,
+                        borderRadius: '50%',
+                        fontSize: 12,
+                        lineHeight: 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                    >×</button>
+                  )}
+                </div>
+              ) : (
+                (() => {
+                  const canUpload = isDesktop && isAdmin && !isLocked
+                  const isUploading = uploadingRoundId === round.id
+                  return (
+                    <button
+                      type="button"
+                      disabled={!canUpload || isUploading}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (canUpload) triggerUpload(round.id)
+                      }}
+                      className={`text-caption font-bold leading-none rounded-sm ${canUpload ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
+                      style={{ flex: 1, height: 32, cursor: canUpload ? 'pointer' : 'not-allowed', background: canUpload ? undefined : 'transparent' }}
+                    >
+                      {isUploading ? '업로드중...' : (canUpload ? '⬆ 결과내역서 업로드' : '↓ 결과내역서 (미업로드)')}
+                    </button>
+                  )
+                })()
+              )}
               <button
                 type="button"
                 onClick={(e) => {
@@ -555,6 +644,15 @@ export default function LegalPage() {
           )
         })}
       </div>
+
+      {/* 결과내역서 업로드용 hidden file input — 카드의 업로드 버튼이 ref 통해 트리거 */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="application/pdf"
+        style={{ display: 'none' }}
+        onChange={handleReportFileChange}
+      />
     </div>
   )
 
