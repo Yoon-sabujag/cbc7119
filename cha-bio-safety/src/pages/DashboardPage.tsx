@@ -334,8 +334,8 @@ export default function DashboardPage() {
                                 doubleCycle={{
                                   earlyPct: m.early_pct ?? 0,
                                   latePct:  m.late_pct  ?? 0,
-                                  earlyColor: m.early_color ?? 'var(--info)',
-                                  lateColor:  m.late_color  ?? 'var(--warn)',
+                                  earlyColor: progressColor(m.early_pct ?? 0),
+                                  lateColor:  progressColor(m.late_pct  ?? 0),
                                 }}
                               />
                             ) : (
@@ -683,8 +683,8 @@ export default function DashboardPage() {
                       doubleCycle={{
                         earlyPct: m.early_pct ?? 0,
                         latePct:  m.late_pct  ?? 0,
-                        earlyColor: m.early_color ?? 'var(--info)',
-                        lateColor:  m.late_color  ?? 'var(--warn)',
+                        earlyColor: progressColor(m.early_pct ?? 0),
+                        lateColor:  progressColor(m.late_pct  ?? 0),
                       }}
                     />
                   ) : (
