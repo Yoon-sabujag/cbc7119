@@ -26,6 +26,8 @@ import {
   // Zone (3종)
   // 결과 (5종)
   CheckCircle2, AlertTriangle, XCircle, Wrench, HelpCircle,
+  // 라벨 / 빈상태 (1종) — 260527-gql §7.1 enforce
+  ClipboardList,
 } from 'lucide-react'
 import {
   StairsIcon, ShutterIcon, ExitSignIcon, SmokeVentIcon, HoseReelIcon, FireExtinguisherCustom,
@@ -48,23 +50,23 @@ const GROUND_SET   = new Set<Floor>(GROUND_LIST)
 const UNDER_SET    = new Set<Floor>(UNDER_LIST)
 
 // ── 카테고리 그룹 ──────────────────────────────────────
-const CATEGORY_GROUPS: { labels:string[]; icon:string; color:string; border:string; categories:string[] }[] = [
-  { labels:['특별피난계단','피난·방화시설','방화문'], icon:'🚪', color:'rgba(34,197,94,.12)',  border:'rgba(34,197,94,.3)',  categories:['특별피난계단'] },
-  { labels:['청정소화약제'],                         icon:'☁️', color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['청정소화약제'] },
-  { labels:['전실제연댐퍼','연결송수관'],              icon:'🛡️', color:'rgba(100,116,139,.12)',border:'rgba(100,116,139,.3)',categories:['전실제연댐퍼','연결송수관'] },
-  { labels:['주차장비','회전문'],                     icon:'🚗', color:'rgba(168,85,247,.12)', border:'rgba(168,85,247,.3)', categories:['주차장비','회전문'] },
-  { labels:['소방용전원공급반'],                       icon:'⚡', color:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.3)', categories:['소방용전원공급반'] },
-  { labels:['방화셔터'],                              icon:'⬜️', color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['방화셔터'] },
-  { labels:['DIV'],                                  icon:'📊', color:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.3)', categories:['DIV'] },
-  { labels:['컴프레셔'],                              icon:'💨', color:'rgba(100,116,139,.12)',border:'rgba(100,116,139,.3)',categories:['컴프레셔'] },
-  { labels:['유도등'],                               icon:'⬅️', color:'rgba(234,179,8,.12)',  border:'rgba(234,179,8,.3)',  categories:['유도등'] },
-  { labels:['배연창'],                               icon:'🪟', color:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', categories:['배연창'] },
-  { labels:['완강기'],                               icon:'🪢', color:'rgba(249,115,22,.12)', border:'rgba(249,115,22,.3)', categories:['완강기'] },
-  { labels:['소화전','비상콘센트'],                    icon:'🚰', color:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', categories:['소화전','비상콘센트'] },
-  { labels:['소화기'],                               icon:'🧯', color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['소화기'] },
-  { labels:['소방펌프'],                              icon:'🌊', color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['소방펌프'] },
-  { labels:['화재수신반'],                            icon:'🔔', color:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)',  categories:['화재수신반'] },
-  { labels:['CCTV'],                               icon:'📹', color:'rgba(71,85,105,.12)',  border:'rgba(71,85,105,.3)',  categories:['CCTV'] },
+const CATEGORY_GROUPS: { labels:string[]; color:string; border:string; categories:string[] }[] = [
+  { labels:['특별피난계단','피난·방화시설','방화문'], color:'rgba(34,197,94,.12)',  border:'rgba(34,197,94,.3)',  categories:['특별피난계단'] },
+  { labels:['청정소화약제'],                         color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['청정소화약제'] },
+  { labels:['전실제연댐퍼','연결송수관'],              color:'rgba(100,116,139,.12)',border:'rgba(100,116,139,.3)',categories:['전실제연댐퍼','연결송수관'] },
+  { labels:['주차장비','회전문'],                     color:'rgba(168,85,247,.12)', border:'rgba(168,85,247,.3)', categories:['주차장비','회전문'] },
+  { labels:['소방용전원공급반'],                       color:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.3)', categories:['소방용전원공급반'] },
+  { labels:['방화셔터'],                              color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['방화셔터'] },
+  { labels:['DIV'],                                  color:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.3)', categories:['DIV'] },
+  { labels:['컴프레셔'],                              color:'rgba(100,116,139,.12)',border:'rgba(100,116,139,.3)',categories:['컴프레셔'] },
+  { labels:['유도등'],                               color:'rgba(234,179,8,.12)',  border:'rgba(234,179,8,.3)',  categories:['유도등'] },
+  { labels:['배연창'],                               color:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', categories:['배연창'] },
+  { labels:['완강기'],                               color:'rgba(249,115,22,.12)', border:'rgba(249,115,22,.3)', categories:['완강기'] },
+  { labels:['소화전','비상콘센트'],                    color:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', categories:['소화전','비상콘센트'] },
+  { labels:['소화기'],                               color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['소화기'] },
+  { labels:['소방펌프'],                              color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['소방펌프'] },
+  { labels:['화재수신반'],                            color:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)',  categories:['화재수신반'] },
+  { labels:['CCTV'],                               color:'rgba(71,85,105,.12)',  border:'rgba(71,85,105,.3)',  categories:['CCTV'] },
 ]
 
 // 아이콘 컴포넌트 공통 타입 — lucide-react (size: string | number) 와 custom icons.tsx 모두 호환.
@@ -118,16 +120,17 @@ function getCatBarClass(total: number, doneCnt: number): string {
 }
 
 // 점검 결과 입력용 (정상/주의/불량만 — 미조치는 별도 조치 스텝에서 처리)
-const INSPECT_RESULT_OPTIONS: { value:CheckResult; label:string; color:string; bg:string; icon:string }[] = [
-  { value:'normal',  label:'정상', color:'var(--safe)',   bg:'rgba(34,197,94,.13)',  icon:'✅' },
-  { value:'caution', label:'주의', color:'var(--warn)',   bg:'rgba(245,158,11,.13)', icon:'⚠️' },
-  { value:'bad',     label:'불량', color:'var(--danger)', bg:'rgba(239,68,68,.13)',  icon:'❌' },
+// `icon` 필드는 § 7.1 enforce (260527-gql) 로 제거됨 — Lucide RESULT_ICONS 매핑이 단일 진실 원천.
+const INSPECT_RESULT_OPTIONS: { value:CheckResult; label:string; color:string; bg:string }[] = [
+  { value:'normal',  label:'정상', color:'var(--safe)',   bg:'rgba(34,197,94,.13)'  },
+  { value:'caution', label:'주의', color:'var(--warn)',   bg:'rgba(245,158,11,.13)' },
+  { value:'bad',     label:'불량', color:'var(--danger)', bg:'rgba(239,68,68,.13)'  },
 ]
 // 오늘 현황 표시용 (모든 결과값 대응)
-const ALL_RESULT_OPTIONS: { value:CheckResult; label:string; color:string; bg:string; icon:string }[] = [
+const ALL_RESULT_OPTIONS: { value:CheckResult; label:string; color:string; bg:string }[] = [
   ...INSPECT_RESULT_OPTIONS,
-  { value:'unresolved', label:'미조치', color:'var(--fire)',  bg:'rgba(249,115,22,.13)',  icon:'🔧' },
-  { value:'missing',    label:'미확인', color:'var(--t3)',    bg:'rgba(110,118,129,.13)', icon:'❓' },
+  { value:'unresolved', label:'미조치', color:'var(--fire)',  bg:'rgba(249,115,22,.13)'  },
+  { value:'missing',    label:'미확인', color:'var(--t3)',    bg:'rgba(110,118,129,.13)' },
 ]
 const RESULT_LABEL: Record<CheckResult,string> = { normal:'정상',caution:'주의',bad:'불량',unresolved:'미조치',missing:'미확인' }
 const RESULT_COLOR: Record<CheckResult,string> = { normal:'var(--safe)',caution:'var(--warn)',bad:'var(--danger)',unresolved:'var(--fire)',missing:'var(--t3)' }
@@ -135,10 +138,11 @@ const RESULT_COLOR: Record<CheckResult,string> = { normal:'var(--safe)',caution:
 // ── 구역 (Zone) 유틸 ──────────────────────────────────
 type ZoneKey = 'research' | 'office' | 'underground'
 
-const ZONE_CONFIG: { key:ZoneKey; label:string; icon:string }[] = [
-  { key:'research',   label:'연구동', icon:'🔬' },
-  { key:'office',     label:'사무동', icon:'🏢' },
-  { key:'underground', label:'지하',  icon:'🚇' },
+// `icon` 필드는 § 7.1 enforce (260527-gql) 로 제거됨 — Lucide ZONE_ICONS 매핑이 단일 진실 원천.
+const ZONE_CONFIG: { key:ZoneKey; label:string }[] = [
+  { key:'research',   label:'연구동' },
+  { key:'office',     label:'사무동' },
+  { key:'underground', label:'지하'   },
 ]
 
 /** 해당 CP가 zone+구역 기준에 부합하는지 */
@@ -3931,7 +3935,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                 <div className="text-caption text-text-tertiary font-semibold">개소 ({pickerIdx + 1}/{pendingCPs.length}) · {doneCount}/{totalCount} 완료</div>
                 {isExtinguisher && extDetail ? (
                   <div className="flex items-center justify-center gap-1.5 mt-1">
-                    <span className="text-[14px]">🧯</span>
+                    <FireExtinguisherCustom size={14} className="text-text-secondary shrink-0" />
                     <span className="text-body-sm font-bold text-text-primary">{extDetail.mgmt_no}</span>
                     <span className="text-caption font-semibold text-danger bg-danger-bg px-1.5 py-0.5 rounded-sm">{extDetail.type}</span>
                   </div>
@@ -4220,7 +4224,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         )}
         {groupCPs.length === 1 && pendingCPs.length === 0 && !selectedCP && (
           <div className="text-center py-6 text-safe text-label font-semibold">
-            ✅ 점검 완료
+            <CheckCircle2 size={14} className="inline-block align-text-bottom mr-1" />점검 완료
           </div>
         )}
 
@@ -4442,7 +4446,7 @@ function ResolutionDetailModal({ item, allCheckpoints, onClose }: {
           <div className="grid grid-cols-2 gap-2.5">
             {/* 점검 시 */}
             <div>
-              <div className="text-caption font-bold text-text-tertiary mb-1.5 tracking-wider text-center">📋 점검 시</div>
+              <div className="text-caption font-bold text-text-tertiary mb-1.5 tracking-wider text-center"><ClipboardList size={12} className="inline-block align-text-bottom mr-1" />점검 시</div>
               {item.photoKey ? (
                 <div onClick={() => setViewerUrl(`/api/uploads/${item.photoKey}`)}
                      className="w-full aspect-square rounded-md overflow-hidden cursor-pointer mb-1.5">
@@ -4461,7 +4465,7 @@ function ResolutionDetailModal({ item, allCheckpoints, onClose }: {
             </div>
             {/* 조치 후 */}
             <div>
-              <div className="text-caption font-bold text-safe mb-1.5 tracking-wider text-center">🔧 조치 후</div>
+              <div className="text-caption font-bold text-safe mb-1.5 tracking-wider text-center"><Wrench size={12} className="inline-block align-text-bottom mr-1" />조치 후</div>
               {item.resolutionPhotoKey ? (
                 <div onClick={() => setViewerUrl(`/api/uploads/${item.resolutionPhotoKey}`)}
                      className="w-full aspect-square rounded-md overflow-hidden cursor-pointer mb-1.5">
@@ -5002,7 +5006,7 @@ export default function InspectionPage() {
 
           {recordCount === 0 && (
             <div className="flex items-center gap-2 pt-2.5 pb-0.5 text-text-tertiary">
-              <span className="text-[20px]">📋</span>
+              <ClipboardList size={20} className="shrink-0" />
               <span className="text-caption">아직 점검 기록이 없습니다</span>
             </div>
           )}

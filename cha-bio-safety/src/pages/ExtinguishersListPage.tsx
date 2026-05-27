@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { Search } from 'lucide-react'
 import { extinguisherApi, floorPlanMarkerApi, ExtinguisherDetail, ExtinguisherListResponse } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE } from '../utils/extinguisher'
 import { useIsDesktop } from '../hooks/useIsDesktop'
@@ -424,18 +425,27 @@ export default function ExtinguishersListPage() {
             {EXTINGUISHER_TYPES.map(tp => <option key={tp} value={tp}>{tp}</option>)}
           </select>
 
-          <input
-            type="text"
-            placeholder="🔍 증지번호·제조번호 검색"
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            style={{
-              flex: 2, minWidth: 120, height: 32, padding: '0 10px',
-              background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
-              borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 12,
-              outline: 'none',
-            }}
-          />
+          <div style={{ position: 'relative', flex: 2, minWidth: 120, display: 'flex', alignItems: 'center' }}>
+            <Search
+              size={14}
+              style={{
+                position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                color: 'var(--text-tertiary)', pointerEvents: 'none',
+              }}
+            />
+            <input
+              type="text"
+              placeholder="증지번호·제조번호 검색"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              style={{
+                width: '100%', height: 32, padding: '0 10px 0 30px',
+                background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
+                borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 12,
+                outline: 'none',
+              }}
+            />
+          </div>
         </div>
 
         {/* Row 3: 분말 소화기 연한 필터 chip — count > 0 인 항목만 노출 */}
