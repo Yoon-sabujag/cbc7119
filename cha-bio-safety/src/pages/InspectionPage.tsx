@@ -5184,7 +5184,7 @@ export default function InspectionPage() {
                   'relative bg-surface-raised border border-border-default rounded-md',
                   'px-2.5 py-2.5 flex items-start gap-1.5 overflow-hidden min-h-[86px] box-border transition-all duration-150',
                   !hasItems ? 'opacity-[0.38] cursor-default' : 'cursor-pointer hover:border-border-strong hover:-translate-y-px',
-                  allDone ? 'bg-safe-bg/40 border-safe-bar/40 opacity-50' : '',
+                  allDone ? 'bg-[rgba(34,197,94,0.28)] border-[rgba(34,197,94,0.55)] opacity-50' : '',
                 ].filter(Boolean).join(' ')
                 return (
                   <div key={idx} onClick={() => {
