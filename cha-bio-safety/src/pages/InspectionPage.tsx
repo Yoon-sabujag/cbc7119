@@ -346,9 +346,9 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
   // result-mini 클래스 매핑 (Wave 5 — Stairwell/Cctv 공용 컴팩트 픽커)
   const resultMiniCls = (active: boolean, value: CheckResult) =>
     active
-      ? value === 'normal' ? 'border-safe bg-safe-bg text-safe'
-        : value === 'caution' ? 'border-warning bg-warning-bg text-warning'
-        : 'border-danger bg-danger-bg text-danger'
+      ? value === 'normal' ? 'border-safe-bar bg-safe-bg text-safe'
+        : value === 'caution' ? 'border-warning-bar bg-warning-bg text-warning'
+        : 'border-danger-bar bg-danger-bg text-danger'
       : 'border-border-default bg-surface-page text-text-tertiary'
 
   const resultIcon = (value: CheckResult) =>
@@ -384,7 +384,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
             const stateCls = isActive
               ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
               : done
-                ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                 : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button
@@ -420,7 +420,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
             )}
             {/* 완료 뱃지 */}
             {swDoneCount > 0 && !justSaved && (
-              <div className="bg-safe-bg border border-safe rounded-sm px-3 py-1.5 text-label font-semibold text-safe inline-flex items-center gap-1.5">
+              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-1.5 text-label font-semibold text-safe inline-flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-safe flex-shrink-0" />
                 {swDoneCount}/{swCPs.length}층 이미 점검 완료
               </div>
@@ -501,8 +501,8 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
               </div>
             </div>
 
-            {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label font-semibold text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label font-semibold text-safe inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-safe flex-shrink-0" />저장 완료</div>}
+            {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label font-semibold text-danger">{submitError}</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label font-semibold text-safe inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-safe flex-shrink-0" />저장 완료</div>}
           </div>
         )}
       </div>
@@ -569,9 +569,9 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
   // result-mini 클래스 매핑 (Wave 5 — Stairwell/Cctv 공용 컴팩트 픽커, 각 모달에 local 정의)
   const resultMiniCls = (active: boolean, value: CheckResult) =>
     active
-      ? value === 'normal' ? 'border-safe bg-safe-bg text-safe'
-        : value === 'caution' ? 'border-warning bg-warning-bg text-warning'
-        : 'border-danger bg-danger-bg text-danger'
+      ? value === 'normal' ? 'border-safe-bar bg-safe-bg text-safe'
+        : value === 'caution' ? 'border-warning-bar bg-warning-bg text-warning'
+        : 'border-danger-bar bg-danger-bg text-danger'
       : 'border-border-default bg-surface-page text-text-tertiary'
 
   const resultIcon = (value: CheckResult) =>
@@ -616,7 +616,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
           <div className="text-body font-bold text-text-primary truncate">CCTV 점검</div>
         </div>
         {allDone && !justSaved && (
-          <div className="text-caption font-semibold text-safe bg-safe-bg border border-safe rounded-sm px-2 py-0.5 flex-shrink-0 inline-flex items-center gap-1">
+          <div className="text-caption font-semibold text-safe bg-safe-bg border border-safe-bar rounded-sm px-2 py-0.5 flex-shrink-0 inline-flex items-center gap-1">
             <CheckCircle2 size={12} className="flex-shrink-0" />
             완료
           </div>
@@ -639,7 +639,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
         </div>
 
         {doneCnt > 0 && !justSaved && (
-          <div className="bg-safe-bg border border-safe rounded-sm px-3 py-1.5 text-label font-semibold text-safe inline-flex items-center gap-1.5">
+          <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-1.5 text-label font-semibold text-safe inline-flex items-center gap-1.5">
             <CheckCircle2 size={14} className="text-safe flex-shrink-0" />
             {doneCnt}/{cctvCPs.length}대 이미 점검 완료
           </div>
@@ -700,8 +700,8 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
           </div>
         </div>
 
-        {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label font-semibold text-danger">{submitError}</div>}
-        {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label font-semibold text-safe inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-safe flex-shrink-0" />저장 완료</div>}
+        {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label font-semibold text-danger">{submitError}</div>}
+        {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label font-semibold text-safe inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-safe flex-shrink-0" />저장 완료</div>}
       </div>
 
       {/* 하단 바 */}
@@ -852,7 +852,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
             const cls = isSel
               ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
               : allDone
-                ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                 : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)}
@@ -898,7 +898,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
               const cls = isSel
                 ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                 : isDone
-                  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => setSelectedId(cp.id)}
@@ -931,7 +931,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
               />
             )}
             {!!records[selectedCP.id] && !justSaved && (
-              <div className="bg-safe-bg border border-safe rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
+              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
             )}
             <div>
               <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
@@ -940,9 +940,9 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
                   const Icon = opt.value === 'normal' ? CheckCircle2 : opt.value === 'caution' ? AlertTriangle : XCircle
                   const active = result === opt.value
                   const stateCls = active
-                    ? opt.value === 'normal' ? 'border-safe bg-safe-bg text-safe'
-                      : opt.value === 'caution' ? 'border-warning bg-warning-bg text-warning'
-                      : 'border-danger bg-danger-bg text-danger'
+                    ? opt.value === 'normal' ? 'border-safe-bar bg-safe-bg text-safe'
+                      : opt.value === 'caution' ? 'border-warning-bar bg-warning-bg text-warning'
+                      : 'border-danger-bar bg-danger-bg text-danger'
                     : 'border-border-default bg-surface-raised text-text-tertiary'
                   return (
                     <button key={opt.value} onClick={() => setResult(opt.value)}
@@ -965,8 +965,8 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
-            {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
+            {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
           </div>
         )}
       </div>
@@ -2381,7 +2381,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
             const ZIcon    = ZONE_ICONS[z]
             const baseCls  = 'flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors'
             const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                           : allDone   ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                           : allDone   ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)} className={`${baseCls} ${stateCls}`}>
@@ -2637,7 +2637,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
             const isActive = item === label
             const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
             const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                           : allDone   ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                           : allDone   ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={label} onClick={() => setItem(label)} className={`${baseCls} ${stateCls}`}>
@@ -2659,7 +2659,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
               const isActive = subItem === door
               const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
               const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                             : doneDoor  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                             : doneDoor  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                              :             'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={door} onClick={() => setSubItem(door)} className={`${baseCls} ${stateCls}`}>
@@ -2979,17 +2979,17 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
   // 결과 picker 클래스 매핑 (BaeyeonModal 과 동일 — pill + lucide outline + status outline+tinted bg)
   const resultPickerCls = (active: boolean, value: CheckResult) =>
     active
-      ? value === 'normal' ? 'border-safe bg-safe-bg text-safe'
-        : value === 'caution' ? 'border-warning bg-warning-bg text-warning'
-        : 'border-danger bg-danger-bg text-danger'
+      ? value === 'normal' ? 'border-safe-bar bg-safe-bg text-safe'
+        : value === 'caution' ? 'border-warning-bar bg-warning-bg text-warning'
+        : 'border-danger-bar bg-danger-bg text-danger'
       : 'border-border-default bg-surface-raised text-text-tertiary'
 
   // result-mini 클래스 매핑 (stair 모드 — 축소판)
   const resultMiniCls = (active: boolean, value: CheckResult) =>
     active
-      ? value === 'normal' ? 'border-safe bg-safe-bg text-safe'
-        : value === 'caution' ? 'border-warning bg-warning-bg text-warning'
-        : 'border-danger bg-danger-bg text-danger'
+      ? value === 'normal' ? 'border-safe-bar bg-safe-bg text-safe'
+        : value === 'caution' ? 'border-warning-bar bg-warning-bg text-warning'
+        : 'border-danger-bar bg-danger-bg text-danger'
       : 'border-border-default bg-surface-page text-text-tertiary'
 
   const resultIcon = (value: CheckResult) =>
@@ -3025,7 +3025,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
             const cls = isSel
               ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
               : allDone
-                ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                 : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={label} onClick={() => setItem(label)}
@@ -3049,7 +3049,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               const cls = isSel
                 ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                 : done
-                  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={num} onClick={() => { setSelectedEquip(null); setSelectedStair(num) }}
@@ -3064,7 +3064,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               const cls = isSel
                 ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                 : done
-                  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => { setSelectedStair(null); setSelectedEquip(cp.id) }}
@@ -3088,7 +3088,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               const cls = isSel
                 ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                 : isDone
-                  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => setSubItem(cp.location)}
@@ -3126,7 +3126,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         {jdMode === 'stair' && (
           <>
             {stairDoneCount > 0 && !justSaved && (
-              <div className="bg-safe-bg border border-safe rounded-sm px-3 py-1.5 text-label text-safe flex items-center gap-1.5">
+              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-1.5 text-label text-safe flex items-center gap-1.5">
                 ✓ {stairDoneCount}/{stairCPs.length}층 이미 점검 완료
               </div>
             )}
@@ -3226,8 +3226,8 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               </div>
             </div>
 
-            {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
+            {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
           </>
         )}
 
@@ -3239,7 +3239,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
           return (
             <>
               {eqDone && !justSaved && (
-                <div className="bg-safe-bg border border-safe rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
+                <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
               )}
               <div>
                 <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
@@ -3291,8 +3291,8 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                   <PhotoButton hook={photo} label="촬영" noCapture />
                 </div>
               </div>
-              {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-              {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
+              {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+              {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
             </>
           )
         })()}
@@ -3309,7 +3309,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         {item === '연결송수관' && subItem && (
           <>
             {yscpId && records[yscpId] && !justSaved && (
-              <div className="bg-safe-bg border border-safe rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
+              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
             )}
             <div>
               <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
@@ -3339,8 +3339,8 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
-            {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
+            {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
           </>
         )}
           </div>
