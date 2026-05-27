@@ -130,19 +130,16 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
           transition: 'transform 0.3s cubic-bezier(.4,0,.2,1)',
         }}
       >
-        {/* 헤더 */}
+        {/* 헤더 — SettingsPanel 시각 통일 (W11 balance): icon + 단일 title 18px + close X=14, 부제 제거 */}
         <div className="flex items-center gap-2.5 px-[15px] py-3 border-b border-border-default shrink-0">
           <img src="/icons/icon-192.png" alt="" className="w-[30px] h-[30px] rounded-[8px] shrink-0" />
-          <div>
-            <div className="text-[13px] font-bold text-text-primary">차바이오컴플렉스</div>
-            <div className="text-caption text-text-tertiary mt-px">소방안전 통합관리</div>
-          </div>
+          <span className="text-title font-bold text-text-primary flex-1">차바이오컴플렉스</span>
           <button
             onClick={onClose}
             aria-label="메뉴 닫기"
-            className="ml-auto w-7 h-7 rounded-[7px] bg-surface-sunken border-none text-text-secondary cursor-pointer flex items-center justify-center"
+            className="w-7 h-7 rounded-[7px] bg-surface-sunken border-none text-text-secondary cursor-pointer flex items-center justify-center shrink-0"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
 
@@ -153,7 +150,7 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
               return (
                 <div
                   key={`d-${entry.id}-${idx}`}
-                  className="px-[13px] pt-[9px] pb-[2px] text-[11px] font-bold text-text-tertiary tracking-[.08em] uppercase leading-none"
+                  className="px-3 pt-2.5 pb-[2px] text-caption font-bold text-text-tertiary tracking-[.08em] uppercase leading-none"
                 >
                   {entry.title}
                 </div>
@@ -169,7 +166,7 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
               return (
                 <div
                   key={`i-${entry.path}-${idx}`}
-                  className="flex items-center gap-2.5 px-[13px] py-[9px] mx-[7px] my-px rounded-[8px] text-text-tertiary opacity-50 cursor-default pointer-events-none"
+                  className="flex items-center gap-2.5 px-3 py-2.5 mx-3 mb-[5px] rounded-[9px] text-text-tertiary opacity-50 cursor-default pointer-events-none"
                 >
                   <span className="text-body font-medium flex-1">{meta.label}</span>
                   <span className="text-caption text-text-tertiary bg-surface-sunken rounded-[6px] px-[7px] py-[2px]">준비중</span>
@@ -181,7 +178,7 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
               <div
                 key={`i-${entry.path}-${idx}`}
                 onClick={() => go(meta.path)}
-                className="flex items-center gap-2.5 px-[13px] py-[9px] mx-[7px] my-px rounded-[8px] cursor-pointer text-text-primary transition-colors duration-150 hover:bg-surface-active"
+                className="flex items-center gap-2.5 px-3 py-2.5 mx-3 mb-[5px] rounded-[9px] cursor-pointer text-text-primary transition-colors duration-150 hover:bg-surface-active"
               >
                 <span className="text-body font-medium flex-1">{meta.label}</span>
                 {badgeCount > 0 && (
