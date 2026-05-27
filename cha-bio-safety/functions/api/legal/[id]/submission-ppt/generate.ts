@@ -64,7 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
     {
       let s = strFromU8(files['ppt/slides/slide1.xml'])
       s = s.replace(/<a:t>2025<\/a:t>/, `<a:t>${escapeXml(year)}</a:t>`)
-      s = s.replace(/<a:t>년 작동기능점검<\/a:t>/, `<a:t>년 소방 ${escapeXml(kind)}</a:t>`)
+      s = s.replace(/<a:t>년 작동기능점검<\/a:t>/, `<a:t>년 ${escapeXml(kind)}</a:t>`)
       files['ppt/slides/slide1.xml'] = strToU8(s)
     }
 
