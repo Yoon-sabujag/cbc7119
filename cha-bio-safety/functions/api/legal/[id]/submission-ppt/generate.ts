@@ -98,17 +98,55 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
       })
     }
 
-    // slide2 = 첫 페이지 (텍스트만 패치, rot 제거)
-    const slide2OrigXml = strFromU8(files['ppt/slides/slide2.xml'])
-      .replace(/rot="5400000"/g, '') // 양식의 우측 조치 후 사진 회전 제거 (사용자 사진은 회전 X)
+    // 사진 셀 좌표 (양식 slide2 tblGrid + a:tr 분석 결과 — EMU 단위)
+    // 4 picture shape 모두 셀에 정확히 일치하도록 xfrm 재작성 (rot 제거, portrait ext 보정)
+    // + <a:srcRect/><a:stretch/> → <a:srcRect/><a:stretch><a:fillRect/></a:stretch>
+    //   비-네모 사진도 셀 네 귀퉁이에 강제로 맞춤 (aspect ratio 무시)
+    const CELLS: Record<string, { x: number; y: number; cx: number; cy: number }> = {
+      rId3: { x: 179512, y:  656640, cx: 4428492, cy: 2700000 }, // 좌상단 = 좌측 조치 전
+      rId4: { x: 179512, y: 3824640, cx: 4428492, cy: 2700000 }, // 좌하단 = 좌측 조치 후
+      rId5: { x: 4608004, y: 656640, cx: 4428492, cy: 2700000 }, // 우상단 = 우측 조치 전
+      rId6: { x: 4608004, y: 3824640, cx: 4428492, cy: 2700000 }, // 우하단 = 우측 조치 후
+    }
+    const patchPicGeometry = (xml: string): string => {
+      return xml.replace(/<p:pic>[\s\S]*?<\/p:pic>/g, (pic) => {
+        const m = pic.match(/r:embed="(rId\d+)"/)
+        if (!m) return pic
+        const cell = CELLS[m[1]]
+        if (!cell) return pic
+        let out = pic.replace(
+          /<a:xfrm(?:\s+rot="[^"]+")?>\s*<a:off[^/]*\/>\s*<a:ext[^/]*\/>\s*<\/a:xfrm>/,
+          `<a:xfrm><a:off x="${cell.x}" y="${cell.y}"/><a:ext cx="${cell.cx}" cy="${cell.cy}"/></a:xfrm>`,
+        )
+        out = out.replace(
+          /<a:srcRect\/>\s*<a:stretch\s*\/>/,
+          '<a:srcRect/><a:stretch><a:fillRect/></a:stretch>',
+        )
+        return out
+      })
+    }
+    // 우측 사진 (rId5/rId6) shape 제거 — page.right 가 null 인 마지막 페이지용
+    const removeRightPics = (xml: string): string =>
+      xml.replace(/<p:pic>[\s\S]*?<\/p:pic>/g, (pic) =>
+        /r:embed="rId[56]"/.test(pic) ? '' : pic,
+      )
+
+    // slide2 = 첫 페이지 (라벨 + geometry 패치)
+    const slide2OrigXml = patchPicGeometry(strFromU8(files['ppt/slides/slide2.xml']))
     const slide2RelsXml = strFromU8(files['ppt/slides/_rels/slide2.xml.rels'])
-    files['ppt/slides/slide2.xml'] = strToU8(patchSlideLabels(slide2OrigXml, pages[0]))
+    {
+      let s = patchSlideLabels(slide2OrigXml, pages[0])
+      if (!pages[0].right) s = removeRightPics(s)
+      files['ppt/slides/slide2.xml'] = strToU8(s)
+    }
 
     // 추가 페이지 (3건+) = slide3, slide4, ... 복제 + 각자 라벨 패치
     if (pages.length > 1) {
       for (let i = 1; i < pages.length; i++) {
         const slideIdx = i + 2 // slide3, slide4...
-        files[`ppt/slides/slide${slideIdx}.xml`] = strToU8(patchSlideLabels(slide2OrigXml, pages[i]))
+        let s = patchSlideLabels(slide2OrigXml, pages[i])
+        if (!pages[i].right) s = removeRightPics(s)
+        files[`ppt/slides/slide${slideIdx}.xml`] = strToU8(s)
         // 각 슬라이드의 rels = slide2 와 동일 (image rels 는 6번 단계에서 페이지별 교체)
         files[`ppt/slides/_rels/slide${slideIdx}.xml.rels`] = strToU8(slide2RelsXml)
       }
