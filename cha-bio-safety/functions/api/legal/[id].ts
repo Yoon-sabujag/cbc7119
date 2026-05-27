@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { lockedResponse } from './_lock'
 
 // ── 법적 점검 회차 상세 조회 / 결과 수정 ─────────────────────────────
 
@@ -12,10 +13,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         si.id,
         si.title,
         si.date,
+        si.end_date,
         si.inspection_category,
         si.status,
         si.result,
         si.report_file_key,
+        si.submission_status,
+        si.ppt_file_key,
         COUNT(lf.id) AS finding_count,
         SUM(CASE WHEN lf.status = 'resolved' THEN 1 ELSE 0 END) AS resolved_count
       FROM schedule_items si
@@ -23,8 +27,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       WHERE si.id = ?
       GROUP BY si.id
     `).bind(id).first<{
-      id: string; title: string; date: string; inspection_category: string;
+      id: string; title: string; date: string; end_date: string | null; inspection_category: string;
       status: string; result: string | null; report_file_key: string | null;
+      submission_status: string; ppt_file_key: string | null;
       finding_count: number; resolved_count: number
     }>()
 
@@ -38,10 +43,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         id: row.id,
         title: row.title,
         date: row.date,
+        endDate: row.end_date ?? null,
         inspectionCategory: row.inspection_category,
         status: row.status,
         result: row.result ?? null,
         reportFileKey: row.report_file_key ?? null,
+        submissionStatus: (row.submission_status ?? 'pending') as 'pending' | 'completed',
+        pptFileKey: row.ppt_file_key ?? null,
         findingCount: Number(row.finding_count ?? 0),
         resolvedCount: Number(row.resolved_count ?? 0),
       },
@@ -53,7 +61,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
 }
 
 // PATCH /api/legal/:id
-// Update result and/or report_file_key; admin only
+// Update result / report_file_key / submission_status / ppt_file_key; admin only
+// Lock: submission_status='completed' 상태면 submission_status 변경 외 모든 mutation 차단
 export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, params }) => {
   const { role } = data as any
   const id = params.id as string
@@ -62,7 +71,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, p
     return Response.json({ success: false, error: '관리자만 가능합니다' }, { status: 403 })
   }
 
-  let body: { result?: string; report_file_key?: string }
+  let body: { result?: string; report_file_key?: string; submission_status?: string; ppt_file_key?: string }
   try {
     body = await request.json()
   } catch {
@@ -73,24 +82,42 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, p
     return Response.json({ success: false, error: "result는 'pass', 'fail', 'conditional' 중 하나여야 합니다" }, { status: 400 })
   }
 
+  if (body.submission_status !== undefined && !['pending', 'completed'].includes(body.submission_status)) {
+    return Response.json({ success: false, error: "submission_status는 'pending' 또는 'completed' 여야 합니다" }, { status: 400 })
+  }
+
   try {
     const existing = await env.DB.prepare(
-      `SELECT id FROM schedule_items WHERE id = ?`
-    ).bind(id).first<{ id: string }>()
+      `SELECT id, submission_status FROM schedule_items WHERE id = ?`
+    ).bind(id).first<{ id: string; submission_status: string }>()
 
     if (!existing) {
       return Response.json({ success: false, error: '법적 점검 회차를 찾을 수 없습니다' }, { status: 404 })
     }
 
+    // Lock: 이미 completed 상태에서 submission_status 외 다른 필드 수정 시 거부
+    const onlyTogglingSubmissionStatus =
+      body.submission_status !== undefined &&
+      body.result === undefined &&
+      body.report_file_key === undefined &&
+      body.ppt_file_key === undefined
+    if (existing.submission_status === 'completed' && !onlyTogglingSubmissionStatus) {
+      return lockedResponse()
+    }
+
     await env.DB.prepare(`
       UPDATE schedule_items
       SET
-        result          = COALESCE(?, result),
-        report_file_key = COALESCE(?, report_file_key)
+        result            = COALESCE(?, result),
+        report_file_key   = COALESCE(?, report_file_key),
+        submission_status = COALESCE(?, submission_status),
+        ppt_file_key      = COALESCE(?, ppt_file_key)
       WHERE id = ?
     `).bind(
       body.result ?? null,
       body.report_file_key ?? null,
+      body.submission_status ?? null,
+      body.ppt_file_key ?? null,
       id,
     ).run()
 
@@ -100,3 +127,4 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data, p
     return Response.json({ success: false, error: '법적 점검 수정 실패' }, { status: 500 })
   }
 }
+

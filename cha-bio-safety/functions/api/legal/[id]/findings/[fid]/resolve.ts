@@ -1,11 +1,17 @@
 import type { Env } from '../../../../../_middleware'
+import { isRoundSubmitted, lockedResponse } from '../../../_lock'
 
 // POST /api/legal/:id/findings/:fid/resolve
 // 지적사항 조치완료 처리; all roles
+// Lock: 제출 완료된 회차는 조치 불가
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, params }) => {
   const { staffId } = data as any
   const fid = params.fid as string
   const scheduleItemId = params.id as string
+
+  if (await isRoundSubmitted(env, scheduleItemId)) {
+    return lockedResponse()
+  }
 
   let body: { resolution_memo: string; resolution_photo_keys?: string[] }
   try {

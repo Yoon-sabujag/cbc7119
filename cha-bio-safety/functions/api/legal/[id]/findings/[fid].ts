@@ -1,4 +1,5 @@
 import type { Env } from '../../../../_middleware'
+import { isRoundSubmitted, lockedResponse } from '../../_lock'
 
 // ── 지적사항 상세 조회 / 수정 ─────────────────────────────────────
 
@@ -24,6 +25,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         lf.resolved_by,
         lf.created_by,
         lf.created_at,
+        lf.submission_selected,
+        lf.submission_label,
         s.name  AS created_by_name,
         s2.name AS resolved_by_name
       FROM legal_findings lf
@@ -36,6 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       resolution_photo_key: string | null; resolution_photo_keys: string; status: string;
       resolved_at: string | null; resolved_by: string | null;
       created_by: string; created_at: string;
+      submission_selected: number; submission_label: string | null;
       created_by_name: string | null; resolved_by_name: string | null
     }>()
 
@@ -62,6 +66,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         createdBy: row.created_by,
         createdByName: row.created_by_name,
         createdAt: row.created_at,
+        submissionSelected: Number(row.submission_selected ?? 0) === 1,
+        submissionLabel: row.submission_label ?? null,
       },
     })
   } catch (e) {
@@ -72,9 +78,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
 
 // PUT /api/legal/:id/findings/:fid
 // Partial update; any authenticated user (parity with DELETE)
+// Lock: 제출 완료된 회차는 수정 불가
 export const onRequestPut: PagesFunction<Env> = async ({ request, env, params }) => {
   const scheduleItemId = params.id as string
   const fid = params.fid as string
+
+  if (await isRoundSubmitted(env, scheduleItemId)) {
+    return lockedResponse()
+  }
 
   let body: Record<string, any>
   try {
@@ -121,6 +132,15 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, params })
       sets.push('resolution_photo_keys = ?')
       binds.push(JSON.stringify(body.resolution_photo_keys))
     }
+    if (body.submission_selected !== undefined) {
+      const v = body.submission_selected ? 1 : 0
+      sets.push('submission_selected = ?')
+      binds.push(v)
+    }
+    if (body.submission_label !== undefined) {
+      sets.push('submission_label = ?')
+      binds.push(body.submission_label ?? null)
+    }
 
     if (sets.length === 0) {
       return Response.json({ success: false, error: '수정할 필드가 없습니다' }, { status: 400 })
@@ -140,9 +160,14 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, params })
 }
 
 // DELETE /api/legal/:id/findings/:fid
+// Lock: 제출 완료된 회차는 삭제 불가
 export const onRequestDelete: PagesFunction<Env> = async ({ env, params }) => {
   const scheduleItemId = params.id as string
   const fid = params.fid as string
+
+  if (await isRoundSubmitted(env, scheduleItemId)) {
+    return lockedResponse()
+  }
 
   try {
     const existing = await env.DB.prepare(

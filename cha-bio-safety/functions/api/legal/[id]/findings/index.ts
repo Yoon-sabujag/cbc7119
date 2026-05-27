@@ -1,4 +1,5 @@
 import type { Env } from '../../../../_middleware'
+import { isRoundSubmitted, lockedResponse } from '../../_lock'
 
 // ── 지적사항 목록 조회 / 등록 ─────────────────────────────────────
 
@@ -23,6 +24,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         lf.resolved_by,
         lf.created_by,
         lf.created_at,
+        lf.submission_selected,
+        lf.submission_label,
         s.name  AS created_by_name,
         s2.name AS resolved_by_name
       FROM legal_findings lf
@@ -36,6 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       resolution_photo_key: string | null; resolution_photo_keys: string; status: string;
       resolved_at: string | null; resolved_by: string | null;
       created_by: string; created_at: string;
+      submission_selected: number; submission_label: string | null;
       created_by_name: string | null; resolved_by_name: string | null
     }>()
 
@@ -56,6 +60,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       createdBy: r.created_by,
       createdByName: r.created_by_name,
       createdAt: r.created_at,
+      submissionSelected: Number(r.submission_selected ?? 0) === 1,
+      submissionLabel: r.submission_label ?? null,
     }))
 
     return Response.json({ success: true, data })
@@ -67,9 +73,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
 
 // POST /api/legal/:id/findings
 // All roles can create findings
+// Lock: 제출 완료된 회차는 신규 finding 등록 불가
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, params }) => {
   const { staffId } = data as any
   const scheduleItemId = params.id as string
+
+  if (await isRoundSubmitted(env, scheduleItemId)) {
+    return lockedResponse()
+  }
 
   let body: { description: string; location?: string; photo_keys?: string[] }
   try {
