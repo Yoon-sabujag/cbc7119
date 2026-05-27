@@ -41,6 +41,8 @@ $global:GROUPS = @(
     @{ name="3. 점검 및 조치"; items=@(
         @{ key="remed";         label="일상점검조치";       pattern='^조치보고서_.+_(\d{4})(\d{2})\d{2}\.html$';                      yearG=1; monthG=2 }
         @{ key="legal";         label="소방점검조치";       pattern='^지적사항_.+\.zip$';                                             yearG=0; monthG=0 }
+        @{ key="legal_report";  label="결과내역서";         pattern='^(\d{4})\.(\d{2})\)차바이오컴플렉스 (?:종합점검|작동기능점검) 결과내역서\.pdf$';                yearG=1; monthG=2 }
+        @{ key="legal_ppt";     label="지적조치사진";       pattern='^(\d{4})\.(\d{2})\)차바이오컴플렉스 (?:종합점검|작동기능점검) 지적사항 조치 작업사진\.pptx$'; yearG=1; monthG=2 }
     )}
     @{ name="4. 소방설비점검일지"; items=@(
         @{ key="div_early";     label="유수검지장치(월초)";  pattern='^(\d{4})년도_DIV점검표_월초\.xlsx$';                              yearG=1; monthG=0 }
@@ -460,6 +462,7 @@ function Process-LegalReportPdf($filePath) {
     }
 
     # 매칭 + DB 갱신
+    $matchSuccess = $false
     try {
         $linkBody = @{ year = $year; month = $month; kind = $kind; file_key = $pdfKey } | ConvertTo-Json
         $linkResp = Invoke-RestMethod -Uri "$apiBase/api/legal/upload-report" -Method POST `
@@ -468,6 +471,7 @@ function Process-LegalReportPdf($filePath) {
             -Headers @{ Authorization = "Bearer $token" }
 
         if ($linkResp.success) {
+            $matchSuccess = $true
             $r = $linkResp.data
             $msg = "$($r.title) ($($r.date))"
             if ($r.replaced) { $msg += " — 이전 파일 교체" }
@@ -477,6 +481,22 @@ function Process-LegalReportPdf($filePath) {
         }
     } catch {
         Show-Balloon "결과내역서 오류" "매칭 API 실패: $_"
+    }
+
+    # R2 + 매칭 성공 시 일반 파일처럼 폴더 이동 (다른 일반 항목과 동일 패턴)
+    if ($matchSuccess) {
+        $monthStr = $month.ToString().PadLeft(2, '0')
+        $destDir = Get-DestFolder $cfg "legal_report" $year.ToString() $monthStr
+        if ($destDir) {
+            try {
+                Move-ToFolder $filePath $destDir
+                Show-Balloon $fileName "이동 완료: $destDir"
+            } catch {
+                Show-Balloon "결과내역서 이동 실패" "$fileName`n$_"
+            }
+        } else {
+            Show-Balloon "결과내역서 이동 보류" "저장 폴더 미설정 (설정에서 루트 폴더 지정)"
+        }
     }
 
     return $true
