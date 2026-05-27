@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -30,6 +30,34 @@ function accentColor(result: LegalInspectionResult | null): string {
   if (result === 'fail') return 'border-danger-bar'
   if (result === 'conditional') return 'border-warning-bar'
   return 'border-border-strong'
+}
+
+// ── 1열 카드 strip 색 (submission_status 기준) ──────────────────────────
+function stripBySubmission(status: 'pending' | 'completed'): string {
+  return status === 'completed' ? 'border-safe-bar' : 'border-warning-bar'
+}
+
+// ── 다운로드 파일명 — "{YYYY}.{MM})차바이오컴플렉스 {종합점검|작동기능점검} {결과내역서|지적사항 조치 작업사진}.{ext}"
+function pptFileName(round: LegalRound): string {
+  const year = round.date.slice(0, 4)
+  const month = round.date.slice(5, 7)
+  const kind = round.title.includes('종합') ? '종합점검' : '작동기능점검'
+  return `${year}.${month})차바이오컴플렉스 ${kind} 지적사항 조치 작업사진.pptx`
+}
+function reportFileName(round: LegalRound): string {
+  const year = round.date.slice(0, 4)
+  const month = round.date.slice(5, 7)
+  const kind = round.title.includes('종합') ? '종합점검' : '작동기능점검'
+  // 결과내역서는 PDF 확장자 가정 (와치독/수동 업로드 모두 PDF)
+  return `${year}.${month})차바이오컴플렉스 ${kind} 결과내역서.pdf`
+}
+function downloadWithName(url: string, fileName: string) {
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 
 // ── 결과 배지 ──────────────────────────────────────────────────────
@@ -84,19 +112,15 @@ function KVRow({ label, children }: { label: string; children: React.ReactNode }
 // ══════════════════════════════════════════════════════════════════
 // ── 데스크톱: 중앙 패널 (지적사항 목록) ─────────────────────────────
 // ══════════════════════════════════════════════════════════════════
-function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
+function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab, setActiveTab }: {
   roundId: string
   onSelectFinding: (fid: string) => void
   selectedFindingId: string | null
+  activeTab: 'internal' | 'submission'
+  setActiveTab: (t: 'internal' | 'submission') => void
 }) {
   const queryClient = useQueryClient()
-  const { staff } = useAuthStore()
-  const role = staff?.role
-  const [selectedResult, setSelectedResult] = useState('')
-  const [savingResult, setSavingResult] = useState(false)
-  const [uploadingReport, setUploadingReport] = useState(false)
   const [editingFinding, setEditingFinding] = useState<LegalFinding | null>(null)
-  const reportInputRef = useRef<HTMLInputElement>(null)
 
   const { data: round } = useQuery({
     queryKey: ['legal-round', roundId],
@@ -109,35 +133,6 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
     enabled: !!roundId,
     staleTime: 30_000,
   })
-
-  const effectiveResult = selectedResult || (round?.result ?? '')
-
-  const handleSaveResult = async () => {
-    setSavingResult(true)
-    try {
-      await legalApi.updateResult(roundId, { result: effectiveResult || undefined })
-      queryClient.invalidateQueries({ queryKey: ['legal-round', roundId] })
-      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
-      toast.success('점검 결과 저장')
-    } catch { toast.error('저장 실패') }
-    finally { setSavingResult(false) }
-  }
-
-  const handleReportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return; e.target.value = ''
-    setUploadingReport(true)
-    try {
-      const form = new FormData(); form.append('file', file, file.name); form.append('folder', `legal/${roundId}/report`)
-      const token = useAuthStore.getState().token
-      const res = await fetch('/api/uploads', { method: 'POST', body: form, headers: { Authorization: `Bearer ${token}` } })
-      const json = await res.json() as { success: boolean; data?: { key: string } }
-      if (!json.success || !json.data?.key) throw new Error()
-      await legalApi.updateResult(roundId, { report_file_key: json.data.key })
-      queryClient.invalidateQueries({ queryKey: ['legal-round', roundId] })
-      toast.success('보고서 업로드 완료')
-    } catch { toast.error('업로드 실패') }
-    finally { setUploadingReport(false) }
-  }
 
   const handleDelete = async (finding: LegalFinding) => {
     try {
@@ -155,61 +150,85 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
     return b.createdAt.localeCompare(a.createdAt)
   })
 
+  const selectedCount = (findings ?? []).filter(f => f.submissionSelected).length
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* 헤더 */}
-      <div style={{ padding: '16px 16px 8px', flexShrink: 0 }}>
+      {/* 헤더 (title + date 만; result/저장/보고서 UI 는 1열 카드로 이동 또는 제거됨 — W3 / W4) */}
+      <div style={{ padding: '16px 16px 12px', flexShrink: 0 }}>
         <div className="text-body-sm font-bold text-text-primary">{round?.title ?? '지적사항 목록'}</div>
         {round && <div className="text-caption leading-none text-text-secondary" style={{ marginTop: 2 }}>{fmtDate(round.date)}{round.endDate ? ` ~ ${fmtDate(round.endDate)}` : ''}</div>}
       </div>
 
-      {/* 관리자 도구 */}
-      {role === 'admin' && round && (
-        <div style={{ padding: '0 16px 8px', display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
-          <select value={effectiveResult} onChange={e => setSelectedResult(e.target.value)} className="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style={{ padding: '4px 8px', appearance: 'none', cursor: 'pointer' }}>
-            <option value="">미입력</option>
-            <option value="pass">적합</option>
-            <option value="fail">부적합</option>
-            <option value="conditional">조건부적합</option>
-          </select>
-          <button onClick={handleSaveResult} disabled={savingResult} className="bg-accent text-text-on-accent text-caption font-bold leading-none rounded-sm" style={{ height: 28, padding: '0 10px', border: 'none', cursor: 'pointer', opacity: savingResult ? 0.6 : 1 }}>저장</button>
-          <input ref={reportInputRef} type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleReportUpload} />
-          {round.reportFileKey ? (
-            <button onClick={() => window.open('/api/uploads/' + round.reportFileKey, '_blank')} className="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style={{ height: 28, padding: '0 10px', cursor: 'pointer' }}>보고서</button>
-          ) : (
-            <button onClick={() => reportInputRef.current?.click()} disabled={uploadingReport} className="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-secondary rounded-sm" style={{ height: 28, padding: '0 10px', cursor: 'pointer', opacity: uploadingReport ? 0.6 : 1 }}>{uploadingReport ? '...' : '보고서 업로드'}</button>
-          )}
-        </div>
-      )}
+      {/* 탭 헤더 */}
+      <div className="border-b border-border-default" style={{ display: 'flex', flexShrink: 0 }}>
+        {([
+          { key: 'internal' as const, label: '내부용', count: sorted.length },
+          { key: 'submission' as const, label: '제출용', count: selectedCount },
+        ]).map(t => {
+          const isActive = activeTab === t.key
+          return (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`text-label font-bold leading-none ${isActive ? 'text-accent' : 'text-text-tertiary'}`}
+              style={{
+                flex: 1,
+                padding: '12px 8px',
+                background: isActive ? 'var(--surface-page)' : 'var(--surface-raised)',
+                border: 'none',
+                borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                cursor: 'pointer',
+              }}
+            >
+              {t.label}
+              <span
+                className="text-caption font-bold leading-none"
+                style={{
+                  marginLeft: 6,
+                  padding: '2px 7px',
+                  borderRadius: 99,
+                  background: isActive ? 'var(--accent)' : 'var(--surface-sunken)',
+                  color: isActive ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                }}
+              >{t.count}</span>
+            </button>
+          )
+        })}
+      </div>
 
-      {/* 목록 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {isLoading && <div className={SKELETON_CLS} style={SKELETON_STYLE} />}
-        {sorted.length === 0 && !isLoading && (
-          <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>지적사항 없음</div>
-        )}
-        {sorted.map(f => (
-          <div
-            key={f.id}
-            onClick={() => onSelectFinding(f.id)}
-            className={`bg-surface-sunken rounded-md ${selectedFindingId === f.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${f.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'}`}
-            style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span className="text-label font-medium text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description}</span>
-              <span className={`${f.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'} text-caption font-bold leading-none rounded-sm`} style={{ padding: '1px 6px', flexShrink: 0 }}>{f.status === 'open' ? '미조치' : '완료'}</span>
-            </div>
-            <div className="text-caption leading-none text-text-secondary">{f.location ?? '위치 미지정'}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span className="text-caption leading-none text-text-tertiary">{fmtDate(f.createdAt)}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button onClick={e => { e.stopPropagation(); setEditingFinding(f) }} className="text-caption leading-none text-text-tertiary" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>수정</button>
-                <button onClick={e => { e.stopPropagation(); handleDelete(f) }} className="text-caption leading-none text-text-tertiary" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>삭제</button>
+      {/* 본문 */}
+      {activeTab === 'internal' ? (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {isLoading && <div className={SKELETON_CLS} style={SKELETON_STYLE} />}
+          {sorted.length === 0 && !isLoading && (
+            <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>지적사항 없음</div>
+          )}
+          {sorted.map(f => (
+            <div
+              key={f.id}
+              onClick={() => onSelectFinding(f.id)}
+              className={`bg-surface-sunken rounded-md ${selectedFindingId === f.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${f.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'}`}
+              style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span className="text-label font-medium text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description}</span>
+                <span className={`${f.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'} text-caption font-bold leading-none rounded-sm`} style={{ padding: '1px 6px', flexShrink: 0 }}>{f.status === 'open' ? '미조치' : '완료'}</span>
+              </div>
+              <div className="text-caption leading-none text-text-secondary">{f.location ?? '위치 미지정'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="text-caption leading-none text-text-tertiary">{fmtDate(f.createdAt)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button onClick={e => { e.stopPropagation(); setEditingFinding(f) }} className="text-caption leading-none text-text-tertiary" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>수정</button>
+                  <button onClick={e => { e.stopPropagation(); handleDelete(f) }} className="text-caption leading-none text-text-tertiary" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>삭제</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <SubmissionTabPanel roundId={roundId} isLocked={round?.submissionStatus === 'completed'} />
+      )}
 
       {/* 수정 모달 — FindingEditModal 이 조치 완료 메모/사진 편집 capability 보유 (260520-x4q) */}
       {editingFinding && (
@@ -218,6 +237,464 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
           finding={editingFinding}
           onClose={() => setEditingFinding(null)}
         />
+      )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── 데스크톱: 2열 제출용 탭 (체크박스 + 라벨 + 자동저장) ──────────────
+// ══════════════════════════════════════════════════════════════════
+function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: boolean }) {
+  const queryClient = useQueryClient()
+  const { data: findings, isLoading } = useQuery({
+    queryKey: ['legal-findings', roundId],
+    queryFn: () => legalApi.getFindings(roundId),
+    enabled: !!roundId,
+    staleTime: 30_000,
+  })
+
+  // 카드별 로컬 라벨 (미저장)
+  const [localLabels, setLocalLabels] = useState<Record<string, string>>({})
+  // 카드별 저장 상태 (saved / dirty / saving / error)
+  const [saveStates, setSaveStates] = useState<Record<string, 'saved' | 'dirty' | 'saving' | 'error'>>({})
+  // 디바운스 타이머
+  const debounceTimers = useRef<Record<string, number>>({})
+
+  // 라운드 바뀌면 로컬 상태 초기화
+  useEffect(() => {
+    setLocalLabels({})
+    setSaveStates({})
+    Object.values(debounceTimers.current).forEach(t => clearTimeout(t))
+    debounceTimers.current = {}
+  }, [roundId])
+
+  const persistLabel = (fid: string, label: string) => {
+    setSaveStates(prev => ({ ...prev, [fid]: 'saving' }))
+    legalApi.updateFinding(roundId, fid, { submission_label: label })
+      .then(() => {
+        setSaveStates(prev => ({ ...prev, [fid]: 'saved' }))
+        // localLabels 는 그대로 유지 — textarea 의 controlled value 가 재설정되면
+        // 커서 위치가 문장 끝으로 점프하고 입력 중인 글자가 중복/소실되는 사고 (260527 발견)
+        // 라운드 전환 시 useEffect 에서 일괄 reset 함
+        // invalidateQueries 도 생략 — 라벨 저장은 다른 mutation 결과에 영향 X
+        // 체크박스 토글 (handleToggle) 은 별도로 invalidate
+      })
+      .catch((err: any) => {
+        setSaveStates(prev => ({ ...prev, [fid]: 'error' }))
+        toast.error(err?.message ?? '라벨 저장 실패')
+      })
+  }
+
+  const handleLabelChange = (fid: string, label: string) => {
+    setLocalLabels(prev => ({ ...prev, [fid]: label }))
+    setSaveStates(prev => ({ ...prev, [fid]: 'dirty' }))
+    if (debounceTimers.current[fid]) clearTimeout(debounceTimers.current[fid])
+    debounceTimers.current[fid] = window.setTimeout(() => persistLabel(fid, label), 500)
+  }
+
+  const handleSaveNow = (fid: string, label: string) => {
+    if (debounceTimers.current[fid]) clearTimeout(debounceTimers.current[fid])
+    persistLabel(fid, label)
+  }
+
+  const handleToggle = (fid: string, current: boolean) => {
+    legalApi.updateFinding(roundId, fid, { submission_selected: !current })
+      .then(() => queryClient.invalidateQueries({ queryKey: ['legal-findings', roundId] }))
+      .catch((err: any) => toast.error(err?.message ?? '선택 변경 실패'))
+  }
+
+  const getDisplayLabel = (f: LegalFinding): string => {
+    if (localLabels[f.id] !== undefined) return localLabels[f.id]
+    if (f.submissionLabel !== null) return f.submissionLabel
+    return `${f.location ?? ''} ${f.description}`.trim()
+  }
+
+  const sorted = [...(findings ?? [])].sort((a, b) => {
+    if (a.status === 'open' && b.status !== 'open') return -1
+    if (a.status !== 'open' && b.status === 'open') return 1
+    return b.createdAt.localeCompare(a.createdAt)
+  })
+
+  if (isLoading) {
+    return (
+      <div style={{ flex: 1, padding: 16 }}>
+        <div className={SKELETON_CLS} style={SKELETON_STYLE} />
+      </div>
+    )
+  }
+
+  if (sorted.length === 0) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div className="text-label text-text-tertiary" style={{ textAlign: 'center', lineHeight: 1.6 }}>
+          지적사항 없음<br />
+          <span className="text-caption text-text-disabled">내부용 탭에서 먼저 지적/조치를 등록하세요</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {sorted.map(f => {
+        const hasBefore = f.photoKeys.length > 0
+        const hasAfter = f.resolutionPhotoKeys.length > 0
+        const photosOk = hasBefore && hasAfter
+        const isSelected = f.submissionSelected
+        const label = getDisplayLabel(f)
+        const saveState = saveStates[f.id] ?? 'saved'
+        const cardDisabled = isLocked || !photosOk
+        // 저장 버튼 활성: selected + photosOk + !locked + (dirty OR error)
+        const canSaveBtn = isSelected && photosOk && !isLocked && (saveState === 'dirty' || saveState === 'error')
+
+        return (
+          <div
+            key={f.id}
+            className={`rounded-md border ${isSelected ? 'bg-surface-active border-accent' : 'bg-surface-raised border-border-strong'}`}
+            style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, opacity: cardDisabled && !isSelected ? 0.7 : 1 }}
+          >
+            {/* info-line: location | description */}
+            <div className="text-label font-bold text-text-primary" style={{ lineHeight: 1.4 }}>
+              <span className="text-text-secondary">{f.location ?? '위치 미지정'}</span>
+              <span className="text-text-tertiary" style={{ padding: '0 6px' }}>|</span>
+              <span className="text-text-primary">{f.description}</span>
+            </div>
+
+            {/* input-row: 체크 (가로축 중앙) + textarea + 저장 버튼 */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => { if (!cardDisabled) handleToggle(f.id, isSelected) }}
+                  disabled={cardDisabled}
+                  aria-pressed={isSelected}
+                  className={`rounded-sm flex items-center justify-center font-bold ${
+                    isSelected
+                      ? 'bg-accent border-2 border-accent text-text-on-accent'
+                      : cardDisabled
+                        ? 'border-2 border-border-default text-text-disabled'
+                        : 'border-2 border-border-strong text-text-disabled'
+                  }`}
+                  style={{ width: 28, height: 28, fontSize: 18, lineHeight: 1, cursor: cardDisabled ? 'not-allowed' : 'pointer' }}
+                >{isSelected ? '✓' : ''}</button>
+              </div>
+              <textarea
+                value={label}
+                disabled={!isSelected || cardDisabled}
+                onChange={(e) => handleLabelChange(f.id, e.target.value)}
+                placeholder={isSelected ? '' : '체크하면 PPT 라벨 입력 가능'}
+                className="bg-surface-sunken border border-border-strong text-text-primary rounded-sm focus:border-accent focus:outline-none"
+                style={{ flex: 1, minHeight: 36, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' }}
+              />
+              <button
+                type="button"
+                onClick={() => handleSaveNow(f.id, label)}
+                disabled={!canSaveBtn}
+                className={`text-caption font-bold leading-none rounded-sm border-0 ${canSaveBtn ? 'bg-accent text-text-on-accent' : 'bg-surface-sunken text-text-disabled'}`}
+                style={{ padding: '0 12px', cursor: canSaveBtn ? 'pointer' : 'not-allowed', alignSelf: 'stretch', flexShrink: 0 }}
+              >저장</button>
+            </div>
+
+            {/* meta-row: 사진 chip (좌) + 저장 인디케이터 (우, 저장버튼 우측 모서리 정렬) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span className="text-caption font-bold text-text-tertiary">사진 :</span>
+                <span className={`text-caption font-bold leading-none rounded-sm ${hasBefore ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
+                  조치 전 {hasBefore ? '✓' : '✗'}
+                </span>
+                <span className={`text-caption font-bold leading-none rounded-sm ${hasAfter ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
+                  조치 후 {hasAfter ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className="text-caption leading-none" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {!photosOk ? (
+                  <span className="text-danger">사진 부족 — 저장 불가</span>
+                ) : isLocked ? (
+                  <span className="text-text-tertiary">🔒 제출 완료</span>
+                ) : !isSelected ? (
+                  <span className="text-text-tertiary">—</span>
+                ) : saveState === 'saving' ? (
+                  <span className="text-accent"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장중...</span>
+                ) : saveState === 'dirty' ? (
+                  <span className="text-warning"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />변경됨</span>
+                ) : saveState === 'error' ? (
+                  <span className="text-danger"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장 실패</span>
+                ) : (
+                  <span className="text-safe"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장됨</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── 데스크톱: 3열 PPT 미리보기 (제출용 탭 활성 시) ────────────────────
+// ══════════════════════════════════════════════════════════════════
+function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
+  const queryClient = useQueryClient()
+  const { data: round } = useQuery({
+    queryKey: ['legal-round', roundId],
+    queryFn: () => legalApi.get(roundId),
+    enabled: !!roundId,
+  })
+  const { data: findings, isLoading } = useQuery({
+    queryKey: ['legal-findings', roundId],
+    queryFn: () => legalApi.getFindings(roundId),
+    enabled: !!roundId,
+    staleTime: 30_000,
+  })
+
+  // 선택된 finding 만 (체크박스 ON + 사진 둘 다 있음 = PPT 포함 가능)
+  const eligibleFindings = (findings ?? []).filter(f =>
+    f.submissionSelected && f.photoKeys.length > 0 && f.resolutionPhotoKeys.length > 0
+  )
+
+  // 자동저장 상태
+  const [genState, setGenState] = useState<'saved' | 'dirty' | 'saving' | 'error' | 'idle'>('idle')
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
+  const autoSaveTimer = useRef<number | null>(null)
+  const lastEligibleSignature = useRef<string>('')
+
+  // eligible findings 의 signature (id + label + 체크/사진 상태) — 변경 감지용
+  const signature = JSON.stringify(eligibleFindings.map(f => ({
+    id: f.id,
+    l: f.submissionLabel,
+    p: f.photoKeys.length,
+    r: f.resolutionPhotoKeys.length,
+  })))
+
+  const generateMutation = useMutation({
+    mutationFn: () => legalApi.generateSubmissionPpt(roundId),
+    onMutate: () => setGenState('saving'),
+    onSuccess: () => {
+      setGenState('saved')
+      setLastSavedAt(Date.now())
+      lastEligibleSignature.current = signature
+      // round 갱신 (ppt_file_key) → 1열 카드 지적조치사진 버튼 활성
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', roundId] })
+      toast.success('지적조치사진 PPT 저장')
+    },
+    onError: (err: any) => {
+      setGenState('error')
+      toast.error(err?.message ?? 'PPT 생성 실패')
+    },
+  })
+
+  const isLocked = round?.submissionStatus === 'completed'
+  const count = eligibleFindings.length
+
+  // 변경 감지: signature 가 lastEligibleSignature 와 다르면 dirty
+  useEffect(() => {
+    if (count === 0 || isLocked) return
+    if (genState === 'idle' && round?.pptFileKey) {
+      // 이미 저장된 상태로 진입
+      setGenState('saved')
+      lastEligibleSignature.current = signature
+      return
+    }
+    if (genState === 'idle' && !round?.pptFileKey) {
+      // 미생성 상태로 진입 → dirty
+      setGenState('dirty')
+      return
+    }
+    if (signature !== lastEligibleSignature.current && genState !== 'saving') {
+      setGenState('dirty')
+    }
+  }, [signature, round?.pptFileKey, count, isLocked, genState])
+
+  // 10초 디바운스 자동저장 (dirty 일 때만)
+  useEffect(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current)
+      autoSaveTimer.current = null
+    }
+    if (genState !== 'dirty' || count === 0 || isLocked) return
+    autoSaveTimer.current = window.setTimeout(() => {
+      generateMutation.mutate()
+    }, 10_000)
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current)
+        autoSaveTimer.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genState, count, isLocked])
+
+  const handleSaveNow = () => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    generateMutation.mutate()
+  }
+
+  // 인디케이터 라벨
+  const indicatorLabel = (() => {
+    if (count === 0) return '대상 없음'
+    if (isLocked) return '🔒 제출 완료'
+    if (genState === 'saving') return '저장중...'
+    if (genState === 'error') return '저장 실패'
+    if (genState === 'dirty') return '변경됨 · 자동저장 대기'
+    if (genState === 'saved') {
+      if (!lastSavedAt) return '저장됨'
+      const sec = Math.floor((Date.now() - lastSavedAt) / 1000)
+      return sec < 10 ? `저장됨 · 방금` : `저장됨 · ${sec}초 전`
+    }
+    return '대기'
+  })()
+  const indicatorColor = (() => {
+    if (count === 0 || isLocked) return 'text-text-tertiary'
+    if (genState === 'saving') return 'text-accent'
+    if (genState === 'error') return 'text-danger'
+    if (genState === 'dirty') return 'text-warning'
+    if (genState === 'saved') return 'text-safe'
+    return 'text-text-tertiary'
+  })()
+
+  // 라벨 (DB submissionLabel || prefill)
+  const labelFor = (f: LegalFinding): string =>
+    f.submissionLabel ?? `${f.location ?? ''} ${f.description}`.trim()
+
+  // 본문 슬라이드 = 지적 2건씩
+  const pages: Array<{ left: LegalFinding | null; right: LegalFinding | null }> = []
+  for (let i = 0; i < eligibleFindings.length; i += 2) {
+    pages.push({ left: eligibleFindings[i] ?? null, right: eligibleFindings[i + 1] ?? null })
+  }
+  const totalPages = pages.length
+
+  const [pageIdx, setPageIdx] = useState(0)
+  useEffect(() => {
+    if (pageIdx >= totalPages && totalPages > 0) setPageIdx(totalPages - 1)
+  }, [totalPages, pageIdx])
+  const currentPage = pages[pageIdx] ?? null
+
+  // PPT 표지 텍스트 — "{연도}년 소방 {종합정밀|작동기능}점검" (상반기/하반기 제외)
+  const coverYear = round?.date?.slice(0, 4) ?? ''
+  const coverKind = round?.title?.includes('종합') ? '종합정밀점검' : '작동기능점검'
+  const coverTitle = round ? `${coverYear}년 ${coverKind}` : '지적사항 조치 작업사진'
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-page)' }}>
+      {/* 헤더: 타이틀 (좌) + [인디케이터 + 저장하기] (우, bottom 정렬) */}
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+        <div className="text-label font-bold text-text-primary">
+          지적사항 조치 작업사진 <span className="text-accent">{count}</span>건
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+          <div className={`text-caption ${indicatorColor}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1, paddingBottom: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+            {indicatorLabel}
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveNow}
+            disabled={count === 0 || isLocked || genState === 'saving'}
+            className={`border-0 ${count === 0 || isLocked || genState === 'saving' ? 'bg-surface-sunken text-text-disabled' : genState === 'dirty' || genState === 'error' ? 'bg-warning text-text-on-accent' : 'bg-accent text-text-on-accent'}`}
+            style={{ height: 32, padding: '0 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: count === 0 || isLocked || genState === 'saving' ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            {genState === 'saving' ? '저장중...' : '💾 저장하기'}
+          </button>
+        </div>
+      </div>
+
+      {/* 본문: 표지 + 현재 페이지 슬라이드 */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {isLoading ? (
+          <div className={SKELETON_CLS} style={SKELETON_STYLE} />
+        ) : count === 0 ? (
+          <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', lineHeight: 1.6 }}>
+            제출용 탭에서 PPT 에 포함할 지적사항을 체크해주세요<br />
+            <span className="text-caption text-text-disabled">사진이 조치 전/후 모두 있어야 PPT 포함 가능</span>
+          </div>
+        ) : (
+          <>
+            {/* 표지 (A4 가로 297:210) */}
+            <div>
+              <div className="text-caption text-text-tertiary" style={{ marginBottom: 4 }}>표지 (slide 1)</div>
+              <div style={{ aspectRatio: '297/210', background: '#fff', color: '#000', borderRadius: 8, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontSize: 36, fontWeight: 700 }}>{coverTitle}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 16 }}>지적사항 조치 작업사진</div>
+                <div style={{ fontSize: 18, marginTop: 24, color: '#444' }}>차바이오 컴플렉스</div>
+              </div>
+            </div>
+
+            {/* 본문 슬라이드 */}
+            {currentPage && (
+              <div>
+                <div className="text-caption text-text-tertiary" style={{ marginBottom: 4 }}>
+                  조치 전 / 후 (slide {pageIdx + 2} of {totalPages + 1}) — A4 가로
+                </div>
+                <div style={{ aspectRatio: '297/210', background: '#fff', color: '#000', borderRadius: 8, padding: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr auto 1fr', gap: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                  {/* Row 1: 라벨 (조치 전) */}
+                  <SlideLabelCell text={currentPage.left ? `${labelFor(currentPage.left)} 조치 전` : ''} />
+                  <SlideLabelCell text={currentPage.right ? `${labelFor(currentPage.right)} 조치 전` : ''} />
+                  {/* Row 2: 사진 (조치 전) */}
+                  <SlidePhotoCell src={currentPage.left?.photoKeys[0]} />
+                  <SlidePhotoCell src={currentPage.right?.photoKeys[0]} />
+                  {/* Row 3: 라벨 (조치 후) */}
+                  <SlideLabelCell text={currentPage.left ? `${labelFor(currentPage.left)} 조치 후` : ''} />
+                  <SlideLabelCell text={currentPage.right ? `${labelFor(currentPage.right)} 조치 후` : ''} />
+                  {/* Row 4: 사진 (조치 후) */}
+                  <SlidePhotoCell src={currentPage.left?.resolutionPhotoKeys[0]} />
+                  <SlidePhotoCell src={currentPage.right?.resolutionPhotoKeys[0]} />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* 페이지 네비 */}
+      {totalPages > 0 && (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-default)', background: 'var(--surface-raised)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => setPageIdx(i => Math.max(0, i - 1))}
+            disabled={pageIdx === 0}
+            className="bg-surface-sunken border border-border-strong text-text-primary disabled:text-text-disabled disabled:border-border-default disabled:bg-transparent"
+            style={{ width: 36, height: 36, borderRadius: 6, fontSize: 16, cursor: pageIdx === 0 ? 'not-allowed' : 'pointer' }}
+          >◀</button>
+          <div className="text-label font-bold text-text-primary" style={{ minWidth: 80, textAlign: 'center' }}>
+            {pageIdx + 1} / {totalPages}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPageIdx(i => Math.min(totalPages - 1, i + 1))}
+            disabled={pageIdx >= totalPages - 1}
+            className="bg-surface-sunken border border-border-strong text-text-primary disabled:text-text-disabled disabled:border-border-default disabled:bg-transparent"
+            style={{ width: 36, height: 36, borderRadius: 6, fontSize: 16, cursor: pageIdx >= totalPages - 1 ? 'not-allowed' : 'pointer' }}
+          >▶</button>
+        </div>
+      )}
+
+      {isLocked && (
+        <div className="bg-safe-bg text-safe text-caption font-bold" style={{ padding: '6px 16px', textAlign: 'center', flexShrink: 0 }}>
+          🔒 제출 완료된 점검 — 재생성 불가
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SlideLabelCell({ text }: { text: string }) {
+  return (
+    <div style={{ border: '1px solid #888', background: '#f5f5f5', padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 11, fontWeight: 700, lineHeight: 1.4, overflow: 'hidden' }}>
+      {text}
+    </div>
+  )
+}
+
+function SlidePhotoCell({ src }: { src: string | undefined }) {
+  return (
+    <div style={{ border: '1px solid #888', background: '#e5e5e5', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {src ? (
+        <img src={'/api/uploads/' + src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <span style={{ color: '#888', fontSize: 11 }}>—</span>
       )}
     </div>
   )
@@ -382,10 +859,82 @@ export default function LegalPage() {
 
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const years = genYears()
+  const { staff } = useAuthStore()
+  const isAdmin = staff?.role === 'admin'
+  const queryClient = useQueryClient()
+
+  // 카드별 토글 미저장 상태 (사용자가 토글했지만 저장 안 한 값)
+  const [pendingStatuses, setPendingStatuses] = useState<Record<string, 'pending' | 'completed'>>({})
+  const [savingRoundId, setSavingRoundId] = useState<string | null>(null)
+
+  const saveStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'pending' | 'completed' }) =>
+      legalApi.updateResult(id, { submission_status: status }),
+    onMutate: ({ id }) => setSavingRoundId(id),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', id] })
+      setPendingStatuses(prev => { const next = { ...prev }; delete next[id]; return next })
+      toast.success('제출 상태 저장됨')
+    },
+    onError: (err: any) => toast.error(err?.message ?? '저장 실패'),
+    onSettled: () => setSavingRoundId(null),
+  })
+
+  // 결과내역서 업로드 (admin 전용; 카드 클릭 시 hidden file input 트리거)
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploadTargetId, setUploadTargetId] = useState<string | null>(null)
+  const [uploadingRoundId, setUploadingRoundId] = useState<string | null>(null)
+  const triggerUpload = (roundId: string) => {
+    setUploadTargetId(roundId)
+    uploadInputRef.current?.click()
+  }
+  const handleReportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    const targetId = uploadTargetId
+    e.target.value = ''
+    setUploadTargetId(null)
+    if (!file || !targetId) return
+    setUploadingRoundId(targetId)
+    try {
+      const form = new FormData()
+      form.append('file', file, file.name)
+      form.append('folder', `legal/${targetId}/report`)
+      const token = useAuthStore.getState().token
+      const res = await fetch('/api/uploads', { method: 'POST', body: form, headers: { Authorization: `Bearer ${token}` } })
+      const json = await res.json() as { success: boolean; data?: { key: string } }
+      if (!json.success || !json.data?.key) throw new Error('upload failed')
+      await legalApi.updateResult(targetId, { report_file_key: json.data.key })
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', targetId] })
+      toast.success('결과내역서 업로드')
+    } catch (err: any) {
+      toast.error(err?.message ?? '업로드 실패')
+    } finally {
+      setUploadingRoundId(null)
+    }
+  }
+
+  // 결과내역서 삭제 (admin 전용, 새 파일 업로드 대비)
+  const deleteReportMutation = useMutation({
+    mutationFn: (id: string) => legalApi.updateResult(id, { report_file_key: null }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', id] })
+      toast.success('결과내역서 삭제')
+    },
+    onError: (err: any) => toast.error(err?.message ?? '삭제 실패'),
+  })
+  const handleDeleteReport = (round: LegalRound) => {
+    if (!confirm(`"${round.title}" 의 결과내역서를 삭제하시겠습니까?\n(R2 의 파일도 함께 정리 권장)`)) return
+    deleteReportMutation.mutate(round.id)
+  }
 
   // 데스크톱 3분할 상태
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null)
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null)
+  // 2열 탭 (internal=기존 finding list / submission=PPT 제출용 W5)
+  const [activeTab, setActiveTab] = useState<'internal' | 'submission'>('internal')
 
   const { data: rounds, isLoading, isError, refetch } = useQuery({
     queryKey: ['legal-rounds', year],
@@ -438,23 +987,152 @@ export default function LegalPage() {
         {!isLoading && !isError && filtered.length === 0 && (
           <div className="text-caption leading-none text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 16 }}>점검 이력 없음</div>
         )}
-        {!isLoading && !isError && filtered.map(round => (
+        {!isLoading && !isError && filtered.map(round => {
+          const effectiveStatus = pendingStatuses[round.id] ?? round.submissionStatus
+          const isDirty = effectiveStatus !== round.submissionStatus
+          const isLocked = round.submissionStatus === 'completed' && !isDirty
+          const isSaving = savingRoundId === round.id
+          return (
           <div
             key={round.id}
             onClick={() => handleRoundClick(round)}
-            className={`bg-surface-sunken rounded-md ${selectedRoundId === round.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${accentColor(round.result)}`}
-            style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3 }}
+            className={`bg-surface-sunken rounded-md ${selectedRoundId === round.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${stripBySubmission(effectiveStatus)}`}
+            style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span className="text-label font-bold text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.title}</span>
-              <ResultBadge result={round.result} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+              <span className="text-label font-bold text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingTop: 4 }}>{round.title}</span>
+              {isDesktop && (
+                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    disabled={!isAdmin || isLocked || isSaving}
+                    onClick={() => {
+                      if (!isAdmin || isLocked) return
+                      setPendingStatuses(prev => ({ ...prev, [round.id]: effectiveStatus === 'completed' ? 'pending' : 'completed' }))
+                    }}
+                    className={`text-caption font-bold leading-none rounded-sm border ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe border-safe' : 'bg-warning-bg text-warning border-warning'}`}
+                    style={{ height: 26, padding: '0 10px', cursor: isAdmin && !isLocked ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+                  >
+                    제출 {effectiveStatus === 'completed' ? '완료' : '미완료'}
+                  </button>
+                  {isLocked ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="text-caption font-bold leading-none rounded-sm border border-safe bg-safe-bg text-safe"
+                      style={{ height: 26, padding: '0 10px', cursor: 'default', whiteSpace: 'nowrap' }}
+                    >🔒 종결</button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={!isAdmin || !isDirty || isSaving}
+                      onClick={() => {
+                        if (!isAdmin || !isDirty) return
+                        saveStatusMutation.mutate({ id: round.id, status: effectiveStatus })
+                      }}
+                      className={`text-caption font-bold leading-none rounded-sm border-0 ${isDirty ? 'bg-warning text-text-on-accent' : 'bg-accent text-text-on-accent'} disabled:bg-surface-sunken disabled:text-text-disabled`}
+                      style={{ height: 26, padding: '0 10px', cursor: isAdmin && isDirty ? 'pointer' : 'not-allowed' }}
+                    >
+                      {isSaving ? '저장중...' : isDirty ? '저장 *' : '저장'}
+                    </button>
+                  )}
+                </div>
+              )}
+              {!isDesktop && (
+                <span
+                  className={`text-caption font-bold leading-none rounded-sm border ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe border-safe' : 'bg-warning-bg text-warning border-warning'}`}
+                  style={{ padding: '3px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                >
+                  제출 {effectiveStatus === 'completed' ? '완료' : '미완료'}
+                </span>
+              )}
             </div>
             <div className="text-caption leading-none text-text-secondary">
               {fmtDate(round.date)} · 지적 {round.findingCount} · 완료 {round.resolvedCount}
             </div>
+            <div style={{ display: 'flex', gap: 6, paddingTop: 6, borderTop: '1px dashed var(--border-default)' }}>
+              {/* 결과내역서: reportFileKey 있으면 다운로드 + (데스크톱 admin && !locked) X 삭제 / 없으면 (데스크톱 admin) 업로드 */}
+              {round.reportFileKey ? (
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (round.reportFileKey) {
+                        downloadWithName('/api/uploads/' + round.reportFileKey, reportFileName(round))
+                      }
+                    }}
+                    className="text-caption font-bold leading-none rounded-sm bg-surface-raised border border-border-strong text-text-primary"
+                    style={{ width: '100%', height: 32, cursor: 'pointer' }}
+                  >↓ 결과내역서</button>
+                  {isDesktop && isAdmin && !isLocked && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteReport(round) }}
+                      title="결과내역서 삭제 (새 파일 업로드 시)"
+                      className="bg-surface-active text-text-secondary border border-border-strong"
+                      style={{
+                        position: 'absolute',
+                        top: -6, right: -6,
+                        width: 18, height: 18,
+                        borderRadius: '50%',
+                        fontSize: 12,
+                        lineHeight: 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                    >×</button>
+                  )}
+                </div>
+              ) : (
+                (() => {
+                  const canUpload = isDesktop && isAdmin && !isLocked
+                  const isUploading = uploadingRoundId === round.id
+                  return (
+                    <button
+                      type="button"
+                      disabled={!canUpload || isUploading}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (canUpload) triggerUpload(round.id)
+                      }}
+                      className={`text-caption font-bold leading-none rounded-sm ${canUpload ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
+                      style={{ flex: 1, height: 32, cursor: canUpload ? 'pointer' : 'not-allowed', background: canUpload ? undefined : 'transparent' }}
+                    >
+                      {isUploading ? '업로드중...' : (canUpload ? '⬆ 결과내역서 업로드' : '↓ 결과내역서 (미업로드)')}
+                    </button>
+                  )
+                })()
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (round.pptFileKey) {
+                    downloadWithName('/api/uploads/' + round.pptFileKey, pptFileName(round))
+                  }
+                }}
+                disabled={!round.pptFileKey}
+                className={`text-caption font-bold leading-none rounded-sm ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
+                style={{ flex: 1, height: 32, cursor: round.pptFileKey ? 'pointer' : 'not-allowed', background: round.pptFileKey ? undefined : 'transparent' }}
+              >
+                ↓ 지적조치사진{round.pptFileKey ? '' : ' (미생성)'}
+              </button>
+            </div>
           </div>
-        ))}
+          )
+        })}
       </div>
+
+      {/* 결과내역서 업로드용 hidden file input — 카드의 업로드 버튼이 ref 통해 트리거 */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="application/pdf"
+        style={{ display: 'none' }}
+        onChange={handleReportFileChange}
+      />
     </div>
   )
 
@@ -477,15 +1155,19 @@ export default function LegalPage() {
               roundId={selectedRoundId}
               onSelectFinding={fid => setSelectedFindingId(fid)}
               selectedFindingId={selectedFindingId}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
             />
           ) : (
             <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>좌측에서 점검을 선택하세요</div>
           )}
         </div>
 
-        {/* 우측: 상세 */}
+        {/* 우측: 상세 — 2열 탭에 따라 swap */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {selectedFindingId && selectedRoundId ? (
+          {activeTab === 'submission' && selectedRoundId ? (
+            <SubmissionPreviewPanel key={selectedRoundId} roundId={selectedRoundId} />
+          ) : selectedFindingId && selectedRoundId ? (
             <FindingDetailPanel key={selectedFindingId} roundId={selectedRoundId} findingId={selectedFindingId} />
           ) : (
             <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

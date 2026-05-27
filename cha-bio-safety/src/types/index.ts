@@ -91,6 +91,8 @@ export interface LegalRound {
   reportFileKey: string | null
   findingCount: number
   resolvedCount: number
+  submissionStatus: 'pending' | 'completed'
+  pptFileKey: string | null
 }
 
 export interface LegalFinding {
@@ -110,6 +112,8 @@ export interface LegalFinding {
   createdBy: string
   createdByName: string | null
   createdAt: string
+  submissionSelected: boolean
+  submissionLabel: string | null
 }
 
 // ── Elevator Inspection Certs ───────────────────────────

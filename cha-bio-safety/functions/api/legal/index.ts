@@ -22,6 +22,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
         si.status,
         si.result,
         si.report_file_key,
+        si.submission_status,
+        si.ppt_file_key,
         COUNT(lf.id) AS finding_count,
         SUM(CASE WHEN lf.status = 'resolved' THEN 1 ELSE 0 END) AS resolved_count
       FROM schedule_items si
@@ -34,6 +36,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     `).bind(...binds).all<{
       id: string; title: string; date: string; end_date: string | null; inspection_category: string;
       status: string; result: string | null; report_file_key: string | null;
+      submission_status: string; ppt_file_key: string | null;
       finding_count: number; resolved_count: number
     }>()
 
@@ -46,6 +49,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
       status: r.status,
       result: r.result ?? null,
       reportFileKey: r.report_file_key ?? null,
+      submissionStatus: (r.submission_status ?? 'pending') as 'pending' | 'completed',
+      pptFileKey: r.ppt_file_key ?? null,
       findingCount: Number(r.finding_count ?? 0),
       resolvedCount: Number(r.resolved_count ?? 0),
     }))
