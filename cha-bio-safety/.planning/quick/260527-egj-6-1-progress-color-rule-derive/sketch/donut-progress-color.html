@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>§6.1 Progress Color Rule — 도넛 시안 (260527-egj)</title>
+<style>
+  /* ── tokens (verbatim from tokens.css v0.1.1, dark) ────────────── */
+  :root {
+    --surface-page:        #0a0d12;
+    --surface-raised:      #1a1f27;
+    --surface-elevated:    #232830;
+    --border-subtle:       #2a2f37;
+    --text-primary:        #e6edf3;
+    --text-secondary:      #adb6c0;
+    --text-tertiary:       #8b949e;
+    --accent:              #3b82f6;
+    --status-safe-bar:     #22c55e;
+    --status-warning-bar:  #f59e0b;
+    /* doubleCycle overlay (server m.early_color / m.late_color 예시) */
+    --info: #38bdf8;
+    --warn: #fb923c;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 24px 16px 80px;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: var(--text-primary);
+  }
+  .subtitle {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  .section {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .section h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--text-primary);
+  }
+  .section .desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0 0 16px;
+    line-height: 1.6;
+  }
+
+  /* ── 색 룰 표 ────────────────────────────────────────────────── */
+  .rule-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .rule-cell {
+    background: var(--surface-elevated);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .rule-swatch {
+    width: 100%;
+    height: 14px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .rule-range {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .rule-token {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+  }
+
+  /* ── Old vs New 2 컬럼 ─────────────────────────────────────── */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .compare-col {
+    background: var(--surface-elevated);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .compare-col h3 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--text-primary);
+  }
+  .compare-col h3.old { color: var(--text-tertiary); }
+  .compare-col h3.new { color: var(--status-safe-bar); }
+  .compare-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  /* ── donut cell ──────────────────────────────────────────── */
+  .donut-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .donut-cell .label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+  .donut-cell .meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--text-tertiary);
+  }
+  .donut-cell .meta.done {
+    color: var(--status-safe-bar);
+    font-weight: 600;
+  }
+  .donut-cell .hex {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.2px;
+  }
+
+  /* ── 모바일 strip (size 76) ─────────────────────────────── */
+  .mobile-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  /* ── 데스크톱 strip (size 44, 가로 스크롤) ──────────────── */
+  .desktop-strip {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 8px 0;
+  }
+  .desktop-strip .donut-cell {
+    flex: 0 0 auto;
+    min-width: 64px;
+  }
+  .desktop-strip .label { font-size: 10px; }
+
+  /* ── doubleCycle 단일 카드 ─────────────────────────────── */
+  .dc-card {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: var(--surface-elevated);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .dc-legend {
+    flex: 1;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+  .dc-legend .swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+    margin-left: 2px;
+  }
+  .dc-legend .key {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* ── footer ───────────────────────────────────────────── */
+  .footer-note {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+  .footer-note code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    background: var(--surface-elevated);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>§6.1 Progress Color Rule — 도넛 색 룰 시안</h1>
+  <p class="subtitle">
+    대시보드 "이번 달 점검 현황" 도넛(모바일 size 76 / 데스크톱 size 44)에 §6.1 진척률 → 색 4단계 매핑을 적용한다.<br>
+    카테고리별 임의 색(ITEM_COLORS 회전 팔레트) 폐지 — API 응답(<code style="font-family:'JetBrains Mono',monospace;background:var(--surface-elevated);padding:1px 4px;border-radius:3px;font-size:10px;color:var(--text-secondary)">m.color</code>) 은 무수정, 클라이언트(<code style="font-family:'JetBrains Mono',monospace;background:var(--surface-elevated);padding:1px 4px;border-radius:3px;font-size:10px;color:var(--text-secondary)">DashboardPage.tsx</code>) 에서만 derive.
+  </p>
+
+  <!-- ── 색 룰 표 (§6.1 4단계) ─────────────────────────────── -->
+  <div class="section">
+    <h2>§6.1 4단계 색 매핑</h2>
+    <p class="desc">진척률(pct) 기준으로 도넛 trail + value arc 색이 결정된다.</p>
+    <div class="rule-grid">
+      <div class="rule-cell">
+        <div class="rule-swatch" style="background:#22c55e"></div>
+        <div class="rule-range">100% — 완료</div>
+        <div class="rule-token">--status-safe-bar<br>#22c55e</div>
+      </div>
+      <div class="rule-cell">
+        <div class="rule-swatch" style="background:#3b82f6"></div>
+        <div class="rule-range">50 ~ 99% — 진행 중</div>
+        <div class="rule-token">--accent<br>#3b82f6</div>
+      </div>
+      <div class="rule-cell">
+        <div class="rule-swatch" style="background:#f59e0b"></div>
+        <div class="rule-range">1 ~ 49% — 부진</div>
+        <div class="rule-token">--status-warning-bar<br>#f59e0b</div>
+      </div>
+      <div class="rule-cell">
+        <div class="rule-swatch" style="background:#8b949e"></div>
+        <div class="rule-range">0% — 미시작</div>
+        <div class="rule-token">--text-tertiary<br>#8b949e</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 섹션 A: Old vs New ───────────────────────────────── -->
+  <div class="section">
+    <h2>섹션 A — Old vs New (같은 4 카테고리 / 같은 pct)</h2>
+    <p class="desc">왼쪽: 기존 ITEM_COLORS 회전 팔레트(server idx 기반). 오른쪽: §6.1 진척률 기반 색만 적용.</p>
+    <div class="compare">
+      <div class="compare-col">
+        <h3 class="old">Old — ITEM_COLORS 회전 팔레트</h3>
+        <div class="compare-row">
+          <!-- 소화기 idx=0 #22c55e (우연히 §6.1 100% 색과 동일) -->
+          <div class="donut-cell">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#22c55e" stroke-opacity="0.18" stroke-width="5"/>
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-dasharray="207.35 0.00"/>
+            </svg>
+            <div class="label">소화기</div>
+            <div class="meta">100% · 14/14</div>
+            <div class="hex">idx 0 · #22c55e</div>
+          </div>
+          <!-- 유도등 idx=1 #3b82f6 -->
+          <div class="donut-cell">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="180.39 26.96"/>
+            </svg>
+            <div class="label">유도등</div>
+            <div class="meta">87% · 13/15</div>
+            <div class="hex">idx 1 · #3b82f6</div>
+          </div>
+          <!-- 소화전 idx=4 #8b5cf6 (보라 — pct 33 이지만 §6.1 의 warning-bar 와 무관) -->
+          <div class="donut-cell">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#8b5cf6" stroke-opacity="0.18" stroke-width="5"/>
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#8b5cf6" stroke-width="5" stroke-linecap="round" stroke-dasharray="68.42 138.93"/>
+            </svg>
+            <div class="label">소화전</div>
+            <div class="meta">33% · 5/15</div>
+            <div class="hex">idx 4 · #8b5cf6</div>
+          </div>
+          <!-- 방화셔터 0% — 회색 #52525b (현재 stats.ts) -->
+          <div class="donut-cell">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#52525b" stroke-opacity="0.30" stroke-width="5"/>
+            </svg>
+            <div class="label">방화셔터</div>
+            <div class="meta">0% · 0/12</div>
+            <div class="hex">0% · #52525b</div>
+          </div>
+        </div>
+      </div>
+      <div class="compare-col">
+        <h3 class="new">New — §6.1 Progress Color Rule</h3>
+        <div class="compare-row">
+          <!-- 소화기 100% → safe-bar -->
+          <div class="donut-cell">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#22c55e" stroke-opacity="0.18" stroke-width="5"/>
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-dasharray="207.35 0.00"/>
+            </svg>
+            <div class="label">소화기</div>
+            <div class="meta done">100% · 14/14</div>
+            <div class="hex">≥100 · #22c55e</div>
+          </div>
+          <!-- 유도등 87% → accent -->
+          <div class="donut-cell">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="180.39 26.96"/>
+            </svg>
+            <div class="label">유도등</div>
+            <div class="meta">87% · 13/15</div>
+            <div class="hex">50~99 · #3b82f6</div>
+          </div>
+          <!-- 소화전 33% → warning-bar -->
+          <div class="donut-cell">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#f59e0b" stroke-opacity="0.18" stroke-width="5"/>
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round" stroke-dasharray="68.42 138.93"/>
+            </svg>
+            <div class="label">소화전</div>
+            <div class="meta">33% · 5/15</div>
+            <div class="hex">1~49 · #f59e0b</div>
+          </div>
+          <!-- 방화셔터 0% → text-tertiary -->
+          <div class="donut-cell">
+            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+              <circle cx="38" cy="38" r="33" fill="none" stroke="#8b949e" stroke-opacity="0.30" stroke-width="5"/>
+            </svg>
+            <div class="label">방화셔터</div>
+            <div class="meta">0% · 0/12</div>
+            <div class="hex">0 · #8b949e</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 섹션 B: 모바일 strip (size 76, 2행) ──────────────── -->
+  <div class="section">
+    <h2>섹션 B — 모바일 strip (size 76, 7 카테고리)</h2>
+    <p class="desc">실제 DashboardPage.tsx 모바일 영역(line 318-336) 의 Donut size 76 + 캡션 배치 재현. 진척률 7단계 분포.</p>
+    <div class="mobile-strip">
+      <!-- 100% safe-bar -->
+      <div class="donut-cell">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#22c55e" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-dasharray="207.35 0.00"/>
+        </svg>
+        <div class="label">소화기</div>
+        <div class="meta done">14/14</div>
+      </div>
+      <!-- 87% accent -->
+      <div class="donut-cell">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="180.39 26.96"/>
+        </svg>
+        <div class="label">유도등</div>
+        <div class="meta">13/15</div>
+      </div>
+      <!-- 60% accent -->
+      <div class="donut-cell">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="124.41 82.94"/>
+        </svg>
+        <div class="label">소화전</div>
+        <div class="meta">6/10</div>
+      </div>
+      <!-- 50% accent (경계) -->
+      <div class="donut-cell">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="103.67 103.67"/>
+        </svg>
+        <div class="label">방화셔터</div>
+        <div class="meta">5/10</div>
+      </div>
+      <!-- 33% warning-bar -->
+      <div class="donut-cell">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#f59e0b" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round" stroke-dasharray="68.42 138.93"/>
+        </svg>
+        <div class="label">분말소화기</div>
+        <div class="meta">5/15</div>
+      </div>
+      <!-- 12% warning-bar -->
+      <div class="donut-cell">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#f59e0b" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round" stroke-dasharray="24.88 182.47"/>
+        </svg>
+        <div class="label">이산화탄소</div>
+        <div class="meta">2/16</div>
+      </div>
+      <!-- 0% text-tertiary -->
+      <div class="donut-cell">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#8b949e" stroke-opacity="0.30" stroke-width="5"/>
+        </svg>
+        <div class="label">스프링클러</div>
+        <div class="meta">0/12</div>
+      </div>
+    </div>
+    <p class="footer-note" style="margin-top:12px">
+      모바일은 size 76, strokeWidth 5, r=33, circ=2π·33≈207.35 (SVG attribute size=76 / width=76 / height=76).
+    </p>
+  </div>
+
+  <!-- ── 섹션 C: 데스크톱 strip (size 44, 단일 행 가로 스크롤) ── -->
+  <div class="section">
+    <h2>섹션 C — 데스크톱 strip (size 44, 단일 행 가로 스크롤)</h2>
+    <p class="desc">데스크톱 영역(line 666-684) 의 Donut size 44 + flex-row + overflow-x:auto.</p>
+    <div class="desktop-strip">
+      <!-- 100% -->
+      <div class="donut-cell">
+        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#22c55e" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-dasharray="106.81 0.00"/>
+        </svg>
+        <div class="label">소화기</div>
+        <div class="meta done">14/14</div>
+      </div>
+      <!-- 87% -->
+      <div class="donut-cell">
+        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="92.93 13.88"/>
+        </svg>
+        <div class="label">유도등</div>
+        <div class="meta">13/15</div>
+      </div>
+      <!-- 60% -->
+      <div class="donut-cell">
+        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="64.09 42.73"/>
+        </svg>
+        <div class="label">소화전</div>
+        <div class="meta">6/10</div>
+      </div>
+      <!-- 50% -->
+      <div class="donut-cell">
+        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="53.41 53.41"/>
+        </svg>
+        <div class="label">방화셔터</div>
+        <div class="meta">5/10</div>
+      </div>
+      <!-- 33% -->
+      <div class="donut-cell">
+        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#f59e0b" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round" stroke-dasharray="35.25 71.57"/>
+        </svg>
+        <div class="label">분말소화기</div>
+        <div class="meta">5/15</div>
+      </div>
+      <!-- 12% -->
+      <div class="donut-cell">
+        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#f59e0b" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round" stroke-dasharray="12.82 93.99"/>
+        </svg>
+        <div class="label">이산화탄소</div>
+        <div class="meta">2/16</div>
+      </div>
+      <!-- 0% -->
+      <div class="donut-cell">
+        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#8b949e" stroke-opacity="0.30" stroke-width="5"/>
+        </svg>
+        <div class="label">스프링클러</div>
+        <div class="meta">0/12</div>
+      </div>
+    </div>
+    <p class="footer-note" style="margin-top:12px">
+      데스크톱은 size 44, strokeWidth 5, r=17, circ=2π·17≈106.81. 단일 행 + 가로 스크롤.
+    </p>
+  </div>
+
+  <!-- ── 섹션 D: doubleCycle 예외 ─────────────────────────── -->
+  <div class="section">
+    <h2>섹션 D — doubleCycle (DIV / 컴프) · §6.1 적용 범위 밖</h2>
+    <p class="desc">
+      DIV/컴프레셔 카드는 doubleCycle (two-lap cycle) overlay 가 있다. <strong>중앙 trail+value arc 색만 §6.1 derive</strong> 로 바뀌고, <strong>early(info) / late(warn) overlay arc 는 그대로 유지</strong>.
+    </p>
+    <div class="dc-card">
+      <div style="position:relative; width:76px; height:76px;">
+        <!-- 중앙 §6.1 arc: pct 60 → accent #3b82f6 (size 76 표준 r=33) -->
+        <svg width="76" height="76" viewBox="0 0 76 76" style="position:absolute; inset:0; transform:rotate(-90deg)">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-opacity="0.18" stroke-width="5"/>
+          <circle cx="38" cy="38" r="33" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="124.41 82.94"/>
+        </svg>
+        <!-- overlay arc — earlyPct 40 (info) inner ring, latePct 80 (warn) outer ring -->
+        <svg width="76" height="76" viewBox="0 0 76 76" style="position:absolute; inset:0; transform:rotate(-90deg)">
+          <!-- 바깥 ring late 80% — overlay arc 1 (warn #fb923c) -->
+          <circle cx="38" cy="38" r="22" fill="none" stroke="#2a2f37" stroke-width="3"/>
+          <circle cx="38" cy="38" r="22" fill="none" stroke="#fb923c" stroke-width="3" stroke-linecap="round" stroke-dasharray="110.58 27.65"/>
+          <!-- 안쪽 ring early 40% — overlay arc 2 (info #38bdf8) -->
+          <circle cx="38" cy="38" r="18" fill="none" stroke="#2a2f37" stroke-width="3"/>
+          <circle cx="38" cy="38" r="18" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-dasharray="45.24 67.86"/>
+        </svg>
+        <!-- 중앙 텍스트 -->
+        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',ui-monospace,monospace; font-size:10px; font-weight:600; color:var(--text-secondary)">
+          60%
+        </div>
+      </div>
+      <div class="dc-legend">
+        <div><span class="key">중앙 trail + value arc</span>: §6.1 적용 — 60% → <span class="swatch" style="background:#3b82f6"></span><span style="font-family:'JetBrains Mono',monospace">--accent #3b82f6</span></div>
+        <div><span class="key">바깥 overlay arc (late 80%)</span>: <span class="swatch" style="background:#fb923c"></span><span style="font-family:'JetBrains Mono',monospace">m.late_color = #fb923c (warn)</span> · <strong style="color:var(--text-primary)">유지</strong></div>
+        <div><span class="key">안쪽 overlay arc (early 40%)</span>: <span class="swatch" style="background:#38bdf8"></span><span style="font-family:'JetBrains Mono',monospace">m.early_color = #38bdf8 (info)</span> · <strong style="color:var(--text-primary)">유지</strong></div>
+        <div style="margin-top:8px; font-size:11px; color:var(--text-tertiary)">
+          ※ early/late overlay arc 는 two-lap cycle 진행 단계 구분용. §6.1 진척률 색 룰 적용 대상이 아니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 사후 메모 ────────────────────────────────────────── -->
+  <p class="footer-note">
+    적용 범위 — <code>src/pages/DashboardPage.tsx</code> 의 monthly strip 도넛 4 곳(모바일 2 + 데스크톱 2).<br>
+    API(<code>functions/api/dashboard/stats.ts</code>) 무수정 — m.color / m.early_color / m.late_color 응답 shape 그대로.<br>
+    클라이언트 helper <code>progressColor(pct: number): string</code> 으로 색 derive — Task 3 에서 추가.
+  </p>
+
+</div>
+</body>
+</html>
