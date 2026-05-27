@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-27 - Completed quick task 260527-egj: 대시보드 월간 도넛 §6.1 Progress Color Rule 적용 (클라이언트 derive)
+Last activity: 2026-05-27 - Completed quick task 260527-fcd: 모바일 점검 카테고리 카드 강조 반전 (미시작 강조 / 완료 dim+초록 잔존, 옵션 B)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -106,6 +106,7 @@ Recent decisions affecting current work:
 | 260504-mwn | 업무수행기록표 엑셀 출력 깨짐 수정 (firstSheet dangling pointer + AA셀 \n 이중 이스케이프) + production 배포 | 2026-05-04 | 4edeb94 | [260504-mwn-fix-worklog-excel-firstsheet-pointer-aa-](./quick/260504-mwn-fix-worklog-excel-firstsheet-pointer-aa-/) |
 | 260513-lz1 | 소방점검관리 종합정밀 카드 지적사항에 수정 기능 추가 (FindingFormSheet 공유 컴포넌트 + PUT admin 게이트 제거 + 모바일/데스크톱 수정 버튼) | 2026-05-13 | 11a5be6 | [260513-lz1-legal-finding-edit-feature](./quick/260513-lz1-legal-finding-edit-feature/) |
 | 260527-egj | 대시보드 월간 도넛 §6.1 Progress Color Rule 적용 (클라이언트 derive — progressColor helper + 4 곳 color prop 교체, API stats.ts 무수정, doubleCycle overlay 보존) | 2026-05-27 | a780d60 | [260527-egj-6-1-progress-color-rule-derive](./quick/260527-egj-6-1-progress-color-rule-derive/) |
+| 260527-fcd | 모바일 점검 카테고리 카드 강조 반전 (InspectionPage.tsx:5187 — 미시작 opacity-60 제거 / 완료에 opacity-50 추가 + safe-bg/safe-bar 유지, 옵션 B. 데스크톱 카드 무수정) | 2026-05-27 | 156f933 | [260527-fcd-dim-highlight](./quick/260527-fcd-dim-highlight/) |
 
 ## Session Continuity
 
