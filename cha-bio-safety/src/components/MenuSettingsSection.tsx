@@ -244,7 +244,7 @@ export function MenuSettingsSection() {
             >
               <div className="w-4 shrink-0" />
               <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                <span className="text-caption font-normal text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">
+                <span className="text-body-sm font-medium text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">
                   {label}
                 </span>
                 {!entry.visible && (

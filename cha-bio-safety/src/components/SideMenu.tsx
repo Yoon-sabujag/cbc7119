@@ -192,20 +192,15 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
         </div>
 
         {/* 로그인 사용자 */}
-        <div className="px-[11px] py-[9px] border-t border-border-default shrink-0">
-          <div className="flex items-center gap-[9px] px-2.5 py-2 bg-surface-sunken rounded-[9px]">
-            <div
-              className="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-              style={{
-                // OQ #3 LOCKED §6.4 매치 — 아바타 그라데이션 보존 (Tailwind 토큰 없음, 인라인 유지)
-                background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-              }}
-            >
+        {/* 사용자 카드 — SettingsPanel 프로필 시각 통일 (W11 v4): avatar 44x44 bg-accent-active solid (그라데이션 폐기 — OQ #3 사용자 override) + name text-body 16 */}
+        <div className="px-3 py-3 border-t border-border-default shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2 bg-surface-sunken rounded-[9px]">
+            <div className="w-11 h-11 rounded-full shrink-0 bg-accent-active flex items-center justify-center text-[18px] font-bold text-text-on-accent">
               {staff?.name?.[0] ?? '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-body-sm font-bold text-text-primary">{staff?.name}</div>
-              <div className="text-caption text-text-tertiary">{staff?.title} · {todayShiftLabel}</div>
+              <div className="text-body font-bold text-text-primary">{staff?.name}</div>
+              <div className="text-caption leading-none text-text-tertiary mt-px">{staff?.title} · {todayShiftLabel}</div>
             </div>
           </div>
         </div>
