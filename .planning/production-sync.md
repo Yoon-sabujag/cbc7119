@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — color token audit sweep 3건 적용
+상태:           안정 (SYNCED) — 설정 테마 wire + 데드 코드 정리
 진행 작업:       없음
-기준 production: `068a7c8` (audit-tier2 border 일관성)
-마지막 동기화:   2026-05-27
-마지막 배포 URL: https://c92fc8e3.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+기준 production: `12b1220` (chore: 테마 wire + 데드 코드 정리)
+마지막 동기화:   2026-05-28
+마지막 배포 URL: https://75f6e539.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
@@ -64,6 +64,7 @@
 | 2026-05-27 | color audit tier1 — 비표준 bg-{status} 7곳 → -bar | `7031815` | `f5117b4` | (배치 끝에 deploy) | InspectionPage 3 + DivPage 2 + ElevatorPage 1 + LegalFindingDetailPage 1. 솔리드 fill 용도는 -bar 변종 (text-on-accent 흰글 fill). cherry-pick 충돌 0. |
 | 2026-05-27 | color audit tier1 followup — LegalPage 결과내역서 X 빨강 | `df0f99d` | `94f31bc` | (배치 끝에 deploy) | LegalPage.tsx L1073 회색 X (bg-surface-active text-text-secondary border-strong) → 빨강 (bg-danger-bar text-text-on-accent border-0) — 같은 페이지 다른 사진제거 X 패턴 일관. cherry-pick 충돌 0. |
 | 2026-05-27 | color audit tier2 — border-{status} 57곳 → border-{status}-bar | `1270ce7` | `068a7c8` | https://c92fc8e3.cbc7119.pages.dev | InspectionPage 44 + FloorPlanPage 10 + DashboardPage 2 + SchedulePage 1. perl lookahead (?![-\w]) 로 -bar/-bg variant 보호. 시각 변화 미미 (border 살짝 더 saturated). 3건 배치로 단일 deploy. cherry-pick 충돌 0. |
+| 2026-05-28 | settings 테마 wire + 데드 코드 정리 | (production 직접 작업) | `12b1220` | https://75f6e539.cbc7119.pages.dev | SettingsPanel 화면 섹션: 테마 select 에 utils/theme 의 getThemePreference/setThemePreference 연결 (다크/라이트/시스템 실동작). 주간 현황 기준/결과 즉시 저장 Row 제거 (dead UI). SideMenu MenuItem.soon 필드 + 22 항목 + 준비중 배지 분기 제거. DesktopSidebar NavItem.soon prop + 분기 제거. FloorPlanPage PLAN_TYPES.ready + planReady + 준비중 배지 + 도면 준비 중 fallback 제거. AdminPage.tsx 삭제 (라우팅 없음). 5 파일 60+/94-. |
 
 ---
 
