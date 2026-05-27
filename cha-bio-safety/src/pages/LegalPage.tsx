@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -204,12 +204,7 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab,
           ))}
         </div>
       ) : (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-          <div className="text-label text-text-tertiary" style={{ lineHeight: 1.6 }}>
-            제출용 탭 (W5에서 구현)<br />
-            <span className="text-caption text-text-disabled">체크박스 + 라벨 입력 + 자동저장</span>
-          </div>
-        </div>
+        <SubmissionTabPanel roundId={roundId} isLocked={round?.submissionStatus === 'completed'} />
       )}
 
       {/* 수정 모달 — FindingEditModal 이 조치 완료 메모/사진 편집 capability 보유 (260520-x4q) */}
@@ -220,6 +215,197 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab,
           onClose={() => setEditingFinding(null)}
         />
       )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── 데스크톱: 2열 제출용 탭 (체크박스 + 라벨 + 자동저장) ──────────────
+// ══════════════════════════════════════════════════════════════════
+function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: boolean }) {
+  const queryClient = useQueryClient()
+  const { data: findings, isLoading } = useQuery({
+    queryKey: ['legal-findings', roundId],
+    queryFn: () => legalApi.getFindings(roundId),
+    enabled: !!roundId,
+    staleTime: 30_000,
+  })
+
+  // 카드별 로컬 라벨 (미저장)
+  const [localLabels, setLocalLabels] = useState<Record<string, string>>({})
+  // 카드별 저장 상태 (saved / dirty / saving / error)
+  const [saveStates, setSaveStates] = useState<Record<string, 'saved' | 'dirty' | 'saving' | 'error'>>({})
+  // 디바운스 타이머
+  const debounceTimers = useRef<Record<string, number>>({})
+
+  // 라운드 바뀌면 로컬 상태 초기화
+  useEffect(() => {
+    setLocalLabels({})
+    setSaveStates({})
+    Object.values(debounceTimers.current).forEach(t => clearTimeout(t))
+    debounceTimers.current = {}
+  }, [roundId])
+
+  const persistLabel = (fid: string, label: string) => {
+    setSaveStates(prev => ({ ...prev, [fid]: 'saving' }))
+    legalApi.updateFinding(roundId, fid, { submission_label: label })
+      .then(() => {
+        setSaveStates(prev => ({ ...prev, [fid]: 'saved' }))
+        queryClient.invalidateQueries({ queryKey: ['legal-findings', roundId] })
+        setLocalLabels(prev => {
+          const next = { ...prev }
+          delete next[fid]
+          return next
+        })
+      })
+      .catch((err: any) => {
+        setSaveStates(prev => ({ ...prev, [fid]: 'error' }))
+        toast.error(err?.message ?? '라벨 저장 실패')
+      })
+  }
+
+  const handleLabelChange = (fid: string, label: string) => {
+    setLocalLabels(prev => ({ ...prev, [fid]: label }))
+    setSaveStates(prev => ({ ...prev, [fid]: 'dirty' }))
+    if (debounceTimers.current[fid]) clearTimeout(debounceTimers.current[fid])
+    debounceTimers.current[fid] = window.setTimeout(() => persistLabel(fid, label), 500)
+  }
+
+  const handleSaveNow = (fid: string, label: string) => {
+    if (debounceTimers.current[fid]) clearTimeout(debounceTimers.current[fid])
+    persistLabel(fid, label)
+  }
+
+  const handleToggle = (fid: string, current: boolean) => {
+    legalApi.updateFinding(roundId, fid, { submission_selected: !current })
+      .then(() => queryClient.invalidateQueries({ queryKey: ['legal-findings', roundId] }))
+      .catch((err: any) => toast.error(err?.message ?? '선택 변경 실패'))
+  }
+
+  const getDisplayLabel = (f: LegalFinding): string => {
+    if (localLabels[f.id] !== undefined) return localLabels[f.id]
+    if (f.submissionLabel !== null) return f.submissionLabel
+    return `${f.location ?? ''} ${f.description}`.trim()
+  }
+
+  const sorted = [...(findings ?? [])].sort((a, b) => {
+    if (a.status === 'open' && b.status !== 'open') return -1
+    if (a.status !== 'open' && b.status === 'open') return 1
+    return b.createdAt.localeCompare(a.createdAt)
+  })
+
+  if (isLoading) {
+    return (
+      <div style={{ flex: 1, padding: 16 }}>
+        <div className={SKELETON_CLS} style={SKELETON_STYLE} />
+      </div>
+    )
+  }
+
+  if (sorted.length === 0) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div className="text-label text-text-tertiary" style={{ textAlign: 'center', lineHeight: 1.6 }}>
+          지적사항 없음<br />
+          <span className="text-caption text-text-disabled">내부용 탭에서 먼저 지적/조치를 등록하세요</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {sorted.map(f => {
+        const hasBefore = f.photoKeys.length > 0
+        const hasAfter = f.resolutionPhotoKeys.length > 0
+        const photosOk = hasBefore && hasAfter
+        const isSelected = f.submissionSelected
+        const label = getDisplayLabel(f)
+        const saveState = saveStates[f.id] ?? 'saved'
+        const cardDisabled = isLocked || !photosOk
+        // 저장 버튼 활성: selected + photosOk + !locked + (dirty OR error)
+        const canSaveBtn = isSelected && photosOk && !isLocked && (saveState === 'dirty' || saveState === 'error')
+
+        return (
+          <div
+            key={f.id}
+            className={`rounded-md border ${isSelected ? 'bg-surface-active border-accent' : 'bg-surface-raised border-border-strong'}`}
+            style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, opacity: cardDisabled && !isSelected ? 0.7 : 1 }}
+          >
+            {/* info-line: location | description */}
+            <div className="text-label font-bold text-text-primary" style={{ lineHeight: 1.4 }}>
+              <span className="text-text-secondary">{f.location ?? '위치 미지정'}</span>
+              <span className="text-text-tertiary" style={{ padding: '0 6px' }}>|</span>
+              <span className="text-text-primary">{f.description}</span>
+            </div>
+
+            {/* input-row: 체크 (가로축 중앙) + textarea + 저장 버튼 */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => { if (!cardDisabled) handleToggle(f.id, isSelected) }}
+                  disabled={cardDisabled}
+                  aria-pressed={isSelected}
+                  className={`rounded-sm flex items-center justify-center font-bold ${
+                    isSelected
+                      ? 'bg-accent border-2 border-accent text-text-on-accent'
+                      : cardDisabled
+                        ? 'border-2 border-border-default text-text-disabled'
+                        : 'border-2 border-border-strong text-text-disabled'
+                  }`}
+                  style={{ width: 28, height: 28, fontSize: 18, lineHeight: 1, cursor: cardDisabled ? 'not-allowed' : 'pointer' }}
+                >{isSelected ? '✓' : ''}</button>
+              </div>
+              <textarea
+                value={label}
+                disabled={!isSelected || cardDisabled}
+                onChange={(e) => handleLabelChange(f.id, e.target.value)}
+                placeholder={isSelected ? '' : '체크하면 PPT 라벨 입력 가능'}
+                className="bg-surface-sunken border border-border-strong text-text-primary rounded-sm focus:border-accent focus:outline-none"
+                style={{ flex: 1, minHeight: 36, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' }}
+              />
+              <button
+                type="button"
+                onClick={() => handleSaveNow(f.id, label)}
+                disabled={!canSaveBtn}
+                className={`text-caption font-bold leading-none rounded-sm border-0 ${canSaveBtn ? 'bg-accent text-text-on-accent' : 'bg-surface-sunken text-text-disabled'}`}
+                style={{ padding: '0 12px', cursor: canSaveBtn ? 'pointer' : 'not-allowed', alignSelf: 'stretch', flexShrink: 0 }}
+              >저장</button>
+            </div>
+
+            {/* meta-row: 사진 chip (좌) + 저장 인디케이터 (우, 저장버튼 우측 모서리 정렬) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span className="text-caption font-bold text-text-tertiary">사진 :</span>
+                <span className={`text-caption font-bold leading-none rounded-sm ${hasBefore ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
+                  조치 전 {hasBefore ? '✓' : '✗'}
+                </span>
+                <span className={`text-caption font-bold leading-none rounded-sm ${hasAfter ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
+                  조치 후 {hasAfter ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className="text-caption leading-none" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {!photosOk ? (
+                  <span className="text-danger">사진 부족 — 저장 불가</span>
+                ) : isLocked ? (
+                  <span className="text-text-tertiary">🔒 제출 완료</span>
+                ) : !isSelected ? (
+                  <span className="text-text-tertiary">—</span>
+                ) : saveState === 'saving' ? (
+                  <span className="text-accent"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장중...</span>
+                ) : saveState === 'dirty' ? (
+                  <span className="text-warning"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />변경됨</span>
+                ) : saveState === 'error' ? (
+                  <span className="text-danger"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장 실패</span>
+                ) : (
+                  <span className="text-safe"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장됨</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
