@@ -549,8 +549,10 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
   }, [totalPages, pageIdx])
   const currentPage = pages[pageIdx] ?? null
 
-  // PPT 표지 텍스트 (round.title 그대로 사용 — 사용자 컨펌 후 수정 가능)
-  const coverTitle = round?.title ?? '지적사항 조치 작업사진'
+  // PPT 표지 텍스트 — "{연도}년 소방 {종합정밀|작동기능}점검" (상반기/하반기 제외)
+  const coverYear = round?.date?.slice(0, 4) ?? ''
+  const coverKind = round?.title?.includes('종합') ? '종합정밀점검' : '작동기능점검'
+  const coverTitle = round ? `${coverYear}년 소방 ${coverKind}` : '지적사항 조치 작업사진'
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-page)' }}>
