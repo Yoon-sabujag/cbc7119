@@ -1,6 +1,6 @@
 import type { Env } from '../../../../_middleware'
 import { isRoundSubmitted, lockedResponse } from '../../_lock'
-import JSZip from 'jszip'
+import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate'
 
 // POST /api/legal/:id/submission-ppt/generate
 // 서버측 PPT 생성 — 양식 R2 에서 다운로드 → 표지 텍스트 패치 → R2 저장 → ppt_file_key 갱신
@@ -53,25 +53,25 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
     }
     const tmplBuf = await tmplObj.arrayBuffer()
 
-    // 3. JSZip 로 양식 열기
-    const zip = await JSZip.loadAsync(tmplBuf)
+    // 3. fflate 로 양식 풀기
+    const files = unzipSync(new Uint8Array(tmplBuf))
 
     // 4. 표지 (slide1) 텍스트 패치
     // 원본 텍스트: "2025" + "년 작동기능점검"
     const year = round.date.slice(0, 4)
     const kind = round.title.includes('종합') ? '종합정밀점검' : '작동기능점검'
     {
-      let s = await zip.file('ppt/slides/slide1.xml')!.async('string')
+      let s = strFromU8(files['ppt/slides/slide1.xml'])
       s = s.replace(/<a:t>2025<\/a:t>/, `<a:t>${escapeXml(year)}</a:t>`)
       s = s.replace(/<a:t>년 작동기능점검<\/a:t>/, `<a:t>년 ${escapeXml(kind)}</a:t>`)
-      zip.file('ppt/slides/slide1.xml', s)
+      files['ppt/slides/slide1.xml'] = strToU8(s)
     }
 
     // 5. 본문 슬라이드 (slide2) — W7 에선 양식 그대로 (W8 에서 라벨/사진/페이지 복제)
     // 사용자 데이터는 W8 까지 안 들어감
 
     // 6. ZIP 출력
-    const outBuf = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' })
+    const outBuf = zipSync(files, { level: 6 })
 
     // 7. R2 저장 (timestamp 기반 key — 동시성 충돌 회피)
     const key = `legal/${scheduleItemId}/submission-ppt/${Date.now()}.pptx`
