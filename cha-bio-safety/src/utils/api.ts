@@ -365,6 +365,8 @@ export const legalApi = {
     api.post<void>(`/legal/${scheduleItemId}/findings/${fid}/resolve`, body),
   deleteFinding: (scheduleItemId: string, fid: string) =>
     api.delete<void>(`/legal/${scheduleItemId}/findings/${fid}`),
+  generateSubmissionPpt: (scheduleItemId: string) =>
+    api.post<{ pptFileKey: string; eligibleCount: number; note?: string }>(`/legal/${scheduleItemId}/submission-ppt/generate`, {}),
 }
 
 export const elevatorInspectionApi = {

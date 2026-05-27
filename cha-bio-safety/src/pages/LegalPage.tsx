@@ -413,6 +413,7 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
 // ── 데스크톱: 3열 PPT 미리보기 (제출용 탭 활성 시) ────────────────────
 // ══════════════════════════════════════════════════════════════════
 function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
+  const queryClient = useQueryClient()
   const { data: round } = useQuery({
     queryKey: ['legal-round', roundId],
     queryFn: () => legalApi.get(roundId),
@@ -429,6 +430,107 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
   const eligibleFindings = (findings ?? []).filter(f =>
     f.submissionSelected && f.photoKeys.length > 0 && f.resolutionPhotoKeys.length > 0
   )
+
+  // 자동저장 상태
+  const [genState, setGenState] = useState<'saved' | 'dirty' | 'saving' | 'error' | 'idle'>('idle')
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
+  const autoSaveTimer = useRef<number | null>(null)
+  const lastEligibleSignature = useRef<string>('')
+
+  // eligible findings 의 signature (id + label + 체크/사진 상태) — 변경 감지용
+  const signature = JSON.stringify(eligibleFindings.map(f => ({
+    id: f.id,
+    l: f.submissionLabel,
+    p: f.photoKeys.length,
+    r: f.resolutionPhotoKeys.length,
+  })))
+
+  const generateMutation = useMutation({
+    mutationFn: () => legalApi.generateSubmissionPpt(roundId),
+    onMutate: () => setGenState('saving'),
+    onSuccess: () => {
+      setGenState('saved')
+      setLastSavedAt(Date.now())
+      lastEligibleSignature.current = signature
+      // round 갱신 (ppt_file_key) → 1열 카드 지적조치사진 버튼 활성
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', roundId] })
+      toast.success('지적조치사진 PPT 저장')
+    },
+    onError: (err: any) => {
+      setGenState('error')
+      toast.error(err?.message ?? 'PPT 생성 실패')
+    },
+  })
+
+  const isLocked = round?.submissionStatus === 'completed'
+  const count = eligibleFindings.length
+
+  // 변경 감지: signature 가 lastEligibleSignature 와 다르면 dirty
+  useEffect(() => {
+    if (count === 0 || isLocked) return
+    if (genState === 'idle' && round?.pptFileKey) {
+      // 이미 저장된 상태로 진입
+      setGenState('saved')
+      lastEligibleSignature.current = signature
+      return
+    }
+    if (genState === 'idle' && !round?.pptFileKey) {
+      // 미생성 상태로 진입 → dirty
+      setGenState('dirty')
+      return
+    }
+    if (signature !== lastEligibleSignature.current && genState !== 'saving') {
+      setGenState('dirty')
+    }
+  }, [signature, round?.pptFileKey, count, isLocked, genState])
+
+  // 10초 디바운스 자동저장 (dirty 일 때만)
+  useEffect(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current)
+      autoSaveTimer.current = null
+    }
+    if (genState !== 'dirty' || count === 0 || isLocked) return
+    autoSaveTimer.current = window.setTimeout(() => {
+      generateMutation.mutate()
+    }, 10_000)
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current)
+        autoSaveTimer.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genState, count, isLocked])
+
+  const handleSaveNow = () => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    generateMutation.mutate()
+  }
+
+  // 인디케이터 라벨
+  const indicatorLabel = (() => {
+    if (count === 0) return '대상 없음'
+    if (isLocked) return '🔒 제출 완료'
+    if (genState === 'saving') return '저장중...'
+    if (genState === 'error') return '저장 실패'
+    if (genState === 'dirty') return '변경됨 · 자동저장 대기'
+    if (genState === 'saved') {
+      if (!lastSavedAt) return '저장됨'
+      const sec = Math.floor((Date.now() - lastSavedAt) / 1000)
+      return sec < 10 ? `저장됨 · 방금` : `저장됨 · ${sec}초 전`
+    }
+    return '대기'
+  })()
+  const indicatorColor = (() => {
+    if (count === 0 || isLocked) return 'text-text-tertiary'
+    if (genState === 'saving') return 'text-accent'
+    if (genState === 'error') return 'text-danger'
+    if (genState === 'dirty') return 'text-warning'
+    if (genState === 'saved') return 'text-safe'
+    return 'text-text-tertiary'
+  })()
 
   // 라벨 (DB submissionLabel || prefill)
   const labelFor = (f: LegalFinding): string =>
@@ -447,9 +549,6 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
   }, [totalPages, pageIdx])
   const currentPage = pages[pageIdx] ?? null
 
-  const isLocked = round?.submissionStatus === 'completed'
-  const count = eligibleFindings.length
-
   // PPT 표지 텍스트 (round.title 그대로 사용 — 사용자 컨펌 후 수정 가능)
   const coverTitle = round?.title ?? '지적사항 조치 작업사진'
 
@@ -461,16 +560,19 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
           지적사항 조치 작업사진 <span className="text-accent">{count}</span>건
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-          <div className="text-caption text-text-tertiary" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1, paddingBottom: 8 }}>
+          <div className={`text-caption ${indicatorColor}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1, paddingBottom: 8 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-            W7 대기중
+            {indicatorLabel}
           </div>
           <button
             type="button"
-            disabled
-            className="bg-surface-sunken text-text-disabled border-0"
-            style={{ height: 32, padding: '0 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >💾 저장하기 (W7)</button>
+            onClick={handleSaveNow}
+            disabled={count === 0 || isLocked || genState === 'saving'}
+            className={`border-0 ${count === 0 || isLocked || genState === 'saving' ? 'bg-surface-sunken text-text-disabled' : genState === 'dirty' || genState === 'error' ? 'bg-warning text-text-on-accent' : 'bg-accent text-text-on-accent'}`}
+            style={{ height: 32, padding: '0 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: count === 0 || isLocked || genState === 'saving' ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            {genState === 'saving' ? '저장중...' : '💾 저장하기'}
+          </button>
         </div>
       </div>
 
