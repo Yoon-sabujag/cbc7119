@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — W8c hotfix 적용
+상태:           안정 (SYNCED) — LegalPage design sweep 적용
 진행 작업:       없음
-기준 production: `ab6a45c` (W8c: pic geometry + right-column null guard)
+기준 production: `4baf5d2` (tb3-03: LegalPage emoji 8곳 + 색 토큰 4곳)
 마지막 동기화:   2026-05-27
-마지막 배포 URL: https://aefeba6a.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://6d353eb9.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
@@ -60,6 +60,7 @@
 | 2026-05-27 | submission-ppt W8 — 본문 라벨 + 사진 임베딩 + 페이지 복제 + 다운로드 파일명 | (production 직접 작업) | (push hook auto) | https://1409a619.cbc7119.pages.dev | slide2 4 라벨 셀 패치. 페이지 복제 (ceil(N/2)). 사진 페이지별 R2 GET → media/image{N}.jpeg 추가 + rels redirect. rot 회전 제거. 다운로드 파일명 {YYYY.MM)차바이오... 형식. |
 | 2026-05-27 | submission-ppt W9 — 결과내역서 와치독 API + ps1 패턴 | (production 직접 작업) | (push hook auto) | https://4b396dd0.cbc7119.pages.dev | 신규 API /api/legal/upload-report (admin only, 매칭 + reportFileKey 갱신). watchdog.ps1 GROUPS 에 legal_report/legal_ppt 추가. Process-LegalReportPdf = R2 업로드 + 매칭 + 폴더 이동. ps1 사용자 Windows 컴퓨터에 별도 복사 필요. |
 | 2026-05-27 | submission-ppt W8c — pic geometry + right-column null guard | (production 직접 작업) | `ab6a45c` | https://aefeba6a.cbc7119.pages.dev | slide2 picture 4개 모두 셀 좌표(CELLS)로 xfrm 재작성. rot="5400000" 제거 + rId6 portrait ext (2700000×4428000) → landscape (4428492×2700000) 보정. `<a:stretch/>` → `<a:stretch><a:fillRect/></a:stretch>` 명시화로 세로사진 4귀퉁이 강제 fit. page.right=null 일 때 rId5/rId6 picture shape 제거 — 홀수 finding 마지막 페이지의 우측 템플릿 잔존 사고 차단. 사용자 검증 완료 후 origin push 완료 (`cba84ca`). |
+| 2026-05-27 | tb3-03 LegalPage 디자인 sweep — emoji 8곳 → Lucide + 색 토큰 4곳 | `47b9088` | `4baf5d2` | https://6d353eb9.cbc7119.pages.dev | LegalPage.tsx 14+/14- 단일 hunk. emoji ✓/✗/🔒/💾 → Check/X/Lock/Save lucide. 저장버튼 옵션 B (bg-warning-bg text-warning outline). pill border 제거 (옵션 1). L538 string→JSX fragment (방법 A, ReactNode 자연 widen). inline style 141곳 무침범 (phase B 별도). cherry-pick 깔끔 (충돌 0). |
 
 ---
 
