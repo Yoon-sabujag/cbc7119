@@ -443,7 +443,7 @@ export default function LegalPage() {
             key={round.id}
             onClick={() => handleRoundClick(round)}
             className={`bg-surface-sunken rounded-md ${selectedRoundId === round.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${accentColor(round.result)}`}
-            style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3 }}
+            style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
               <span className="text-label font-bold text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.title}</span>
@@ -451,6 +451,29 @@ export default function LegalPage() {
             </div>
             <div className="text-caption leading-none text-text-secondary">
               {fmtDate(round.date)} · 지적 {round.findingCount} · 완료 {round.resolvedCount}
+            </div>
+            <div style={{ display: 'flex', gap: 6, paddingTop: 6, borderTop: '1px dashed var(--border-default)' }}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (round.reportFileKey) window.open('/api/uploads/' + round.reportFileKey, '_blank')
+                }}
+                disabled={!round.reportFileKey}
+                className={`text-caption font-bold leading-none rounded-sm ${round.reportFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
+                style={{ flex: 1, height: 32, cursor: round.reportFileKey ? 'pointer' : 'not-allowed', background: round.reportFileKey ? undefined : 'transparent' }}
+              >
+                ↓ 결과내역서{round.reportFileKey ? '' : ' (미업로드)'}
+              </button>
+              <button
+                type="button"
+                disabled
+                onClick={(e) => e.stopPropagation()}
+                className="text-caption font-bold leading-none rounded-sm border border-border-default text-text-disabled"
+                style={{ flex: 1, height: 32, cursor: 'not-allowed', background: 'transparent' }}
+              >
+                ↓ 지적조치사진 (미생성)
+              </button>
             </div>
           </div>
         ))}
