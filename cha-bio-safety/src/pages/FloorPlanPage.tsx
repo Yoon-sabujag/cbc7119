@@ -1510,8 +1510,11 @@ export default function FloorPlanPage() {
               className="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5 placeholder:text-text-tertiary"
             />
 
-            {/* Phase 24: extinguisher plan type — 소화기 관련 액션 버튼 (점검 개소 연결 셀렉터 제거) */}
-            {planType === 'extinguisher' && (() => {
+            {/* Phase 24: extinguisher plan type — 소화기 관련 액션 버튼 (점검 개소 연결 셀렉터 제거)
+                사고 사례 (260528): 소화전/완강기/DIV 마커도 같은 plan_type 이라 "소화기 배치" 버튼이
+                활성화되던 버그. EXT_ASSET_MARKER_TYPES (소화기 4종) 인지 추가 확인 — 소화전/완강기/DIV
+                에서는 버튼 자체를 숨김. */}
+            {planType === 'extinguisher' && EXT_ASSET_MARKER_TYPES.has(selected.marker_type ?? '') && (() => {
               const items = extListQuery.data?.items ?? []
               const mappedExt = selected.check_point_id
                 ? items.find(it => it.cp_id === selected.check_point_id && it.status !== '폐기')
