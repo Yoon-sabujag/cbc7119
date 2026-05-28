@@ -718,7 +718,7 @@ export default function StaffServicePage() {
 
       {leaveLoading ? (
         <div className="py-10 flex justify-center">
-          <div className="w-6 h-6 border-2 border-border-default rounded-full" style={{ borderTopColor: 'var(--accent)', animation: 'spin .7s linear infinite' }} />
+          <div className="w-6 h-6 border-2 border-border-default rounded-full border-t-accent [animation:spin_.7s_linear_infinite]" />
           <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
         </div>
       ) : (
@@ -759,24 +759,18 @@ export default function StaffServicePage() {
                 }}
               >
                 {blocked && !myLeave && (
-                  <div className="absolute inset-0 rounded-sm pointer-events-none" style={{ background: 'rgba(0,0,0,0.25)' }} />
+                  <div className="absolute inset-0 rounded-sm pointer-events-none bg-[rgba(0,0,0,0.25)]" />
                 )}
                 {isToday && (
                   <div
-                    className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-sm pointer-events-none z-[1] text-caption font-extrabold text-text-on-accent leading-none flex items-center justify-center whitespace-nowrap ${isDesktop ? 'px-2.5 py-0.5' : 'w-5 h-5'}`}
-                    style={{
-                      background: 'var(--accent)',
-                      letterSpacing: '-.02em',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
-                    }}
+                    className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-sm pointer-events-none z-[1] text-caption font-extrabold text-text-on-accent leading-none flex items-center justify-center whitespace-nowrap bg-accent tracking-[-0.02em] shadow-[0_1px_3px_rgba(0,0,0,0.35)] ${isDesktop ? 'px-2.5 py-0.5' : 'w-5 h-5'}`}
                   >
                     오늘
                   </div>
                 )}
                 <div className="flex justify-between items-start">
                   <span
-                    className="text-caption font-extrabold leading-none"
-                    style={{ color: isFullLeave ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)' }}
+                    className={`text-caption font-extrabold leading-none ${isFullLeave ? 'text-[rgba(255,255,255,0.9)]' : 'text-[rgba(255,255,255,0.75)]'}`}
                   >
                     {isFullLeave ? (LEAVE_LABEL[lt!] ?? '연차') : isHalf ? (isAm ? '전반' : '후반') : SHIFT_LABEL[rawShift]}
                   </span>
@@ -789,13 +783,13 @@ export default function StaffServicePage() {
                 </div>
                 <div className="flex-1" />
                 {(cell.holidayName || infoText) && (
-                  <div className="text-caption font-bold text-right leading-tight overflow-hidden" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                    {cell.holidayName && <div className="truncate" style={{ color: '#fca5a5' }}>{shortHoliday(cell.holidayName)}</div>}
+                  <div className="text-caption font-bold text-right leading-tight overflow-hidden text-[rgba(255,255,255,0.85)]">
+                    {cell.holidayName && <div className="truncate text-[#fca5a5]">{shortHoliday(cell.holidayName)}</div>}
                     {infoText && <div className="truncate">{infoText}</div>}
                   </div>
                 )}
                 {provided > 0 && skipped > 0 && !infoText && !cell.holidayName && (
-                  <div className="text-caption font-extrabold leading-none text-right" style={{ color: '#fbbf24' }}>
+                  <div className="text-caption font-extrabold leading-none text-right text-[#fbbf24]">
                     미{skipped}
                   </div>
                 )}
@@ -841,8 +835,7 @@ export default function StaffServicePage() {
       ))}
       <div className="flex items-center gap-0.5">
         <span
-          className={`inline-block rounded-full ${dotSize}`}
-          style={{ background: 'linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%)' }}
+          className={`inline-block rounded-full bg-[linear-gradient(135deg,#42d778_50%,var(--duty-day)_50%)] ${dotSize}`}
         />
         <span className="text-caption text-text-tertiary leading-none">반차</span>
       </div>
@@ -850,7 +843,7 @@ export default function StaffServicePage() {
   )
 
   const summaryCards = (
-    <div className="flex gap-2 px-3 pt-3.5 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="flex gap-2 px-3 pt-3.5 overflow-x-auto [-webkit-overflow-scrolling:touch]">
       {[
         // W3 §6.3 Stat Card: 좌측 3px 색바 + bg-surface-raised 통일 + 값은 text-primary (위험 임계치 시 status)
         {
@@ -869,7 +862,7 @@ export default function StaffServicePage() {
           style={{ boxShadow: `inset 3px 0 0 ${c.barColor}` }}
         >
           <div className="text-caption text-text-tertiary font-semibold leading-none mb-1.5 whitespace-nowrap">{c.label}</div>
-          <div className={`text-body font-extrabold leading-none whitespace-nowrap ${c.valueClass}`} style={{ letterSpacing: '-0.01em' }}>{c.value}</div>
+          <div className={`text-body font-extrabold leading-none whitespace-nowrap tracking-[-0.01em] ${c.valueClass}`}>{c.value}</div>
         </div>
       ))}
     </div>
@@ -902,20 +895,18 @@ export default function StaffServicePage() {
         {isLunch && menu.lunch_a && (
           <>
             <div
-              className="rounded-md p-3 border"
-              style={{ background: 'rgba(6, 182, 212, 0.08)', borderColor: 'rgba(6, 182, 212, 0.2)' }}
+              className="rounded-md p-3 border bg-[rgba(6,182,212,0.08)] border-[rgba(6,182,212,0.2)]"
             >
-              <div className="text-caption font-bold leading-none mb-1.5" style={{ color: '#06b6d4' }}>중식 A코너</div>
+              <div className="text-caption font-bold leading-none mb-1.5 text-[#06b6d4]">중식 A코너</div>
               <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-line">
                 {menu.lunch_a.split(' / ').join('\n')}
               </div>
             </div>
             {menu.lunch_b && (
               <div
-                className="rounded-md p-3 border"
-                style={{ background: 'rgba(215, 66, 140, 0.08)', borderColor: 'rgba(215, 66, 140, 0.2)' }}
+                className="rounded-md p-3 border bg-[rgba(215,66,140,0.08)] border-[rgba(215,66,140,0.2)]"
               >
-                <div className="text-caption font-bold leading-none mb-1.5" style={{ color: '#d7428c' }}>중식 B코너</div>
+                <div className="text-caption font-bold leading-none mb-1.5 text-[#d7428c]">중식 B코너</div>
                 <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-line">
                   {menu.lunch_b.split(' / ').join('\n')}
                 </div>
@@ -925,10 +916,9 @@ export default function StaffServicePage() {
         )}
         {isDinner && menu.dinner && (
           <div
-            className="col-span-2 rounded-md p-3 border"
-            style={{ background: 'rgba(215, 128, 66, 0.08)', borderColor: 'rgba(215, 128, 66, 0.2)' }}
+            className="col-span-2 rounded-md p-3 border bg-[rgba(215,128,66,0.08)] border-[rgba(215,128,66,0.2)]"
           >
-            <div className="text-caption font-bold leading-none mb-1.5" style={{ color: '#d78042' }}>석식 메뉴</div>
+            <div className="text-caption font-bold leading-none mb-1.5 text-[#d78042]">석식 메뉴</div>
             <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-line">
               {menu.dinner.split(' / ').join('\n')}
             </div>
@@ -1023,7 +1013,7 @@ export default function StaffServicePage() {
                 />
               </div>
               {docDays > 0 && (
-                <div className="text-caption font-bold leading-none mt-1" style={{ color: '#facc15' }}>
+                <div className="text-caption font-bold leading-none mt-1 text-[#facc15]">
                   {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일간
                 </div>
               )}
@@ -1157,8 +1147,7 @@ export default function StaffServicePage() {
               <img
                 src="/templates/leave_request_preview.png"
                 alt="휴가신청서 미리보기"
-                className="w-full block rounded-sm"
-                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                className="w-full block rounded-sm shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
               />
 
               {(() => {
@@ -1224,16 +1213,14 @@ export default function StaffServicePage() {
         <>
           <div
             onClick={() => { setSheetOpen(false); setSelDate(null) }}
-            className="absolute inset-0 z-[90]"
-            style={{ background: 'rgba(0,0,0,0.45)', animation: 'fadeIn .2s ease' }}
+            className="absolute inset-0 z-[90] bg-[rgba(0,0,0,0.45)] [animation:fadeIn_.2s_ease]"
           />
           <style>{`
             @keyframes fadeIn{from{opacity:0}to{opacity:1}}
             @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
           `}</style>
           <div
-            className="absolute bottom-0 left-0 right-0 z-[100] bg-surface-raised rounded-t-[20px] p-4 pb-6 max-h-[65vh] overflow-y-auto"
-            style={{ boxShadow: '0 -4px 24px rgba(0,0,0,0.2)', animation: 'slideUp .25s ease' }}
+            className="absolute bottom-0 left-0 right-0 z-[100] bg-surface-raised rounded-t-[20px] p-4 pb-6 max-h-[65vh] overflow-y-auto shadow-[0_-4px_24px_rgba(0,0,0,0.2)] [animation:slideUp_.25s_ease]"
           >
             {/* Handle bar */}
             <div className="flex justify-center mb-3">
@@ -1287,7 +1274,7 @@ export default function StaffServicePage() {
                   )}
 
                   {/* 기간 선택 */}
-                  <div className="grid gap-1 items-end mb-2" style={{ gridTemplateColumns: '1fr auto 1fr auto' }}>
+                  <div className="grid gap-1 items-end mb-2 [grid-template-columns:1fr_auto_1fr_auto]">
                     <div>
                       <div className="text-caption text-text-tertiary leading-none mb-0.5">시작일</div>
                       <input
@@ -1310,7 +1297,7 @@ export default function StaffServicePage() {
                       />
                     </div>
                     {docDays > 0 ? (
-                      <span className="text-label font-bold pb-1.5 whitespace-nowrap leading-none" style={{ color: '#facc15' }}>
+                      <span className="text-label font-bold pb-1.5 whitespace-nowrap leading-none text-[#facc15]">
                         {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일
                       </span>
                     ) : <span />}
@@ -1475,10 +1462,9 @@ export default function StaffServicePage() {
               const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow, selCell.isHoliday, selCell.isPrevDayHoliday)
               if (allow > 0) return (
                 <div
-                  className="mb-4 px-3 py-2 rounded-sm border"
-                  style={{ background: 'rgba(143, 66, 215, 0.08)', borderColor: 'rgba(143, 66, 215, 0.2)' }}
+                  className="mb-4 px-3 py-2 rounded-sm border bg-[rgba(143,66,215,0.08)] border-[rgba(143,66,215,0.2)]"
                 >
-                  <span className="text-caption font-bold leading-none" style={{ color: '#8f42d7' }}>주말 식대: ₩{allow.toLocaleString()}</span>
+                  <span className="text-caption font-bold leading-none text-[#8f42d7]">주말 식대: ₩{allow.toLocaleString()}</span>
                 </div>
               )
               return null
