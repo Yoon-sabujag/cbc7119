@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-28 - Completed Phase B Wave 5 (260528-h3z): RemediationDetailPage 11→2 inline (-82%, fontFamily inherit 옵션 N 잔존)
+Last activity: 2026-05-28 - Completed Phase B Wave 6 (260528-hbv): Schedule 83→20 + Education 54→3 = 137→23 inline (-83%, inp/lbl shared style 보존)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -117,6 +117,7 @@ Recent decisions affecting current work:
 | 260528-cjn | Phase B Wave 3 근무/연간 (양쪽 캘리브 risk) — WorkShiftPage 24→5 (HDR_H/ROW_H 상수 + SHIFT_COLOR 동적 변수 옵션 N 잔존, L195 tdy spread → conditional className 옵션 M) + AnnualPlanPage 21→1 (L79 yearPos 캘리브 좌표 시그니처 LOCKED 보존, OQ #5 주석). 합계 45→6 (-86.7%). w-7=32/p-7=32 config override 함정 자체 발견+follow-up patch (pb-7 → pb-[28px], 메모리 anchor `feedback_tailwind_w8_h8_is_48px.md` 일반화). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (9종 × 2 파일 + onClick precise) identical. TypeScript 0 error. holidays fetch + yearPos.y/x + HDR_H=52/ROW_H=46 보존. | 2026-05-28 | 4e99270 | [260528-cjn-phase-b-wave-3](./quick/260528-cjn-phase-b-wave-3/) |
 | 260528-gsh | Phase B Wave 4 보고/대시보드 — Dashboard 10→5 (IS_ANDROID 의도 인라인 3건 보존 + CAT_DOT/catColor 동적 2건 옵션 N, animation 4건 → [animation:slideUp_...] arbitrary + paddingBottom calc 변환) + DailyReport 10→8 (캘리브 시스템 imgRect/pt.x.y/textStyle spread/DAILY_CALIB_STEPS/4 marker 잔존, root + page-body 2건 변환) + WorkLog 20→8 (캘리브 마커 시스템 8건 잔존, toolbar + spacer + margin 12건 변환). 합계 40→21 (-47.5%). 옵션 X+P+M+색변수N + 의도 inline N. 시각 0 byte. 비즈 anchor (9종 × 3 파일 + onClick precise) identical. TypeScript 0 error. Wave 3 borderRadius 트랩 precedent preemptive 적용 (rounded-[10px]/[6px] arbitrary). | 2026-05-28 | 05fddf1 | [260528-gsh-phase-b-wave-4](./quick/260528-gsh-phase-b-wave-4/) |
 | 260528-h3z | Phase B Wave 5 조치 상세 — RemediationDetailPage 11→2 (fontFamily inherit L483/L493 옵션 N 잔존, tailwind 표현 불가). 9건 변환 (root flex + spinner [animation:spin_.7s_linear_infinite] + whitespace-pre-wrap 2 + paddingBottom calc + record.status/submitting conditional 옵션 M). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (9종 + 5 uniq onClick) identical. 5 카테고리 자동화 useEffect 10건 + remediationApi 100% 보존. TypeScript 0 error. w-[28px] arbitrary (w-7=32 함정 회피). | 2026-05-28 | db728c0 | [260528-h3z-phase-b-wave-5](./quick/260528-h3z-phase-b-wave-5/) |
+| 260528-hbv | Phase B Wave 6 일정/교육 (단일 wave 최대치 137) — SchedulePage 83→20 (inp/lbl L1174/L1178 정의 보존 + spread 6건 → style={inp} 단일 참조 전환 + width-only spread 4건 → className transformations + cellStyle/headCell spread 7건 옵션 N + cat?.color 동적 5건 옵션 N + AddModal/EditModal isDesktop conditional 옵션 M template literal with px-[28px] 함정 회피) + EducationPage 54→3 (51건 변환, fontFamily inherit 2건 Wave 5 precedent + sectionLabelStyle spread 1건 잔존, h-12/pl-11/w-11 default + px-[32px] arbitrary). 합계 137→23 (-83.2%). 옵션 X+P+M+색변수N + shared style obj N. 시각 0 byte. vite build PASS + TypeScript 0 error + 비즈 anchor (9종 × 2 파일 + Schedule 17 uniq onClick + Education 7 uniq onClick) identical. 142 ins / 290 del / -148 net. | 2026-05-28 | e267291 | [260528-hbv-phase-b-wave-6](./quick/260528-hbv-phase-b-wave-6/) |
 
 ## Session Continuity
 
