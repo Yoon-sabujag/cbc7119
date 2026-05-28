@@ -433,7 +433,10 @@ function Process-LegalReportPdf($filePath) {
         return $true
     }
 
-    # PDF 업로드 (R2)
+    # PDF 업로드 (R2) — Menu PDF 와 동일한 단일 file part multipart 패턴
+    # 사고 사례 (260528): folder part 를 추가로 끼워넣었더니 PDF 바이너리가
+    # multipart 본문 구조 밖에 배치되어 Cloudflare Worker formData() throw → Error 1101.
+    # /api/uploads 는 folder 필드 무시하므로 file 단일 part 만 보냄.
     $pdfKey = $null
     try {
         $boundary = [System.Guid]::NewGuid().ToString()
@@ -443,11 +446,7 @@ function Process-LegalReportPdf($filePath) {
         $hdr = "--$boundary$crlf" +
                "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"$crlf" +
                "Content-Type: application/pdf$crlf$crlf"
-        $folder = "legal/auto/$year-$($month.ToString('00'))"
-        $hdr = $hdr + "--$boundary$crlf" +
-               "Content-Disposition: form-data; name=`"folder`"$crlf$crlf" +
-               "$folder$crlf"
-        $ftr = "--$boundary--$crlf"
+        $ftr = "$crlf--$boundary--$crlf"
         $hdrB = $enc.GetBytes($hdr)
         $ftrB = $enc.GetBytes($ftr)
         $body = New-Object byte[] ($hdrB.Length + $fileBytes.Length + $ftrB.Length)
