@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-28 - Completed Phase B Wave 7 (260528-iht): StaffServicePage 34→10 inline (-71%, 식대 캘린더 동적 색 + vendor prefix 옵션 N)
+Last activity: 2026-05-28 - Completed Phase B Wave 8 (260528-irl): Extinguisher Public 44→0 + List 78→15 = 122→15 inline (-87.7%, shared style 8개 보존, tbl/th/cl className 컨버전 신규)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -119,6 +119,7 @@ Recent decisions affecting current work:
 | 260528-h3z | Phase B Wave 5 조치 상세 — RemediationDetailPage 11→2 (fontFamily inherit L483/L493 옵션 N 잔존, tailwind 표현 불가). 9건 변환 (root flex + spinner [animation:spin_.7s_linear_infinite] + whitespace-pre-wrap 2 + paddingBottom calc + record.status/submitting conditional 옵션 M). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (9종 + 5 uniq onClick) identical. 5 카테고리 자동화 useEffect 10건 + remediationApi 100% 보존. TypeScript 0 error. w-[28px] arbitrary (w-7=32 함정 회피). | 2026-05-28 | db728c0 | [260528-h3z-phase-b-wave-5](./quick/260528-h3z-phase-b-wave-5/) |
 | 260528-hbv | Phase B Wave 6 일정/교육 (단일 wave 최대치 137) — SchedulePage 83→20 (inp/lbl L1174/L1178 정의 보존 + spread 6건 → style={inp} 단일 참조 전환 + width-only spread 4건 → className transformations + cellStyle/headCell spread 7건 옵션 N + cat?.color 동적 5건 옵션 N + AddModal/EditModal isDesktop conditional 옵션 M template literal with px-[28px] 함정 회피) + EducationPage 54→3 (51건 변환, fontFamily inherit 2건 Wave 5 precedent + sectionLabelStyle spread 1건 잔존, h-12/pl-11/w-11 default + px-[32px] arbitrary). 합계 137→23 (-83.2%). 옵션 X+P+M+색변수N + shared style obj N. 시각 0 byte. vite build PASS + TypeScript 0 error + 비즈 anchor (9종 × 2 파일 + Schedule 17 uniq onClick + Education 7 uniq onClick) identical. 142 ins / 290 del / -148 net. | 2026-05-28 | e267291 | [260528-hbv-phase-b-wave-6](./quick/260528-hbv-phase-b-wave-6/) |
 | 260528-iht | Phase B Wave 7 직원 서비스 — StaffServicePage 34→10 (-71%). 24건 변환 (식대 카드 RGBA 4종 + 색 hex 6건 + linear-gradient + animation 2건 + grid-template-columns + shadow 등 arbitrary 통합) / 10건 옵션 N 잔존 (L754 cell multiline cellBg+conditional border+vendor prefix + L779 dateColor + L832 l.bg loop + L862 barColor template + L990/L1237 SHIFT_COLOR + L1161/L1183 좌표 spread + L1285/L1296 vendor as any). 옵션 M 신규 1건 (L779 isFullLeave conditional). 옵션 X 신규: `[-webkit-overflow-scrolling:touch]` arbitrary 첫 사례. redesign/12 (직원 서비스) Phase B 완결. 비즈 anchor (9종 + 13 uniq onClick) identical. TypeScript 0 error. | 2026-05-28 | 316e1eb | [260528-iht-phase-b-wave-7](./quick/260528-iht-phase-b-wave-7/) |
+| 260528-irl | Phase B Wave 8 소화기 — ExtinguisherPublic 44→0 (-100%) + ExtinguishersList 78→15 (-81%). 합계 122→15 (-87.7%). **핵심 신규 패턴**: Public tbl/th/cl style object → className string const 변환 (locked list 외 shared style 변환 첫 사례). 16+ spread (`{...th, textAlign:'center'}`) → template literal (`` `${th} text-center` ``) 일괄 해소로 Public 44건 전부 변환. List 잔존 15건: gridCols 동적 2 + badgeBg/Color 1 + shared style spread 11 (actionBtn/dangerBtn 3 + inputStyle 동적 borderColor 6 + textTransform 1 + infoBanner 1 + modalWrapper 1). 8 shared style 정의 (page + List 7개) 100% 보존. 옵션 X+P+M+색변수N + shared style obj N + vendor N. 시각 0 byte. vite build PASS (14.79s, PWA 7931 KiB) + TypeScript 0 error + 비즈 anchor identical. | 2026-05-28 | de15e07 | [260528-irl-phase-b-wave-8](./quick/260528-irl-phase-b-wave-8/) |
 
 ## Session Continuity
 
