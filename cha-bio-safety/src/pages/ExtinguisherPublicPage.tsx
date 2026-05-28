@@ -38,8 +38,8 @@ export default function ExtinguisherPublicPage() {
     if (!byMonth[m] || new Date(r.checked_at) > new Date(byMonth[m].checked_at)) byMonth[m] = r
   })
 
-  if (loading) return <div style={page}><div style={{ textAlign:'center', padding:40, color:'#333', fontSize:14 }}>조회 중...</div></div>
-  if (error || !cp) return <div style={page}><div style={{ textAlign:'center', padding:40, color:'#333', fontSize:14 }}>{error ?? '데이터를 찾을 수 없습니다'}</div></div>
+  if (loading) return <div style={page}><div className="text-center p-10 text-[#333] text-[14px]">조회 중...</div></div>
+  if (error || !cp) return <div style={page}><div className="text-center p-10 text-[#333] text-[14px]">{error ?? '데이터를 찾을 수 없습니다'}</div></div>
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
   const typeText = ext?.type ?? '-'
@@ -47,22 +47,22 @@ export default function ExtinguisherPublicPage() {
 
   return (
     <div style={page}>
-      <table style={tbl} cellSpacing={0} cellPadding={0}>
+      <table className={tbl} cellSpacing={0} cellPadding={0}>
         <colgroup>
-          <col style={{ width:'6%' }} />{/* 월 */}
-          <col style={{ width:'3%' }} />{/* / */}
-          <col style={{ width:'6%' }} />{/* 일 */}
-          <col style={{ width:'10%' }} />{/* 점검자1 */}
-          <col style={{ width:'10%' }} />{/* 점검자2 */}
-          <col style={{ width:'10%' }} />{/* 이상유무 */}
-          <col style={{ width:'13%' }} />{/* 서명 */}
-          <col style={{ width:'14%' }} />{/* 점검사항1 */}
-          <col style={{ width:'14%' }} />{/* 점검사항2 */}
-          <col style={{ width:'14%' }} />{/* 점검사항3 */}
+          <col className="w-[6%]" />{/* 월 */}
+          <col className="w-[3%]" />{/* / */}
+          <col className="w-[6%]" />{/* 일 */}
+          <col className="w-[10%]" />{/* 점검자1 */}
+          <col className="w-[10%]" />{/* 점검자2 */}
+          <col className="w-[10%]" />{/* 이상유무 */}
+          <col className="w-[13%]" />{/* 서명 */}
+          <col className="w-[14%]" />{/* 점검사항1 */}
+          <col className="w-[14%]" />{/* 점검사항2 */}
+          <col className="w-[14%]" />{/* 점검사항3 */}
         </colgroup>
         {/* ── 제목 ── */}
         <thead>
-          <tr><td colSpan={10} style={{ background:'#c00', color:'#FFD700', textAlign:'center', fontSize:18, fontWeight:900, padding:'10px 0', letterSpacing:'0.15em', border:'2px solid #333' }}>
+          <tr><td colSpan={10} className="bg-[#c00] text-[#FFD700] text-center text-[18px] font-black py-[10px] px-0 tracking-[0.15em] border-2 border-[#333]">
             소 화 기 점 검 표
           </td></tr>
         </thead>
@@ -70,29 +70,29 @@ export default function ExtinguisherPublicPage() {
         <tbody>
           {/* ── Row 5: 년도 / 점검관리자 / 정 ── */}
           <tr>
-            <td colSpan={3} style={{ ...th, textAlign:'center' }}>년 도</td>
-            <td style={{ ...cl, textAlign:'right', borderRight:'1px solid transparent' }}>{yearShort}</td>
-            <td style={{ ...cl, borderLeft:'1px solid transparent' }}>년</td>
-            <td rowSpan={2} colSpan={2} style={{ ...th, textAlign:'center', verticalAlign:'middle' }}>점검관리자</td>
-            <td style={{ ...th, textAlign:'center' }}>정</td>
-            <td colSpan={2} style={{ ...cl, textAlign:'center' }}>석현민</td>
+            <td colSpan={3} className={`${th} text-center`}>년 도</td>
+            <td className={`${cl} text-right border-r-transparent`}>{yearShort}</td>
+            <td className={`${cl} border-l-transparent`}>년</td>
+            <td rowSpan={2} colSpan={2} className={`${th} text-center align-middle`}>점검관리자</td>
+            <td className={`${th} text-center`}>정</td>
+            <td colSpan={2} className={`${cl} text-center`}>석현민</td>
           </tr>
           {/* ── Row 6: 종류 / 부 ── */}
           <tr>
-            <td colSpan={3} style={{ ...th, textAlign:'center' }}>종 류</td>
-            <td colSpan={2} style={{ ...cl, textAlign:'center' }}>{typeText}</td>
-            <td style={{ ...th, textAlign:'center' }}>부</td>
-            <td colSpan={2} style={{ ...cl, textAlign:'center' }}></td>
+            <td colSpan={3} className={`${th} text-center`}>종 류</td>
+            <td colSpan={2} className={`${cl} text-center`}>{typeText}</td>
+            <td className={`${th} text-center`}>부</td>
+            <td colSpan={2} className={`${cl} text-center`}></td>
           </tr>
 
           {/* ── 헤더 행 ── */}
-          <tr style={{ background:'#f0ede5' }}>
-            <td style={{ ...th, textAlign:'center', borderRight:'1px solid transparent' }}>월</td>
-            <td style={{ ...th, textAlign:'center', borderLeft:'1px solid transparent', borderRight:'1px solid transparent' }}>/</td>
-            <td style={{ ...th, textAlign:'center', borderLeft:'1px solid transparent' }}>일</td>
-            <td colSpan={2} style={{ ...th, textAlign:'center' }}>점검자성명</td>
-            <td colSpan={2} style={{ ...th, textAlign:'center' }}>이상유무/서명</td>
-            <td colSpan={3} style={{ ...th, textAlign:'center' }}>점검사항</td>
+          <tr className="bg-[#f0ede5]">
+            <td className={`${th} text-center border-r-transparent`}>월</td>
+            <td className={`${th} text-center border-l-transparent border-r-transparent`}>/</td>
+            <td className={`${th} text-center border-l-transparent`}>일</td>
+            <td colSpan={2} className={`${th} text-center`}>점검자성명</td>
+            <td colSpan={2} className={`${th} text-center`}>이상유무/서명</td>
+            <td colSpan={3} className={`${th} text-center`}>점검사항</td>
           </tr>
 
           {/* ── 1~12월 기록 ── */}
@@ -105,28 +105,28 @@ export default function ExtinguisherPublicPage() {
             let rightCell = null
             if (i === 0) {
               rightCell = (
-                <td rowSpan={7} colSpan={3} style={{ ...cl, padding:0, borderLeft:'2px solid #333', height: ROW_H * 7, position:'relative' as any, overflow:'hidden' }}>
-                  <img src="/extinguisher-check.png" alt="정기점검(월1회)" style={{ position:'absolute' as any, top:0, left:0, width:'100%', height:'100%', objectFit:'fill', display:'block' }} />
+                <td rowSpan={7} colSpan={3} className={`${cl} p-0 border-l-2 border-l-[#333] h-[245px] relative overflow-hidden`}>
+                  <img src="/extinguisher-check.png" alt="정기점검(월1회)" className="absolute top-0 left-0 w-full h-full object-fill block" />
                 </td>
               )
             } else if (i === 7) {
-              rightCell = <td colSpan={3} style={{ ...th, textAlign:'center', borderLeft:'2px solid #333', fontSize:10, height:ROW_H }}>소화기번호</td>
+              rightCell = <td colSpan={3} className={`${th} text-center border-l-2 border-l-[#333] text-[10px] h-[35px]`}>소화기번호</td>
             } else if (i === 8) {
-              rightCell = <td colSpan={3} style={{ ...cl, textAlign:'center', borderLeft:'2px solid #333', height:ROW_H }}>{ext?.mgmtNo ?? cp.locationNo ?? '-'}</td>
+              rightCell = <td colSpan={3} className={`${cl} text-center border-l-2 border-l-[#333] h-[35px]`}>{ext?.mgmtNo ?? cp.locationNo ?? '-'}</td>
             } else if (i === 9) {
-              rightCell = <td colSpan={3} style={{ ...th, textAlign:'center', borderLeft:'2px solid #333', fontSize:10, height:ROW_H }}>설 치 장 소</td>
+              rightCell = <td colSpan={3} className={`${th} text-center border-l-2 border-l-[#333] text-[10px] h-[35px]`}>설 치 장 소</td>
             } else if (i === 10) {
-              rightCell = <td rowSpan={2} colSpan={3} style={{ ...cl, textAlign:'center', borderLeft:'2px solid #333', fontSize:10, verticalAlign:'middle', lineHeight:1.4 }}>{ext?.location ?? cp.location}</td>
+              rightCell = <td rowSpan={2} colSpan={3} className={`${cl} text-center border-l-2 border-l-[#333] text-[10px] align-middle leading-[1.4]`}>{ext?.location ?? cp.location}</td>
             }
 
             return (
               <tr key={m}>
-                <td style={{ ...cl, textAlign:'center', height:ROW_H, borderRight:'1px solid transparent' }}>{m}</td>
-                <td style={{ ...cl, textAlign:'center', height:ROW_H, borderLeft:'1px solid transparent', borderRight:'1px solid transparent', padding:0, width:8, color:'#999' }}>/</td>
-                <td style={{ ...cl, textAlign:'center', height:ROW_H, borderLeft:'1px solid transparent' }}>{day}</td>
-                <td colSpan={2} style={{ ...cl, textAlign:'center', height:ROW_H }}>{name}</td>
-                <td style={{ ...cl, textAlign:'center', height:ROW_H }}>{status}</td>
-                <td style={{ ...cl, textAlign:'center', height:ROW_H }}>{name}</td>
+                <td className={`${cl} text-center h-[35px] border-r-transparent`}>{m}</td>
+                <td className={`${cl} text-center h-[35px] border-l-transparent border-r-transparent p-0 w-2 text-[#999]`}>/</td>
+                <td className={`${cl} text-center h-[35px] border-l-transparent`}>{day}</td>
+                <td colSpan={2} className={`${cl} text-center h-[35px]`}>{name}</td>
+                <td className={`${cl} text-center h-[35px]`}>{status}</td>
+                <td className={`${cl} text-center h-[35px]`}>{name}</td>
                 {rightCell}
               </tr>
             )
@@ -134,9 +134,9 @@ export default function ExtinguisherPublicPage() {
 
           {/* ── 하단 ── */}
           <tr>
-            <td colSpan={10} style={{ background:'#c00', color:'#fff', textAlign:'center', fontSize:11, fontWeight:700, padding:'8px 6px', lineHeight:1.8, border:'2px solid #333' }}>
+            <td colSpan={10} className="bg-[#c00] text-[#fff] text-center text-[11px] font-bold py-2 px-1.5 leading-[1.8] border-2 border-[#333]">
               이상 발견 즉시 수리를 의뢰하십시오.<br />
-              <span style={{ fontSize:10 }}>방 재 실 &nbsp;&nbsp;&nbsp; 031-881-7119</span>
+              <span className="text-[10px]">방 재 실 &nbsp;&nbsp;&nbsp; 031-881-7119</span>
             </td>
           </tr>
         </tbody>
@@ -146,6 +146,6 @@ export default function ExtinguisherPublicPage() {
 }
 
 const page: React.CSSProperties = { maxWidth:480, margin:'0 auto', padding:'8px 8px 8px', fontFamily:'"Noto Sans KR", sans-serif', background:'#fff', color:'#000', fontWeight:700, WebkitUserSelect:'none', userSelect:'none', WebkitTouchCallout:'none' } as any
-const tbl: React.CSSProperties = { width:'100%', borderCollapse:'collapse', border:'2px solid #333', fontSize:12, color:'#000', fontWeight:700 }
-const th: React.CSSProperties = { background:'#f0ede5', border:'1px solid #999', padding:'5px 4px', fontWeight:700, fontSize:10, whiteSpace:'nowrap', color:'#000' }
-const cl: React.CSSProperties = { border:'1px solid #bbb', padding:'5px 4px', fontSize:12, color:'#000', fontWeight:700 }
+const tbl = "w-full border-collapse border-2 border-[#333] text-[12px] text-[#000] font-bold"
+const th  = "bg-[#f0ede5] border border-[#999] py-[5px] px-1 font-bold text-[10px] whitespace-nowrap text-[#000]"
+const cl  = "border border-[#bbb] py-[5px] px-1 text-[12px] text-[#000] font-bold"

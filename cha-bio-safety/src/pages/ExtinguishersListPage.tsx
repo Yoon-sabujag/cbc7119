@@ -313,43 +313,25 @@ export default function ExtinguishersListPage() {
 
   // ── 렌더 ─────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', minHeight: '100%',
-      background: 'var(--surface-page)', color: 'var(--text-primary)',
-    }}>
+    <div className="flex flex-col min-h-full bg-surface-page text-text-primary">
       <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
       {/* GlobalHeader 의 '설정' 버튼 좌측 슬롯에 「+ 새로 등록」 portal — 페이지 내 자체 헤더 없음. */}
       {headerSlot && createPortal(
         <button
           onClick={() => setRegisterOpen(true)}
-          style={{
-            height: 32, padding: '0 10px', borderRadius: 'var(--radius-sm)',
-            background: 'var(--accent)', border: 'none',
-            color: 'var(--accent-fg)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-          }}
+          className="h-[32px] px-2.5 rounded-sm bg-accent border-none text-[var(--accent-fg)] text-[12px] font-bold cursor-pointer"
         >+ 새로 등록</button>,
         headerSlot,
       )}
 
       {/* ─── 마커 동행 안내 배너 ────────────────────────────────────── */}
       {hasMarkerContext && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 12px',
-          background: 'var(--status-info-bg)',
-          borderBottom: '1px solid var(--status-info-bar)',
-          fontSize: 12, color: 'var(--status-info)',
-          flexShrink: 0, gap: 8,
-        }}>
+        <div className="flex items-center justify-between py-2 px-3 bg-info-bg border-b border-info-bar text-[12px] text-info flex-shrink-0 gap-2">
           <span>ⓘ &nbsp;{ctxZone ? `「${zoneLabelKo(ctxZone)} ${ctxFloor ?? ''}」 위치에 자동 배치됩니다.` : '해당 위치에 자동 배치됩니다.'}</span>
           <button
             onClick={dismissMarkerContext}
-            style={{
-              background: 'transparent', border: '1px solid var(--status-info-bar)',
-              color: 'var(--status-info)', fontSize: 12, padding: '2px 8px',
-              borderRadius: 'var(--radius-sm)', cursor: 'pointer', flexShrink: 0,
-            }}
+            className="bg-transparent border border-info-bar text-info text-[12px] py-0.5 px-2 rounded-sm cursor-pointer flex-shrink-0"
           >
             취소
           </button>
@@ -357,9 +339,9 @@ export default function ExtinguishersListPage() {
       )}
 
       {/* ─── Filter bar ─────────────────────────────────────────────── */}
-      <div style={{ background: 'var(--surface-raised)', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
+      <div className="bg-surface-raised border-b border-border-default flex-shrink-0">
         {/* Row 1: Mapping tab chips */}
-        <div style={{ display: 'flex' }}>
+        <div className="flex">
           {([
             { key: 'all',      label: '전체' },
             { key: 'mapped',   label: '배치' },
@@ -369,13 +351,7 @@ export default function ExtinguishersListPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              style={{
-                flex: 1, height: 44, border: 'none',
-                background: tab === t.key ? 'var(--surface-active)' : 'transparent',
-                color: tab === t.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                borderBottom: tab === t.key ? '2px solid var(--accent)' : '2px solid transparent',
-              }}
+              className={`flex-1 h-11 border-none text-[12px] font-bold cursor-pointer ${tab === t.key ? 'bg-surface-active text-text-primary border-b-2 border-accent' : 'bg-transparent text-text-tertiary border-b-2 border-transparent'}`}
             >
               {t.label}
             </button>
@@ -383,17 +359,11 @@ export default function ExtinguishersListPage() {
         </div>
 
         {/* Row 2: Zone / Floor / Type selects + Search input */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 12px',
-        }}>
+        <div className="flex flex-wrap gap-1.5 py-2 px-3">
           <select
             value={zone}
             onChange={e => setZone(e.target.value)}
-            style={{
-              flex: 1, minWidth: 80, height: 32, padding: '0 8px',
-              background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
-              borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: 12,
-            }}
+            className="flex-1 min-w-[80px] h-[32px] px-2 bg-surface-sunken border border-border-strong rounded-sm text-text-secondary text-[12px]"
           >
             <option value="">구역 전체</option>
             {zones.map(z => <option key={z} value={z}>{z}</option>)}
@@ -402,11 +372,7 @@ export default function ExtinguishersListPage() {
           <select
             value={floor}
             onChange={e => setFloor(e.target.value)}
-            style={{
-              flex: 1, minWidth: 80, height: 32, padding: '0 8px',
-              background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
-              borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: 12,
-            }}
+            className="flex-1 min-w-[80px] h-[32px] px-2 bg-surface-sunken border border-border-strong rounded-sm text-text-secondary text-[12px]"
           >
             <option value="">층 전체</option>
             {floors.map(f => <option key={f} value={f}>{f}</option>)}
@@ -415,84 +381,54 @@ export default function ExtinguishersListPage() {
           <select
             value={type}
             onChange={e => setType(e.target.value)}
-            style={{
-              flex: 1, minWidth: 80, height: 32, padding: '0 8px',
-              background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
-              borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: 12,
-            }}
+            className="flex-1 min-w-[80px] h-[32px] px-2 bg-surface-sunken border border-border-strong rounded-sm text-text-secondary text-[12px]"
           >
             <option value="">종류 전체</option>
             {EXTINGUISHER_TYPES.map(tp => <option key={tp} value={tp}>{tp}</option>)}
           </select>
 
-          <div style={{ position: 'relative', flex: 2, minWidth: 120, display: 'flex', alignItems: 'center' }}>
+          <div className="relative flex-[2] min-w-[120px] flex items-center">
             <Search
               size={14}
-              style={{
-                position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-                color: 'var(--text-tertiary)', pointerEvents: 'none',
-              }}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none"
             />
             <input
               type="text"
               placeholder="증지번호·제조번호 검색"
               value={q}
               onChange={e => setQ(e.target.value)}
-              style={{
-                width: '100%', height: 32, padding: '0 10px 0 30px',
-                background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
-                borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 12,
-                outline: 'none',
-              }}
+              className="w-full h-[32px] pl-[30px] pr-2.5 bg-surface-sunken border border-border-strong rounded-sm text-text-primary text-[12px] outline-none"
             />
           </div>
         </div>
 
         {/* Row 3: 분말 소화기 연한 필터 chip — count > 0 인 항목만 노출 */}
         {(replaceCounts.warn > 0 || replaceCounts.imm > 0 || replaceCounts.danger > 0) && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 12px 8px' }}>
+          <div className="flex flex-wrap gap-1.5 px-3 pb-2 pt-0">
             {replaceCounts.warn > 0 && (
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'warn' ? null : 'warn')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
-                  padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  background: 'var(--status-warning-bg)',
-                  color: 'var(--status-warning)',
-                  border: replaceFilter === 'warn' ? '1.5px solid var(--status-warning-bar)' : '1px solid var(--status-warning-bar)',
-                }}
+                className={`inline-flex items-center gap-1 leading-none py-1 px-2.5 rounded-sm text-[12px] font-bold cursor-pointer bg-warning-bg text-warning ${replaceFilter === 'warn' ? 'border-[1.5px] border-warning-bar' : 'border border-warning-bar'}`}
               >
-                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+                <span className="inline-block w-1.5 h-1.5 rounded-pill bg-current flex-shrink-0" />
                 교체 도래 {replaceCounts.warn}
               </button>
             )}
             {replaceCounts.imm > 0 && (
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'imminent' ? null : 'imminent')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
-                  padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  background: 'var(--status-fire-bg)',
-                  color: 'var(--status-fire)',
-                  border: replaceFilter === 'imminent' ? '1.5px solid var(--status-fire-bar)' : '1px solid var(--status-fire-bar)',
-                }}
+                className={`inline-flex items-center gap-1 leading-none py-1 px-2.5 rounded-sm text-[12px] font-bold cursor-pointer bg-fire-bg text-fire ${replaceFilter === 'imminent' ? 'border-[1.5px] border-fire-bar' : 'border border-fire-bar'}`}
               >
-                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+                <span className="inline-block w-1.5 h-1.5 rounded-pill bg-current flex-shrink-0" />
                 교체 임박 {replaceCounts.imm}
               </button>
             )}
             {replaceCounts.danger > 0 && (
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'danger' ? null : 'danger')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
-                  padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  background: 'var(--status-danger-bg)',
-                  color: 'var(--status-danger)',
-                  border: replaceFilter === 'danger' ? '1.5px solid var(--status-danger-bar)' : '1px solid var(--status-danger-bar)',
-                }}
+                className={`inline-flex items-center gap-1 leading-none py-1 px-2.5 rounded-sm text-[12px] font-bold cursor-pointer bg-danger-bg text-danger ${replaceFilter === 'danger' ? 'border-[1.5px] border-danger-bar' : 'border border-danger-bar'}`}
               >
-                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+                <span className="inline-block w-1.5 h-1.5 rounded-pill bg-current flex-shrink-0" />
                 교체 초과 {replaceCounts.danger}
               </button>
             )}
@@ -501,10 +437,7 @@ export default function ExtinguishersListPage() {
       </div>
 
       {/* ─── Card grid / states ─────────────────────────────────────── */}
-      <div style={{
-        flex: 1, overflowY: 'auto', padding: 12,
-        paddingBottom: isDesktop ? 24 : 'calc(var(--sab) + 70px)',
-      }}>
+      <div className={`flex-1 overflow-y-auto p-3 ${isDesktop ? 'pb-6' : 'pb-[calc(var(--sab)+70px)]'}`}>
         {/* Loading */}
         {isLoading && (
           <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 12 }}>
@@ -516,20 +449,12 @@ export default function ExtinguishersListPage() {
 
         {/* Error */}
         {!isLoading && isError && (
-          <div style={{
-            flex: 1, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            gap: 8, padding: '60px 16px',
-          }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>목록을 불러오지 못했습니다</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>네트워크 상태를 확인하고 다시 시도해 주세요.</div>
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 py-[60px] px-4">
+            <div className="text-[16px] font-bold text-text-primary">목록을 불러오지 못했습니다</div>
+            <div className="text-[12px] text-text-secondary text-center">네트워크 상태를 확인하고 다시 시도해 주세요.</div>
             <button
               onClick={() => refetch()}
-              style={{
-                marginTop: 8, height: 36, padding: '0 16px', borderRadius: 'var(--radius-sm)',
-                background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
-                color: 'var(--text-primary)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              }}
+              className="mt-2 h-[36px] px-4 rounded-sm bg-surface-sunken border border-border-strong text-text-primary text-[12px] font-bold cursor-pointer"
             >
               다시 시도
             </button>
@@ -538,13 +463,9 @@ export default function ExtinguishersListPage() {
 
         {/* Empty */}
         {!isLoading && !isError && items.length === 0 && (
-          <div style={{
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            gap: 8, padding: '60px 16px',
-          }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>해당하는 소화기가 없습니다</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.6 }}>
+          <div className="flex flex-col items-center justify-center gap-2 py-[60px] px-4">
+            <div className="text-[16px] font-bold text-text-primary">해당하는 소화기가 없습니다</div>
+            <div className="text-[12px] text-text-secondary text-center leading-[1.6]">
               필터를 조정하거나 우상단 「+ 새로 등록」 으로 새 자산을 추가해 주세요.
             </div>
           </div>
@@ -681,40 +602,25 @@ function ExtinguisherCard({
   return (
     <div
       onClick={!isDisposed ? onToggle : undefined}
-      style={{
-        background: isDisposed ? 'var(--surface-sunken)' : 'var(--surface-raised)',
-        border: expanded && !isDisposed ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
-        borderRadius: 'var(--radius-md)', padding: 12,
-        display: 'flex', flexDirection: 'column', gap: 6,
-        cursor: isDisposed ? 'default' : 'pointer',
-        opacity: isDisposed ? 0.6 : 1,
-        transition: 'border-color .15s',
-      }}
+      className={`rounded-md p-3 flex flex-col gap-1.5 [transition:border-color_.15s] ${isDisposed ? 'bg-surface-sunken opacity-60 cursor-default' : 'bg-surface-raised opacity-100 cursor-pointer'} ${expanded && !isDisposed ? 'border-[1.5px] border-accent' : 'border border-border-default'}`}
     >
       {/* Row 1: 종류 + badge */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[14px] font-bold text-text-primary flex-1">
           {item.type ?? '-'}
         </span>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
-          fontSize: 12, fontWeight: 700,
-          padding: '2px 8px', borderRadius: 'var(--radius-sm)',
-          background: badgeBg, color: badgeColor,
-          flexShrink: 0,
-        }}>
-          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+        <span
+          className="inline-flex items-center gap-1 leading-none text-[12px] font-bold py-0.5 px-2 rounded-sm flex-shrink-0"
+          style={{ background: badgeBg, color: badgeColor }}
+        >
+          <span className="inline-block w-1.5 h-1.5 rounded-pill bg-current flex-shrink-0" />
           {badgeLabel}
         </span>
       </div>
 
       {/* Row 2: 제조번호 · 증지번호 (상세 펼침에 나머지 필드 노출) */}
       {(item.serial_no || item.seal_no) && (
-        <div style={{
-          fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)',
-          fontFamily: "'JetBrains Mono', monospace",
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
+        <div className="text-[12px] font-medium text-text-secondary [font-family:'JetBrains_Mono',monospace] whitespace-nowrap overflow-hidden text-ellipsis">
           {[
             item.serial_no && `제조번호: ${item.serial_no}`,
             item.seal_no && `증지번호: ${item.seal_no}`,
@@ -723,33 +629,20 @@ function ExtinguisherCard({
       )}
 
       {/* Row 3: location + warning chip (오른쪽 하단) — 한 줄에 배치해 카드 높이 절약 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{
-          fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)',
-          flex: 1, minWidth: 0,
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[12px] font-medium text-text-tertiary flex-1 min-w-0 inline-flex items-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis">
           {item.cp_id ? (
             <>
-              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span className="inline-block w-1.5 h-1.5 rounded-pill bg-current flex-shrink-0" />
+              <span className="overflow-hidden text-ellipsis">
                 {zoneLabelKo(item.cp_zone)} {item.cp_floor ?? ''}{item.cp_location ? ' · ' + item.cp_location : ''}
               </span>
             </>
           ) : '위치 미지정'}
         </span>
         {warning && (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
-            fontSize: 12, fontWeight: 700,
-            padding: '2px 8px', borderRadius: 'var(--radius-sm)',
-            background: warning === 'danger' ? 'var(--status-danger-bg)' : 'var(--status-warning-bg)',
-            color: warning === 'danger' ? 'var(--status-danger)' : 'var(--status-warning)',
-            border: `1px solid ${warning === 'danger' ? 'var(--status-danger-bar)' : 'var(--status-warning-bar)'}`,
-            flexShrink: 0,
-          }}>
-            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+          <span className={`inline-flex items-center gap-1 leading-none text-[12px] font-bold py-0.5 px-2 rounded-sm flex-shrink-0 ${warning === 'danger' ? 'bg-danger-bg text-danger border border-danger-bar' : 'bg-warning-bg text-warning border border-warning-bar'}`}>
+            <span className="inline-block w-1.5 h-1.5 rounded-pill bg-current flex-shrink-0" />
             교체 {warning === 'warn' ? '도래' : warning === 'imminent' ? '임박' : '초과'}
           </span>
         )}
@@ -758,12 +651,7 @@ function ExtinguisherCard({
       {/* Expanded detail block */}
       {expanded && !isDisposed && (
         <>
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 1fr',
-            gap: '3px 12px', fontSize: 12,
-            marginTop: 4, paddingTop: 8,
-            borderTop: '1px solid var(--border-default)',
-          }}>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-[3px] text-[12px] mt-1 pt-2 border-t border-border-default">
             <DetailField label="접두문자" value={item.prefix_code} />
             <DetailField label="형식승인" value={item.approval_no} mono />
             <DetailField label="제조년월" value={item.manufactured_at} mono />
@@ -771,7 +659,7 @@ function ExtinguisherCard({
           </div>
 
           {/* Action row — state machine driven by has_records + check_point_id + status */}
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }} onClick={e => e.stopPropagation()}>
+          <div className="flex gap-2 mt-1" onClick={e => e.stopPropagation()}>
             {state === 'unmapped-clean' && (
               // 미배치 + 미점검: 정보 수정 / 소화기 배치 / 삭제
               <>
@@ -801,7 +689,7 @@ function ExtinguisherCard({
 
       {/* 폐기 상태: 조회만 */}
       {isDisposed && (
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', padding: '4px 0' }}>
+        <div className="text-[12px] text-text-tertiary text-center py-1 px-0">
           폐기된 자산입니다.
         </div>
       )}
@@ -824,12 +712,9 @@ const dangerBtnStyle: React.CSSProperties = {
 
 function DetailField({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>{label}</span>
-      <span style={{
-        color: 'var(--text-primary)', fontWeight: 700,
-        fontFamily: mono ? "'JetBrains Mono', monospace" : 'inherit',
-      }}>
+    <div className="flex flex-col gap-px">
+      <span className="text-text-tertiary font-normal">{label}</span>
+      <span className={`text-text-primary font-bold ${mono ? "[font-family:'JetBrains_Mono',monospace]" : '[font-family:inherit]'}`}>
         {value ?? '-'}
       </span>
     </div>
@@ -887,7 +772,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
   return (
     <ModalBackdrop onClose={onClose}>
       <div style={modalWrapperStyle} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
+        <div className="text-[16px] font-bold text-text-primary mb-4">
           소화기 등록
         </div>
 
@@ -905,14 +790,9 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
 
         {/* 종류 3-col grid */}
         <FieldLabel>종류</FieldLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
+        <div className="grid grid-cols-3 gap-1.5 mb-[14px]">
           {EXTINGUISHER_TYPES.map(t => (
-            <button key={t} onClick={() => setType(t)} style={{
-              padding: '8px 0', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              background: type === t ? 'var(--accent)' : 'var(--surface-sunken)',
-              color: type === t ? 'var(--accent-fg)' : 'var(--text-secondary)',
-              border: type === t ? 'none' : '1px solid var(--border-default)',
-            }}>{t}</button>
+            <button key={t} onClick={() => setType(t)} className={`py-2 px-0 rounded-sm text-[12px] font-bold cursor-pointer ${type === t ? 'bg-accent text-[var(--accent-fg)] border-none' : 'bg-surface-sunken text-text-secondary border border-border-default'}`}>{t}</button>
           ))}
         </div>
 
@@ -935,7 +815,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
         <input style={inputStyle} value={sealNo} onChange={e => setSealNo(e.target.value)} placeholder="예: 63848" inputMode="numeric" />
 
         {/* Action row */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <div className="flex gap-2 mt-4">
           <button onClick={onClose} disabled={submitting} style={cancelBtnStyle}>취소</button>
           <button
             onClick={handleSubmit}
@@ -1014,31 +894,26 @@ function EditModal({ item, onClose, onSubmit, saving }: EditModalProps) {
     <ModalBackdrop onClose={onClose}>
       <div style={modalWrapperStyle} onClick={e => e.stopPropagation()}>
         {/* Header with counter chip */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: changedCount > 3 ? 8 : 16 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>정보 수정</span>
+        <div className={`flex items-center justify-between ${changedCount > 3 ? 'mb-2' : 'mb-4'}`}>
+          <span className="text-[16px] font-bold text-text-primary">정보 수정</span>
           <span style={counterChipStyle}>변경: {changedCount} / 3</span>
         </div>
 
         {/* Microcopy when n>3 */}
         {changedCount > 3 && (
-          <div style={{ fontSize: 12, color: 'var(--status-danger)', marginBottom: 12 }}>
+          <div className="text-[12px] text-danger mb-3">
             4개 이상 변경하려면 「폐기 후 재등록」을 사용하세요.
           </div>
         )}
 
         {/* 종류 */}
         <FieldLabel>종류</FieldLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
+        <div className="grid grid-cols-3 gap-1.5 mb-[14px]">
           {EXTINGUISHER_TYPES.map(t => {
             const isActive = type === t
             const isChanged = norm(t) !== norm(item.type) && isActive
             return (
-              <button key={t} onClick={() => setType(t)} style={{
-                padding: '8px 0', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                background: isActive ? 'var(--accent)' : 'var(--surface-sunken)',
-                color: isActive ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                border: isChanged ? '1.5px solid var(--accent)' : (isActive ? 'none' : '1px solid var(--border-default)'),
-              }}>{t}</button>
+              <button key={t} onClick={() => setType(t)} className={`py-2 px-0 rounded-sm text-[12px] font-bold cursor-pointer ${isActive ? 'bg-accent text-[var(--accent-fg)]' : 'bg-surface-sunken text-text-secondary'} ${isChanged ? 'border-[1.5px] border-accent' : (isActive ? 'border-none' : 'border border-border-default')}`}>{t}</button>
             )
           })}
         </div>
@@ -1068,7 +943,7 @@ function EditModal({ item, onClose, onSubmit, saving }: EditModalProps) {
           value={sealNo} onChange={e => setSealNo(e.target.value)} inputMode="numeric" />
 
         {/* Action row */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <div className="flex gap-2 mt-4">
           <button onClick={onClose} style={cancelBtnStyle}>취소</button>
           <button
             onClick={handleSave}
@@ -1102,23 +977,14 @@ function ConfirmModal({ title, body, primaryLabel, primaryStyle, onConfirm, onCa
   return (
     <ModalBackdrop onClose={onCancel}>
       <div style={{ ...modalWrapperStyle, maxWidth: 320 }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>{title}</div>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>{body}</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onCancel} style={{
-            flex: 1, height: 42, borderRadius: 'var(--radius-md)',
-            background: 'var(--surface-sunken)', border: '1px solid var(--border-default)',
-            color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}>취소</button>
+        <div className="text-[16px] font-bold text-text-primary mb-2.5">{title}</div>
+        <div className="text-[13px] text-text-secondary leading-[1.6] mb-4">{body}</div>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="flex-1 h-[42px] rounded-md bg-surface-sunken border border-border-default text-text-secondary text-[13px] font-semibold cursor-pointer">취소</button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            style={{
-              flex: 1, height: 42, borderRadius: 'var(--radius-md)', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-              background: primaryStyle === 'acl' ? 'var(--accent)' : 'var(--status-danger)',
-              color: 'var(--accent-fg)', opacity: loading ? 0.7 : 1,
-            }}
+            className={`flex-1 h-[42px] rounded-md border-none text-[13px] font-bold text-[var(--accent-fg)] ${primaryStyle === 'acl' ? 'bg-accent' : 'bg-danger'} ${loading ? 'cursor-not-allowed opacity-70' : 'cursor-pointer opacity-100'}`}
           >
             {loading ? '처리 중…' : primaryLabel}
           </button>
@@ -1133,11 +999,7 @@ function ConfirmModal({ title, body, primaryLabel, primaryStyle, onConfirm, onCa
 function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 40,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--surface-overlay)',
-      }}
+      className="fixed inset-0 z-40 flex items-center justify-center bg-surface-overlay"
       onClick={onClose}
     >
       {children}
@@ -1149,7 +1011,7 @@ function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClo
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+    <div className="text-[12px] font-medium text-text-tertiary mb-1.5">
       {children}
     </div>
   )
