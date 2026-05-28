@@ -59,8 +59,7 @@ function DdayBadge({ dday }: { dday: number }) {
 
   return (
     <div
-      className={`text-caption font-bold leading-none rounded-sm ${colorClass}`}
-      style={{ padding: '2px 8px', flexShrink: 0 }}
+      className={`text-caption font-bold leading-none rounded-sm px-2 py-0.5 shrink-0 ${colorClass}`}
     >
       {label}
     </div>
@@ -88,38 +87,21 @@ function StaffEducationCard({
   return (
     <div
       onClick={canEdit ? onTap : undefined}
-      className={`bg-surface-raised rounded-md ${selected ? 'border-2 border-accent' : 'border border-border-default'}`}
-      style={{
-        padding: 16,
-        minHeight: 80,
-        cursor: canEdit ? 'pointer' : 'default',
-        WebkitTapHighlightColor: 'transparent',
-        userSelect: 'none',
-      }}
+      className={`bg-surface-raised rounded-md p-4 min-h-[80px] select-none [-webkit-tap-highlight-color:transparent] ${canEdit ? 'cursor-pointer' : 'cursor-default'} ${selected ? 'border-2 border-accent' : 'border border-border-default'}`}
     >
       {/* 상단 행: 아바타 + 이름/직책 + 배지 */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+      <div className="flex items-start gap-3">
         {/* 아바타 */}
-        <div
-          className="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full"
-          style={{
-            width: 32,
-            height: 32,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
+        <div className="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full w-[32px] h-[32px] flex items-center justify-center shrink-0">
           {staff.name.charAt(0)}
         </div>
 
         {/* 이름 + 직책 */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="text-body font-bold text-text-primary" style={{ lineHeight: 1.3 }}>
+        <div className="flex-1 min-w-0">
+          <div className="text-body font-bold text-text-primary leading-[1.3]">
             {staff.name}
           </div>
-          <div className="text-label text-text-secondary" style={{ marginTop: 2 }}>
+          <div className="text-label text-text-secondary mt-[2px]">
             {staff.title}
           </div>
         </div>
@@ -131,9 +113,9 @@ function StaffEducationCard({
       </div>
 
       {/* 하단 행: 이수 이력 + 다음 마감 */}
-      <div style={{ marginTop: 10, paddingLeft: 44 }}>
+      <div className="mt-[10px] pl-11">
         {lastRecord ? (
-          <div className="text-caption leading-relaxed text-text-tertiary" style={{ marginBottom: 2 }}>
+          <div className="text-caption leading-relaxed text-text-tertiary mb-[2px]">
             마지막 이수: {fmtDate(lastRecord.completedAt)} ({lastRecord.educationType === 'initial' ? '실무' : '보수'})
           </div>
         ) : null}
@@ -143,7 +125,7 @@ function StaffEducationCard({
             선임일 미등록
           </div>
         ) : deadline ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="flex items-center gap-1.5">
             <span className="text-caption leading-relaxed text-text-secondary">
               다음 마감: {dateToYmd(deadline)}
             </span>
@@ -235,33 +217,23 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {/* 프로필 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div
-          className="bg-surface-sunken text-text-secondary text-body font-bold rounded-full"
-          style={{
-            width: 40,
-            height: 40,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
+      <div className="flex items-center gap-3">
+        <div className="bg-surface-sunken text-text-secondary text-body font-bold rounded-full w-10 h-10 flex items-center justify-center shrink-0">
           {staff.name.charAt(0)}
         </div>
-        <div style={{ flex: 1 }}>
+        <div className="flex-1">
           <div className="text-title font-extrabold text-text-primary">{staff.name}</div>
-          <div className="text-label text-text-secondary" style={{ marginTop: 2 }}>{staff.title}</div>
+          <div className="text-label text-text-secondary mt-[2px]">{staff.title}</div>
         </div>
         {dday !== null && <DdayBadge dday={dday} />}
       </div>
 
       {/* 마감 정보 */}
       {staff.appointedAt && deadline && (
-        <div className="bg-surface-sunken rounded-md" style={{ padding: '12px 16px' }}>
-          <div className="text-caption leading-none text-text-tertiary" style={{ marginBottom: 4 }}>다음 마감</div>
+        <div className="bg-surface-sunken rounded-md px-4 py-3">
+          <div className="text-caption leading-none text-text-tertiary mb-1">다음 마감</div>
           <div className="text-body-sm font-bold text-text-primary">
             {dateToYmd(deadline)} <span className="text-caption leading-none text-text-tertiary">({label})</span>
           </div>
@@ -271,40 +243,28 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
       {/* 이수 이력 */}
       {sorted.length > 0 && (
         <div>
-          <div className="text-label font-bold text-text-secondary" style={{ marginBottom: 8 }}>이수 이력</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="text-label font-bold text-text-secondary mb-2">이수 이력</div>
+          <div className="flex flex-col gap-1.5">
             {sorted.map(rec => (
               <div
                 key={rec.id}
-                className="bg-surface-sunken rounded-sm"
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px',
-                }}
+                className="bg-surface-sunken rounded-sm flex items-center justify-between px-3 py-2"
               >
                 <span className="text-label text-text-secondary">
                   {fmtDate(rec.completedAt)} ({rec.educationType === 'initial' ? '실무' : '보수'})
                 </span>
                 {canEdit && (
-                  <div style={{ display: 'flex', gap: 4 }}>
+                  <div className="flex gap-1">
                     <button
                       onClick={() => editingRecord?.id === rec.id ? handleCancelEdit() : handleStartEdit(rec)}
-                      className="bg-surface-raised border border-border-strong text-label leading-none rounded-sm text-text-secondary"
-                      style={{
-                        padding: '4px 10px',
-                        cursor: 'pointer',
-                      }}
+                      className="bg-surface-raised border border-border-strong text-label leading-none rounded-sm text-text-secondary px-[10px] py-1 cursor-pointer"
                     >
                       {editingRecord?.id === rec.id ? '취소' : '수정'}
                     </button>
                     <button
                       onClick={() => deleteMutation.mutate(rec.id)}
                       disabled={isSubmitting}
-                      className="bg-surface-raised border border-border-strong text-label leading-none rounded-sm text-text-tertiary"
-                      style={{
-                        padding: '4px 10px',
-                        cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                      }}
+                      className={`bg-surface-raised border border-border-strong text-label leading-none rounded-sm text-text-tertiary px-[10px] py-1 ${isSubmitting ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       삭제
                     </button>
@@ -318,48 +278,29 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
 
       {/* 등록/수정 폼 */}
       {canEdit && (
-        <div className="border-t border-border-default" style={{ paddingTop: 16 }}>
-          <div className="text-label font-bold text-text-secondary" style={{ marginBottom: 10 }}>
+        <div className="border-t border-border-default pt-4">
+          <div className="text-label font-bold text-text-secondary mb-[10px]">
             {isEditMode ? '이수일 수정' : '이수 기록 등록'}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-[10px]">
             <div>
-              <div className="text-caption leading-none font-bold text-text-tertiary" style={{ marginBottom: 6 }}>이수일</div>
+              <div className="text-caption leading-none font-bold text-text-tertiary mb-1.5">이수일</div>
               <input
                 type="date"
                 value={completedAt}
                 onChange={e => setCompletedAt(e.target.value)}
-                className="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                  WebkitAppearance: 'none',
-                  appearance: 'none',
-                  minWidth: 0,
-                }}
+                className="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md w-full px-3 py-[10px] outline-none box-border appearance-none [-webkit-appearance:none] min-w-0"
+                style={{ fontFamily: 'inherit' }}
               />
             </div>
             <div>
-              <div className="text-caption leading-none font-bold text-text-tertiary" style={{ marginBottom: 6 }}>교육 유형</div>
+              <div className="text-caption leading-none font-bold text-text-tertiary mb-1.5">교육 유형</div>
               <select
                 value={educationType}
                 onChange={e => setEducationType(e.target.value as 'initial' | 'refresher')}
                 disabled={!hasRecords && !isEditMode}
-                className={`${(!hasRecords && !isEditMode) ? 'bg-surface-sunken text-text-tertiary cursor-not-allowed' : 'bg-surface-sunken text-text-primary cursor-pointer'} border border-border-strong text-label rounded-md`}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                  WebkitAppearance: 'none',
-                  appearance: 'none',
-                  minWidth: 0,
-                  pointerEvents: (!hasRecords && !isEditMode) ? 'none' : 'auto',
-                }}
+                className={`${(!hasRecords && !isEditMode) ? 'bg-surface-sunken text-text-tertiary cursor-not-allowed pointer-events-none' : 'bg-surface-sunken text-text-primary cursor-pointer pointer-events-auto'} border border-border-strong text-label rounded-md w-full px-3 py-[10px] outline-none box-border appearance-none [-webkit-appearance:none] min-w-0`}
+                style={{ fontFamily: 'inherit' }}
               >
                 <option value="initial">실무교육 (최초)</option>
                 <option value="refresher">보수교육</option>
@@ -368,16 +309,7 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || !completedAt}
-              className="text-text-on-accent text-body font-bold rounded-md"
-              style={{
-                width: '100%',
-                height: 44,
-                border: 'none',
-                cursor: isSubmitting ? 'default' : 'pointer',
-                opacity: isSubmitting ? 0.6 : 1,
-                marginTop: 4,
-                background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
-              }}
+              className={`text-text-on-accent text-body font-bold rounded-md w-full h-11 border-0 mt-1 bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] ${isSubmitting ? 'cursor-default opacity-60' : 'cursor-pointer opacity-100'}`}
             >
               {isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '이수일 기록')}
             </button>
@@ -393,23 +325,14 @@ function EducationBottomSheet({ item, canEdit, onClose, onSaved }: EditPanelProp
   return (
     <div
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 50,
-      }}
+      className="fixed inset-0 bg-[rgba(0,0,0,0.6)] flex flex-col justify-end z-50"
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="bg-surface-raised rounded-t-lg"
-        style={{
-          animation: 'slideUp 0.28s ease-out both',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          padding: '16px 16px 32px',
-        }}
+        className="bg-surface-raised rounded-t-lg max-h-[90vh] overflow-y-auto px-4 pt-4 pb-8 [animation:slideUp_0.28s_ease-out_both]"
       >
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-          <div className="bg-border-strong rounded-sm" style={{ width: 32, height: 4 }} />
+        <div className="flex justify-center mb-2">
+          <div className="bg-border-strong rounded-sm w-8 h-1" />
         </div>
         <EducationEditPanel item={item} canEdit={canEdit} onSaved={onSaved} />
       </div>
@@ -462,26 +385,26 @@ export default function EducationPage() {
   function renderGroupedList() {
     if (isLoading) return (
       <>
-        <div className="bg-surface-sunken rounded-md" style={{ height: 88, animation: 'blink 2s ease-in-out infinite' }} />
-        <div className="bg-surface-sunken rounded-md" style={{ height: 88, animation: 'blink 2s ease-in-out infinite' }} />
-        <div className="bg-surface-sunken rounded-md" style={{ height: 88, animation: 'blink 2s ease-in-out infinite' }} />
-        <div className="bg-surface-sunken rounded-md" style={{ height: 88, animation: 'blink 2s ease-in-out infinite' }} />
+        <div className="bg-surface-sunken rounded-md h-[88px] [animation:blink_2s_ease-in-out_infinite]" />
+        <div className="bg-surface-sunken rounded-md h-[88px] [animation:blink_2s_ease-in-out_infinite]" />
+        <div className="bg-surface-sunken rounded-md h-[88px] [animation:blink_2s_ease-in-out_infinite]" />
+        <div className="bg-surface-sunken rounded-md h-[88px] [animation:blink_2s_ease-in-out_infinite]" />
       </>
     )
     if (isError) return (
-      <div className="text-body-sm text-danger" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: 24 }}>
+      <div className="text-body-sm text-danger flex items-center justify-center flex-1 text-center p-6">
         교육 현황을 불러오지 못했습니다. 화면을 당겨서 새로고침하세요.
       </div>
     )
     if (!data || data.length === 0) return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: 24, gap: 8 }}>
+      <div className="flex flex-col items-center justify-center flex-1 text-center p-6 gap-2">
         <div className="text-body font-bold text-text-secondary">교육 이력 없음</div>
         <div className="text-body-sm text-text-tertiary">이수일을 기록하면 다음 교육 마감일이 자동으로 계산됩니다.</div>
       </div>
     )
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="flex flex-col gap-3">
         {adminList.length > 0 && (
           <>
             <div style={sectionLabelStyle}>소방안전관리자</div>
@@ -501,16 +424,16 @@ export default function EducationPage() {
   // ── 데스크톱: 2분할 레이아웃 ──
   if (isDesktop) {
     return (
-      <div className="bg-surface-page" style={{ display: 'flex', height: '100%' }}>
+      <div className="bg-surface-page flex h-full">
         {/* 좌측: 카드 목록 — 페이지 제목은 App.tsx 헤더에서 표시 */}
-        <div className="border-r border-border-default" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <div className="border-r border-border-default flex-1 flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto p-6">
             {renderGroupedList()}
           </div>
         </div>
 
         {/* 우측: 상세 패널 */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+        <div className="flex-1 overflow-y-auto px-[32px] py-6">
           {selectedItem ? (
             <EducationEditPanel
               key={selectedItem.staff.id}
@@ -519,7 +442,7 @@ export default function EducationPage() {
               onSaved={() => {}}
             />
           ) : (
-            <div className="text-body-sm text-text-tertiary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <div className="text-body-sm text-text-tertiary flex items-center justify-center h-full">
               좌측에서 직원을 선택하세요
             </div>
           )}
@@ -530,37 +453,24 @@ export default function EducationPage() {
 
   // ── 모바일 ──
   return (
-    <div className="bg-surface-page" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="bg-surface-page flex flex-col h-full">
 
       {/* 모바일 헤더 */}
-      <div
-        className="bg-surface-raised border-b border-border-default"
-        style={{ height: 48, display: 'flex', alignItems: 'center', flexShrink: 0 }}
-      >
+      <div className="bg-surface-raised border-b border-border-default h-12 flex items-center shrink-0">
         <button
           onClick={() => navigate(-1)}
-          className="text-text-secondary"
-          style={{
-            width: 44,
-            height: 44,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="text-text-secondary w-11 h-11 bg-transparent border-0 cursor-pointer flex items-center justify-center"
         >
           <ChevronLeft size={20} />
         </button>
-        <span className="text-body font-bold text-text-primary" style={{ flex: 1, textAlign: 'center' }}>
+        <span className="text-body font-bold text-text-primary flex-1 text-center">
           보수교육
         </span>
-        <div style={{ width: 44 }} />
+        <div className="w-11" />
       </div>
 
       {/* 스크롤 영역 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      <div className="flex-1 overflow-y-auto p-4">
         {renderGroupedList()}
       </div>
 

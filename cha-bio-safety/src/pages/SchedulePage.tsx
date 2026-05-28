@@ -307,24 +307,14 @@ export default function SchedulePage() {
               <button
                 key={idx}
                 onClick={() => setSelDate(date)}
-                className="flex flex-col items-center cursor-pointer box-border py-1.5 gap-0.5"
-                style={{
-                  borderRadius: isSel ? 8 : 0,
-                  background: isSel ? 'rgba(59,130,246,0.15)' : 'transparent',
-                  border: isSel ? '2px solid #3b82f6' : '2px solid transparent',
-                }}
+                className={`flex flex-col items-center cursor-pointer box-border py-1.5 gap-0.5 border-2 ${isSel ? 'rounded-sm bg-[rgba(59,130,246,0.15)] border-[#3b82f6]' : 'rounded-none bg-transparent border-transparent'}`}
               >
                 <span
-                  className={`text-caption flex items-center justify-center rounded-full leading-none ${
+                  className={`text-caption flex items-center justify-center rounded-full leading-none w-6 h-6 ${
                     isToday || isSel ? 'font-bold' : 'font-normal'
                   } ${
-                    isSel ? 'text-accent' : isToday ? 'text-white' : isRed ? 'text-danger' : dow === 6 ? 'text-accent' : 'text-text-primary'
+                    isSel ? 'text-accent bg-transparent' : isToday ? 'text-white bg-accent' : isRed ? 'text-danger bg-transparent' : dow === 6 ? 'text-accent bg-transparent' : 'text-text-primary bg-transparent'
                   }`}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    background: isToday && !isSel ? 'var(--accent)' : 'transparent',
-                  }}
                 >
                   {parseInt(date.slice(8))}
                 </span>
@@ -373,27 +363,20 @@ export default function SchedulePage() {
     return (
       <div
         key={item.id}
-        className="bg-surface-raised border border-border-default rounded-md"
-        style={{
-          padding: '12px 14px',
-          ...(grouped ? { height: 130, display: 'flex', flexDirection: 'column' as const } : {}),
-        }}
+        className={`bg-surface-raised border border-border-default rounded-md px-[14px] py-3 ${grouped ? 'h-[130px] flex flex-col' : ''}`}
       >
         {/* row1 — chip row */}
         <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
           {!grouped && (
             <span
-              className="text-caption font-semibold rounded-sm"
-              style={{ color: cat?.color, background: `${cat?.color}22`, padding: '2px 8px', lineHeight: 1.4 }}
+              className="text-caption font-semibold rounded-sm px-2 py-0.5 leading-[1.4]"
+              style={{ color: cat?.color, background: `${cat?.color}22` }}
             >
               {cat?.label}
             </span>
           )}
           {item.inspectionCategory && (
-            <span
-              className="text-caption font-medium rounded-sm text-info bg-info-bg"
-              style={{ padding: '2px 8px', lineHeight: 1.4 }}
-            >
+            <span className="text-caption font-medium rounded-sm text-info bg-info-bg px-2 py-0.5 leading-[1.4]">
               {item.inspectionCategory}
             </span>
           )}
@@ -401,60 +384,45 @@ export default function SchedulePage() {
         </div>
 
         {/* 제목 */}
-        <div
-          className="text-body font-semibold text-text-primary"
-          style={{ marginBottom: (item.memo || item.time || multiDayText) ? 4 : 0 }}
-        >
+        <div className={`text-body font-semibold text-text-primary ${(item.memo || item.time || multiDayText) ? 'mb-1' : 'mb-0'}`}>
           {item.title}
         </div>
 
         {/* 메모 + 시간/멀티데이 */}
-        <div style={{ flex: grouped ? 1 : undefined, minHeight: 0, overflow: 'hidden' }}>
+        <div className={`min-h-0 overflow-hidden ${grouped ? 'flex-1' : ''}`}>
           {item.memo && (
             <div
-              className="text-caption text-text-secondary"
-              style={{
-                whiteSpace: 'pre-line',
-                lineHeight: 1.5,
-                display: '-webkit-box',
-                WebkitLineClamp: grouped ? 2 : 3,
-                WebkitBoxOrient: 'vertical' as any,
-                overflow: 'hidden',
-                marginBottom: (item.time || multiDayText) ? 4 : 0,
-              }}
+              className={`text-caption text-text-secondary whitespace-pre-line leading-[1.5] [display:-webkit-box] [-webkit-box-orient:vertical] overflow-hidden ${grouped ? '[-webkit-line-clamp:2]' : '[-webkit-line-clamp:3]'} ${(item.time || multiDayText) ? 'mb-1' : 'mb-0'}`}
             >
               {item.memo}
             </div>
           )}
           {multiDayText ? (
-            <div className="text-caption text-text-tertiary" style={{ lineHeight: 1.4 }}>{multiDayText}</div>
+            <div className="text-caption text-text-tertiary leading-[1.4]">{multiDayText}</div>
           ) : item.time ? (
-            <div className="text-caption text-text-tertiary" style={{ lineHeight: 1.4 }}>{item.time}</div>
+            <div className="text-caption text-text-tertiary leading-[1.4]">{item.time}</div>
           ) : null}
         </div>
 
         {/* 액션 row */}
-        <div className="flex gap-1.5" style={{ marginTop: grouped ? 'auto' : 8, paddingTop: grouped ? 4 : 0 }}>
+        <div className={`flex gap-1.5 ${grouped ? 'mt-auto pt-1' : 'mt-2 pt-0'}`}>
           {item.status !== 'done' && (
             <button
               onClick={() => handleStatus(item, 'done')}
-              className="text-caption font-semibold rounded-sm border border-safe-bar bg-safe-bg text-safe cursor-pointer"
-              style={{ padding: '4px 10px', lineHeight: 1.4 }}
+              className="text-caption font-semibold rounded-sm border border-safe-bar bg-safe-bg text-safe cursor-pointer px-[10px] py-1 leading-[1.4]"
             >
               완료
             </button>
           )}
           <button
             onClick={() => setEditItem(item)}
-            className="text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-secondary cursor-pointer"
-            style={{ padding: '4px 10px', lineHeight: 1.4 }}
+            className="text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-secondary cursor-pointer px-[10px] py-1 leading-[1.4]"
           >
             수정
           </button>
           <button
             onClick={() => handleDelete(item)}
-            className="text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-tertiary cursor-pointer"
-            style={{ padding: '4px 10px', lineHeight: 1.4 }}
+            className="text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-tertiary cursor-pointer px-[10px] py-1 leading-[1.4]"
           >
             삭제
           </button>
@@ -492,8 +460,7 @@ export default function SchedulePage() {
           <div className="text-body text-text-tertiary mb-3">등록된 일정이 없습니다</div>
           <button
             onClick={() => setShowAdd(true)}
-            className="text-label font-semibold rounded-sm border border-border-strong bg-surface-sunken text-text-secondary cursor-pointer"
-            style={{ padding: '10px 20px' }}
+            className="text-label font-semibold rounded-sm border border-border-strong bg-surface-sunken text-text-secondary cursor-pointer px-5 py-[10px]"
           >
             + 일정 추가
           </button>
@@ -512,14 +479,10 @@ export default function SchedulePage() {
             return Object.entries(groups).map(([catKey, items]) => {
               const cat = catInfo(catKey)
               return (
-                <div key={catKey} style={{ flex: '0 0 auto', width: 300, minWidth: 0 }}>
+                <div key={catKey} className="flex-none w-[300px] min-w-0">
                   <div
-                    className="text-caption font-bold mb-1.5"
-                    style={{
-                      color: cat?.color,
-                      padding: '3px 0',
-                      borderBottom: `2px solid ${cat?.color}44`,
-                    }}
+                    className="text-caption font-bold mb-1.5 py-[3px] border-b-2"
+                    style={{ color: cat?.color, borderBottomColor: `${cat?.color}44` }}
                   >
                     {cat?.label} ({items.length})
                   </div>
@@ -642,8 +605,7 @@ export default function SchedulePage() {
       <button
         onClick={() => setShowAdd(true)}
         aria-label="일정 추가"
-        className="fixed right-4 bottom-4 w-14 h-14 rounded-pill flex items-center justify-center bg-accent text-text-on-accent cursor-pointer z-20"
-        style={{ boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}
+        className="fixed right-4 bottom-4 w-14 h-14 rounded-pill flex items-center justify-center bg-accent text-text-on-accent cursor-pointer z-20 shadow-[0_4px_12px_rgba(59,130,246,0.4)]"
       >
         <Plus size={24} strokeWidth={2.5} />
       </button>
@@ -691,18 +653,18 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
   const headCell: React.CSSProperties = { ...cellStyle, fontWeight: 700, background: 'var(--surface-sunken)', color: 'var(--text-primary)' }
 
   return (
-    <div style={{ width: '100%', padding: '12px 20px 8px', background: 'var(--surface-raised)' }}>
+    <div className="w-full px-5 pt-3 pb-2 bg-surface-raised">
       {/* 타이틀 */}
-      <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>
+      <div className="text-center text-body-sm font-bold mb-2 text-text-primary">
         {mo}월 중요업무추진계획(방재)
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+      <table className="w-full table-fixed [border-collapse:collapse]">
         <thead>
           {/* 날짜 행 */}
           <tr>
-            <th style={{ ...headCell, width: '2%' }}></th>
-            <th style={{ ...headCell, width: '20%' }}>시행일자</th>
+            <th className="w-[2%]" style={headCell}></th>
+            <th className="w-[20%]" style={headCell}>시행일자</th>
             {Array.from({ length: daysInMonth }, (_, i) => {
               const dow = (firstDow + i) % 7
               const dateStr = `${curMonth}-${String(i + 1).padStart(2, '0')}`
@@ -721,11 +683,11 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
                 </th>
               )
             })}
-            <th style={{ ...headCell, width: '6%' }}>비고</th>
+            <th className="w-[6%]" style={headCell}>비고</th>
           </tr>
           {/* 요일 행 */}
           <tr>
-            <th style={{ ...headCell, width: '2%' }}>NO.</th>
+            <th className="w-[2%]" style={headCell}>NO.</th>
             <th style={{ ...headCell, textAlign: 'left', paddingLeft: 6 }}>내 &nbsp; 용</th>
             {Array.from({ length: daysInMonth }, (_, i) => {
               const dow = (firstDow + i) % 7
@@ -916,23 +878,13 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[300] flex flex-col"
-      style={{
-        background:'rgba(0,0,0,0.55)',
-        justifyContent: isDesktop ? 'center' : 'flex-end',
-        alignItems:    isDesktop ? 'center' : undefined,
-      }}>
+      className={`fixed inset-0 z-[300] flex flex-col bg-[rgba(0,0,0,0.55)] ${isDesktop ? 'justify-center items-center' : 'justify-end'}`}
+    >
       <div onClick={e => e.stopPropagation()}
-        className="bg-surface-raised overflow-y-auto"
-        style={{
-          borderRadius: isDesktop ? 16 : '20px 20px 0 0',
-          padding:      isDesktop ? '24px 28px 28px' : '20px 16px 40px',
-          maxHeight:    '90dvh',
-          ...(isDesktop ? { width: 480, maxWidth: '90vw' } : {}),
-        }}>
+        className={`bg-surface-raised overflow-y-auto max-h-[90dvh] ${isDesktop ? 'rounded-lg pt-6 px-[28px] pb-[28px] w-[480px] max-w-[90vw]' : 'rounded-t-[20px] pt-5 px-4 pb-10'}`}>
 
         {/* 헤더 */}
-        <div className="flex items-center justify-between" style={{ marginBottom:18 }}>
+        <div className="flex items-center justify-between mb-[18px]">
           <span className="text-title font-semibold text-text-primary">일정 추가</span>
           <button onClick={onClose}
             aria-label="닫기"
@@ -941,19 +893,20 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
           </button>
         </div>
 
-        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+        <div className="flex flex-col gap-4">
 
           {/* 1. 구분 — 1행 5열 */}
           <div>
             <label style={lbl}>구분</label>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:5 }}>
+            <div className="grid grid-cols-5 gap-[5px]">
               {SCHED_CATEGORIES.map(c => (
                 <button key={c.value} onClick={() => handleCat(c.value)}
-                  style={{ padding:'10px 0', borderRadius:8,
-                    border:`1px solid ${cat===c.value?c.color:'var(--border-default)'}`,
-                    background: cat===c.value?`${c.color}22`:'var(--surface-sunken)',
-                    color: cat===c.value?c.color:'var(--text-secondary)',
-                    fontSize:12, fontWeight:700, lineHeight:1, cursor:'pointer' }}>
+                  className="py-[10px] rounded-sm text-caption font-bold leading-none cursor-pointer border"
+                  style={{
+                    borderColor: cat===c.value ? c.color : 'var(--border-default)',
+                    background: cat===c.value ? `${c.color}22` : 'var(--surface-sunken)',
+                    color: cat===c.value ? c.color : 'var(--text-secondary)',
+                  }}>
                   {c.label}
                 </button>
               ))}
@@ -994,7 +947,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="일정 제목" style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span className="font-normal text-text-tertiary">(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -1007,13 +960,15 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
             <>
               <div>
                 <label style={lbl}>제목</label>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+                <div className="grid grid-cols-3 gap-1.5">
                   {ELEV_SUBCATS.map(v => (
                     <button key={v} onClick={() => handleElevSub(v)}
-                      style={{ padding:'9px 0', borderRadius:9, fontSize:12, fontWeight:700, cursor:'pointer',
-                        border:`1px solid ${elevSub===v?'#f97316':'var(--border-default)'}`,
-                        background: elevSub===v?'rgba(249,115,22,0.15)':'var(--surface-sunken)',
-                        color: elevSub===v?'#f97316':'var(--text-secondary)' }}>
+                      className="py-[9px] rounded-[9px] text-caption font-bold cursor-pointer border"
+                      style={{
+                        borderColor: elevSub===v ? '#f97316' : 'var(--border-default)',
+                        background: elevSub===v ? 'rgba(249,115,22,0.15)' : 'var(--surface-sunken)',
+                        color: elevSub===v ? '#f97316' : 'var(--text-secondary)',
+                      }}>
                       {v}
                     </button>
                   ))}
@@ -1024,7 +979,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={elevAgency} onChange={e=>setElevAgency(e.target.value)} style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span className="font-normal text-text-tertiary">(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -1037,13 +992,15 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
             <>
               <div>
                 <label style={lbl}>제목</label>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
+                <div className="grid grid-cols-4 gap-1.5">
                   {FIRE_SUBCATS.map(v => (
                     <button key={v} onClick={() => handleFireSub(v)}
-                      style={{ padding:'8px 4px', borderRadius:9, fontSize:12, fontWeight:700, cursor:'pointer', lineHeight:1.4,
-                        border:`1px solid ${fireSub===v?'#ef4444':'var(--border-default)'}`,
-                        background: fireSub===v?'rgba(239,68,68,0.13)':'var(--surface-sunken)',
-                        color: fireSub===v?'#ef4444':'var(--text-secondary)' }}>
+                      className="px-1 py-2 rounded-[9px] text-caption font-bold cursor-pointer leading-[1.4] border"
+                      style={{
+                        borderColor: fireSub===v ? '#ef4444' : 'var(--border-default)',
+                        background: fireSub===v ? 'rgba(239,68,68,0.13)' : 'var(--surface-sunken)',
+                        color: fireSub===v ? '#ef4444' : 'var(--text-secondary)',
+                      }}>
                       {v}
                     </button>
                   ))}
@@ -1054,7 +1011,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={fireAgency} onChange={e=>setFireAgency(e.target.value)} style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span className="font-normal text-text-tertiary">(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -1063,60 +1020,53 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
           )}
 
           {/* 시작일 / 시작시간 */}
-          <div style={{ display:'flex', gap:10 }}>
-            <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
+          <div className="flex gap-[10px]">
+            <div className="flex-[0_0_calc(50%_-_5px)] min-w-0 overflow-hidden">
               <label style={lbl}>시작일</label>
               <input type="date" value={date} onChange={e=>{ const v=e.target.value; setDate(v); onDateChange(v); if(!endDate||endDate<v) setEndDate(v) }}
-                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+                className="block [-webkit-appearance:none] h-11" style={inp} />
             </div>
-            <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>시작시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+            <div className="flex-[0_0_calc(50%_-_5px)] min-w-0 overflow-hidden">
+              <label style={lbl}>시작시간 <span className="font-normal text-text-tertiary">(선택)</span></label>
               <input type="time" value={time} onChange={e=>setTime(e.target.value)}
-                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+                className="block [-webkit-appearance:none] h-11" style={inp} />
             </div>
           </div>
 
           {/* 종료일 / 종료시간 */}
-          <div style={{ display:'flex', gap:10 }}>
-            <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>종료일 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+          <div className="flex gap-[10px]">
+            <div className="flex-[0_0_calc(50%_-_5px)] min-w-0 overflow-hidden">
+              <label style={lbl}>종료일 <span className="font-normal text-text-tertiary">(선택)</span></label>
               <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} min={date}
-                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+                className="block [-webkit-appearance:none] h-11" style={inp} />
             </div>
-            <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>종료시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+            <div className="flex-[0_0_calc(50%_-_5px)] min-w-0 overflow-hidden">
+              <label style={lbl}>종료시간 <span className="font-normal text-text-tertiary">(선택)</span></label>
               <input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}
-                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+                className="block [-webkit-appearance:none] h-11" style={inp} />
             </div>
           </div>
 
           {/* N일 미리보기 — 항상 단일 항목 + end_date 로 저장, 주말·공휴일은 표시에서만 제외 */}
           {rangeDays > 1 && (
-            <div style={{ fontSize:12, color:'var(--accent)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
+            <div className="text-caption text-accent font-semibold text-center -mt-2">
               {skippedCount > 0
                 ? `${rangeDays}일 범위로 1건 추가됩니다 (주말·공휴일 ${skippedCount}일은 표시에서 제외)`
                 : `${rangeDays}일 범위로 1건 추가됩니다`}
             </div>
           )}
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 3fr 1fr', gap:6, marginTop:4 }}>
+          <div className="grid grid-cols-[1fr_3fr_1fr] gap-1.5 mt-1">
             <button onClick={() => shiftDate(-1)} disabled={saving}
-              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--border-strong)',
-                background:'var(--surface-sunken)', color:'var(--text-secondary)', fontSize:18, lineHeight:1,
-                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              className="px-0 py-[14px] rounded-md border border-border-strong bg-surface-sunken text-text-secondary text-title leading-none cursor-pointer flex items-center justify-center">
               ‹
             </button>
             <button onClick={handleSave} disabled={saving}
-              style={{ padding:'14px', borderRadius:12, border:'none',
-                background:'var(--accent)',
-                color:'#fff', fontSize:16, fontWeight:700, cursor:'pointer',
-                opacity:saving?0.6:1 }}>
+              className={`p-[14px] rounded-md border-0 bg-accent text-white text-body font-bold cursor-pointer ${saving ? 'opacity-60' : 'opacity-100'}`}>
               {saving ? '저장 중...' : '저장'}
             </button>
             <button onClick={() => shiftDate(1)} disabled={saving}
-              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--border-strong)',
-                background:'var(--surface-sunken)', color:'var(--text-secondary)', fontSize:18, lineHeight:1,
-                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              className="px-0 py-[14px] rounded-md border border-border-strong bg-surface-sunken text-text-secondary text-title leading-none cursor-pointer flex items-center justify-center">
               ›
             </button>
           </div>
@@ -1153,19 +1103,12 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
   return (
     <div
       onClick={onClose}
-      className={`fixed inset-0 z-[300] flex flex-col ${isDesktop ? 'justify-center items-center' : 'justify-end'}`}
-      style={{ background:'rgba(0,0,0,0.55)' }}>
+      className={`fixed inset-0 z-[300] flex flex-col bg-[rgba(0,0,0,0.55)] ${isDesktop ? 'justify-center items-center' : 'justify-end'}`}>
       <div onClick={e => e.stopPropagation()}
-        className="bg-surface-raised overflow-y-auto"
-        style={{
-          borderRadius: isDesktop ? 16 : '20px 20px 0 0',
-          padding:      isDesktop ? '24px 28px 28px' : '20px 16px 40px',
-          maxHeight:    '90dvh',
-          ...(isDesktop ? { width: 480, maxWidth: '90vw' } : {}),
-        }}>
+        className={`bg-surface-raised overflow-y-auto max-h-[90dvh] ${isDesktop ? 'rounded-lg pt-6 px-[28px] pb-[28px] w-[480px] max-w-[90vw]' : 'rounded-t-[20px] pt-5 px-4 pb-10'}`}>
 
         {/* 헤더 */}
-        <div className="flex items-center justify-between" style={{ marginBottom:18 }}>
+        <div className="flex items-center justify-between mb-[18px]">
           <span className="text-title font-semibold text-text-primary">일정 수정</span>
           <button onClick={onClose}
             aria-label="닫기"
@@ -1174,7 +1117,7 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
           </button>
         </div>
 
-        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+        <div className="flex flex-col gap-4">
 
           {/* 카테고리 lock row (W5 OQ #1 LOCKED b verbatim) */}
           {(() => {
@@ -1198,26 +1141,25 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
               <div className="text-caption text-danger-bar mt-1.5 leading-none font-semibold">제목을 입력하세요</div>
             )}
           </div>
-          <div style={{ display:'flex', gap:10 }}>
-            <div style={{ flex:1 }}>
+          <div className="flex gap-[10px]">
+            <div className="flex-1">
               <label style={lbl}>날짜</label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+                className="block [-webkit-appearance:none] h-11" style={inp} />
             </div>
-            <div style={{ flex:1 }}>
-              <label style={lbl}>시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+            <div className="flex-1">
+              <label style={lbl}>시간 <span className="font-normal text-text-tertiary">(선택)</span></label>
               <input type="time" value={time} onChange={e => setTime(e.target.value)}
-                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+                className="block [-webkit-appearance:none] h-11" style={inp} />
             </div>
           </div>
           <div>
-            <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+            <label style={lbl}>내용 <span className="font-normal text-text-tertiary">(선택)</span></label>
             <textarea value={memo} onChange={e => setMemo(e.target.value)}
               rows={4} style={{ ...inp, resize:'none', lineHeight:1.6 }} />
           </div>
           <button onClick={handleSave} disabled={saving}
-            className="bg-accent text-text-on-accent text-body font-bold rounded-md border-0 cursor-pointer"
-            style={{ padding:'14px', opacity: saving ? 0.6 : 1 }}>
+            className={`bg-accent text-text-on-accent text-body font-bold rounded-md border-0 cursor-pointer p-[14px] ${saving ? 'opacity-60' : 'opacity-100'}`}>
             {saving ? '저장 중...' : '수정 저장'}
           </button>
         </div>
