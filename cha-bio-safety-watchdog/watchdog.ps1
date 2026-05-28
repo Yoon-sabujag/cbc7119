@@ -41,8 +41,8 @@ $global:GROUPS = @(
     @{ name="3. 점검 및 조치"; items=@(
         @{ key="remed";         label="일상점검조치";       pattern='^조치보고서_.+_(\d{4})(\d{2})\d{2}\.html$';                      yearG=1; monthG=2 }
         @{ key="legal";         label="소방점검조치";       pattern='^지적사항_.+\.zip$';                                             yearG=0; monthG=0 }
-        @{ key="legal_report";  label="결과내역서";         pattern='^(\d{4})\.(\d{2})\)차바이오컴플렉스 (?:종합점검|작동기능점검) 결과내역서\.pdf$';                yearG=1; monthG=2 }
-        @{ key="legal_ppt";     label="지적조치사진";       pattern='^(\d{4})\.(\d{2})\)차바이오컴플렉스 (?:종합점검|작동기능점검) 지적사항 조치 작업사진\.pptx$'; yearG=1; monthG=2 }
+        @{ key="legal_report";  label="결과내역서";         parent="소방점검조치"; pattern='^(\d{4})\.(\d{2})\)차바이오컴플렉스 (?:종합점검|작동기능점검) 결과내역서\.pdf$';                yearG=1; monthG=2 }
+        @{ key="legal_ppt";     label="지적조치사진";       parent="소방점검조치"; pattern='^(\d{4})\.(\d{2})\)차바이오컴플렉스 (?:종합점검|작동기능점검) 지적사항 조치 작업사진\.pptx$'; yearG=1; monthG=2 }
     )}
     @{ name="4. 소방설비점검일지"; items=@(
         @{ key="div_early";     label="유수검지장치(월초)";  pattern='^(\d{4})년도_DIV점검표_월초\.xlsx$';                              yearG=1; monthG=0 }
@@ -81,11 +81,14 @@ $global:GROUPS = @(
 $global:ALL_PATTERNS = @()
 foreach ($g in $global:GROUPS) { foreach ($item in $g.items) { $global:ALL_PATTERNS += $item } }
 
-# Build lookup: key → (groupName, label)
+# Build lookup: key → (groupName, label, parent?)
+# parent: 같은 그룹 안에서 한 단계 더 들어가는 서브폴더 (예: 소방점검조치/결과내역서/...)
 $global:KEY_INFO = @{}
 foreach ($g in $global:GROUPS) {
     foreach ($item in $g.items) {
-        $global:KEY_INFO[$item.key] = @{ group=$g.name; label=$item.label }
+        $info = @{ group=$g.name; label=$item.label }
+        if ($item.ContainsKey('parent')) { $info.parent = $item.parent }
+        $global:KEY_INFO[$item.key] = $info
     }
 }
 
@@ -192,7 +195,12 @@ function Get-DestFolder($cfg, $patKey, $year, $month) {
         $root = $cfg["root_folder"]
         if (-not $root -or $root -eq "") { return $null }
         $info = $global:KEY_INFO[$patKey]
-        $dest = Join-Path $root (Join-Path $info.group (Join-Path $info.label (Join-Path $yearFolder $monthFolder)))
+        # parent 있으면 group/parent/label 4단 깊이, 없으면 기존대로 group/label 3단
+        if ($info.ContainsKey('parent') -and $info.parent) {
+            $dest = Join-Path $root (Join-Path $info.group (Join-Path $info.parent (Join-Path $info.label (Join-Path $yearFolder $monthFolder))))
+        } else {
+            $dest = Join-Path $root (Join-Path $info.group (Join-Path $info.label (Join-Path $yearFolder $monthFolder)))
+        }
     } else {
         if (-not $cfg.ContainsKey($patKey) -or $cfg[$patKey] -eq "") { return $null }
         $dest = Join-Path $cfg[$patKey] (Join-Path $yearFolder $monthFolder)
