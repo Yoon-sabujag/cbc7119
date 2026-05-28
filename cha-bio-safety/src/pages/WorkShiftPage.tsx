@@ -83,79 +83,60 @@ export default function WorkShiftPage() {
   }
 
   return (
-    <div className="bg-surface-page" style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div className="bg-surface-page h-full flex flex-col overflow-hidden">
 
       {/* 헤더 — 데스크톱: 표준 (height 54, padding '0 20px', 뒤로가기 X). 모바일: 기존 */}
       <header
-        className="bg-surface-raised border-b border-border-default flex items-center"
-        style={{
-          flexShrink:0,
-          ...(isDesktop
-            ? { height: 54, padding: '0 20px', gap: 10 }
-            : { padding: '8px 12px 9px', gap: 8 }),
-        }}
+        className={`bg-surface-raised border-b border-border-default flex items-center shrink-0 ${isDesktop ? 'h-[54px] px-5 gap-2.5' : 'pt-2 px-3 pb-[9px] gap-2'}`}
       >
         {!isDesktop && (
           <button
             onClick={() => navigate(-1)}
-            className="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center"
-            style={{ cursor:'pointer' }}
+            className="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center cursor-pointer"
           >
             <ChevronLeft size={15} className="text-text-secondary" />
           </button>
         )}
-        <span className="text-body font-bold text-text-primary" style={{ flex:1 }}>월간 출근부</span>
+        <span className="text-body font-bold text-text-primary flex-1">월간 출근부</span>
         <button
           onClick={handleExcel}
           disabled={dlLoading}
-          className={`bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0 ${dlLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-          style={{ height:34, padding:'0 14px' }}
+          className={`bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0 h-[34px] px-[14px] ${dlLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
         >
           {dlLoading ? '생성중...' : '엑셀 저장'}
         </button>
       </header>
 
       {/* 년/월 선택 */}
-      <div
-        className="bg-surface-raised border-b border-border-default flex"
-        style={{ flexShrink:0, gap:8, padding:'10px 12px' }}
-      >
+      <div className="bg-surface-raised border-b border-border-default flex shrink-0 gap-2 px-3 py-[10px]">
         <select
           value={year}
           onChange={e => setYear(Number(e.target.value))}
-          className="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]"
-          style={{ padding:'7px 10px', outline:'none' }}
+          className="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px] px-2.5 py-[7px] outline-none"
         >
           {[2025,2026,2027].map(y => <option key={y} value={y}>{y}년</option>)}
         </select>
         <select
           value={month}
           onChange={e => setMonth(Number(e.target.value))}
-          className="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]"
-          style={{ padding:'7px 10px', outline:'none' }}
+          className="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px] px-2.5 py-[7px] outline-none"
         >
           {Array.from({length:12},(_,i) => i+1).map(m => <option key={m} value={m}>{m}월</option>)}
         </select>
       </div>
 
       {/* 표 영역 */}
-      <div style={{
-        flex:1, overflow:'auto',
-        display:'flex', flexDirection:'column',
-        alignItems:'center',
-        justifyContent: 'flex-start',
-        paddingTop: isDesktop ? '12vh' : 0,
-      }}>
-        <div style={{ display:'inline-flex', flexDirection:'column', padding: isDesktop ? '0 32px' : '16px 24px' }}>
-          <div style={{ display:'flex' }}>
+      <div className={`flex-1 overflow-auto flex flex-col items-center justify-start ${isDesktop ? 'pt-[12vh]' : 'pt-0'}`}>
+        <div className={`inline-flex flex-col ${isDesktop ? 'px-[32px]' : 'px-6 py-4'}`}>
+          <div className="flex">
             {/* 이름 열 (고정) */}
-            <div style={{ flexShrink:0 }}>
-              <table style={{ borderCollapse:'collapse' }}>
+            <div className="shrink-0">
+              <table className="border-collapse">
                 <thead>
                   <tr>
                     <th
-                      className="bg-surface-sunken border border-border-default text-text-secondary text-caption font-bold leading-none"
-                      style={{ height:HDR_H, width:82, padding:'0 10px', whiteSpace:'nowrap' }}
+                      className="bg-surface-sunken border border-border-default text-text-secondary text-caption font-bold leading-none w-[82px] px-2.5 whitespace-nowrap"
+                      style={{ height:HDR_H }}
                     >
                       이름
                     </th>
@@ -165,11 +146,11 @@ export default function WorkShiftPage() {
                   {staffRows.map(s => (
                     <tr key={s.id}>
                       <td
-                        className="bg-surface-raised border border-border-default"
-                        style={{ height:ROW_H, padding:'0 10px', whiteSpace:'nowrap' }}
+                        className="bg-surface-raised border border-border-default px-2.5 whitespace-nowrap"
+                        style={{ height:ROW_H }}
                       >
                         <div className="text-body-sm font-bold text-text-primary">{s.name}</div>
-                        <div className="text-caption leading-none text-text-tertiary" style={{ marginTop:2 }}>{s.title}</div>
+                        <div className="text-caption leading-none text-text-tertiary mt-[2px]">{s.title}</div>
                       </td>
                     </tr>
                   ))}
@@ -178,8 +159,8 @@ export default function WorkShiftPage() {
             </div>
 
             {/* 날짜 열 (가로 스크롤) */}
-            <div ref={scrollRef} style={{ flex:1, overflowX:'auto' }}>
-              <table style={{ borderCollapse:'collapse' }}>
+            <div ref={scrollRef} className="flex-1 overflow-x-auto">
+              <table className="border-collapse">
                 <thead>
                   <tr>
                     {Array.from({length:daysInMonth},(_,i) => {
@@ -191,15 +172,11 @@ export default function WorkShiftPage() {
                         <th
                           key={d}
                           ref={tdy ? todayRef : undefined}
-                          className={`${tdy ? 'border-2 border-accent' : 'border border-border-default bg-surface-sunken'} ${red ? 'text-[#ef4444]' : 'text-text-secondary'}`}
-                          style={{
-                            height: HDR_H, minWidth: 40, padding: '4px 2px',
-                            textAlign:'center',
-                            ...(tdy ? { background: 'rgba(59,130,246,0.15)' } : {}),
-                          }}
+                          className={`${tdy ? 'border-2 border-accent bg-[rgba(59,130,246,0.15)]' : 'border border-border-default bg-surface-sunken'} ${red ? 'text-[#ef4444]' : 'text-text-secondary'} min-w-10 px-[2px] py-1 text-center`}
+                          style={{ height: HDR_H }}
                         >
                           <div className="text-label font-bold leading-none">{d}</div>
-                          <div className="text-caption leading-none" style={{ marginTop:2 }}>{DOW_KO[dow]}</div>
+                          <div className="text-caption leading-none mt-[2px]">{DOW_KO[dow]}</div>
                         </th>
                       )
                     })}
@@ -214,10 +191,9 @@ export default function WorkShiftPage() {
                         return (
                           <td
                             key={i}
-                            className={`${tdy ? 'border-2 border-accent' : 'border border-border-default'} text-body font-bold`}
+                            className={`${tdy ? 'border-2 border-accent' : 'border border-border-default'} text-body font-bold min-w-10 px-[2px] text-center`}
                             style={{
-                              height: ROW_H, minWidth: 40, padding: '0 2px',
-                              textAlign:'center',
+                              height: ROW_H,
                               color: SHIFT_COLOR[sh], background: SHIFT_COLOR[sh]+'22',
                             }}
                           >
@@ -233,9 +209,9 @@ export default function WorkShiftPage() {
           </div>
 
           {/* 범례 — 테이블 바로 아래 정렬 */}
-          <div className="flex flex-wrap justify-center" style={{ gap:14, padding:'10px 0 28px' }}>
+          <div className="flex flex-wrap justify-center gap-[14px] pt-[10px] pb-7">
             {(['당','비','주','휴'] as RawShift[]).map(sh => (
-              <div key={sh} className="flex items-center" style={{ gap:5 }}>
+              <div key={sh} className="flex items-center gap-[5px]">
                 <div
                   className="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none"
                   style={{ background:SHIFT_COLOR[sh]+'22', borderColor:SHIFT_COLOR[sh], color:SHIFT_COLOR[sh] }}
