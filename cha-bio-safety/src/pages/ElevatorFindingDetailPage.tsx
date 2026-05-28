@@ -3,7 +3,7 @@ import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Wrench } from 'lucide-react'
+import { Wrench, X } from 'lucide-react'
 import { elevatorInspectionApi, elevatorRepairApi } from '../utils/api'
 
 // ── 이미지 뷰어 (핀치투줌 + 패닝) ─────────────────────────────────
@@ -63,9 +63,9 @@ function ImageViewer({ src, onClose }: { src: string; onClose: () => void }) {
   }, [scale])
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', paddingTop: 'calc(12px + var(--sat, 44px))' }}>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer' }}>✕</button>
+    <div className="fixed inset-0 z-[300] bg-[rgba(0,0,0,0.95)] flex flex-col">
+      <div className="shrink-0 flex justify-end px-4 py-3 pt-[calc(12px+var(--sat,44px))]">
+        <button onClick={onClose} className="bg-transparent border-none text-white cursor-pointer"><X size={24} /></button>
       </div>
       <div
         ref={imgRef}
@@ -73,17 +73,16 @@ function ImageViewer({ src, onClose }: { src: string; onClose: () => void }) {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onDoubleClick={handleDoubleTap}
-        style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'none' }}
+        className="flex-1 overflow-hidden flex items-center justify-center touch-none"
       >
         <img
           src={src}
           alt="상세보기"
           draggable={false}
+          className="max-w-full max-h-full object-contain select-none"
           style={{
-            maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
             transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
             transition: dragging ? 'none' : 'transform 0.15s ease',
-            userSelect: 'none',
           }}
         />
       </div>
@@ -101,9 +100,9 @@ function fmtDate(iso: string | null) {
 // ── KVRow ──────────────────────────────────────────────────────────
 function KVRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <span style={{ fontSize: 12, color: 'var(--t3)', width: 64, flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: 14, color: 'var(--t1)', flex: 1, lineHeight: 1.5 }}>{children}</span>
+    <div className="flex gap-3 items-start">
+      <span className="text-caption text-text-tertiary w-16 shrink-0">{label}</span>
+      <span className="text-[14px] text-text-primary flex-1 leading-[1.5]">{children}</span>
     </div>
   )
 }
@@ -111,7 +110,7 @@ function KVRow({ label, children }: { label: string; children: React.ReactNode }
 // ── SectionHeader ─────────────────────────────────────────────────
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 10 }}>
+    <div className="text-caption font-bold text-text-tertiary mb-[10px]">
       {children}
     </div>
   )
@@ -120,8 +119,8 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 // ── 스핀너 ────────────────────────────────────────────────────────
 function Spinner() {
   return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 28, height: 28, border: '2px solid var(--bd2)', borderTopColor: 'var(--acl)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+    <div className="flex-1 flex items-center justify-center">
+      <div className="w-[28px] h-[28px] border-2 border-border-strong border-t-accent rounded-full [animation:spin_.7s_linear_infinite]" />
       <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
     </div>
   )
@@ -211,43 +210,22 @@ export default function ElevatorFindingDetailPage() {
   const isSubmitting = resolveMutation.isPending
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
+    <div className="flex-1 flex flex-col bg-surface-page h-full overflow-hidden">
       <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
       {viewerSrc && <ImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />}
 
       {/* 자체 헤더 */}
-      <div style={{
-        height: 48,
-        background: 'rgba(22,27,34,0.97)',
-        borderBottom: '1px solid var(--bd)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        flexShrink: 0,
-      }}>
+      <div className="h-[48px] bg-[rgba(22,27,34,0.97)] border-b border-border-default flex items-center justify-center relative shrink-0">
         <button
           aria-label="뒤로 가기"
           onClick={() => navigate(-1)}
-          style={{
-            position: 'absolute',
-            left: 12,
-            width: 36,
-            height: 36,
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            color: 'var(--t1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="absolute left-3 w-9 h-9 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center"
         >
           <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 상세</span>
+        <span className="text-base font-bold text-text-primary">지적사항 상세</span>
       </div>
 
       {/* 로딩 */}
@@ -255,33 +233,34 @@ export default function ElevatorFindingDetailPage() {
 
       {/* 에러 or 없음 */}
       {!isLoading && (error || !finding) && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center', fontSize: 14, color: 'var(--t2)' }}>
+        <div className="flex-1 flex items-center justify-center px-6 text-center text-[14px] text-text-secondary">
           항목을 불러오지 못했습니다. 뒤로 가서 다시 시도하세요.
         </div>
       )}
 
       {/* 콘텐츠 */}
       {!isLoading && finding && (
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          paddingBottom: finding.status === 'open' ? 'calc(72px + var(--sab, 0px))' : 24,
-        }}>
+        <div
+          className="flex-1 overflow-y-auto"
+          style={{ paddingBottom: finding.status === 'open' ? 'calc(72px + var(--sab, 0px))' : 24 }}
+        >
           {/* Section 1: 지적 정보 */}
-          <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div className="px-4 py-5 border-b border-border-default">
+            <div className="flex items-center justify-between mb-3">
               <SectionHeader>지적 정보</SectionHeader>
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-                background: finding.status === 'open' ? 'rgba(239,68,68,.12)' : 'rgba(34,197,94,.12)',
-                color: finding.status === 'open' ? 'var(--danger)' : 'var(--safe)',
-              }}>
+              <span
+                className={`text-[10px] font-bold px-2 py-[2px] rounded-[10px] ${
+                  finding.status === 'open'
+                    ? 'bg-[rgba(239,68,68,0.12)] text-danger-bar'
+                    : 'bg-[rgba(34,197,94,0.12)] text-safe-bar'
+                }`}
+              >
                 {finding.status === 'open' ? '미조치' : '조치완료'}
               </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="flex flex-col gap-2">
               <KVRow label="지적 내용">
-                <span style={{ whiteSpace: 'pre-wrap' }}>{finding.description}</span>
+                <span className="whitespace-pre-wrap">{finding.description}</span>
               </KVRow>
               <KVRow label="위치">{finding.location ?? '-'}</KVRow>
               <KVRow label="등록일">{fmtDate(finding.createdAt)}</KVRow>
@@ -290,91 +269,74 @@ export default function ElevatorFindingDetailPage() {
           </div>
 
           {/* Section 2: 지적 사진 */}
-          <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
+          <div className="px-4 py-5 border-b border-border-default">
             <SectionHeader>지적 사진</SectionHeader>
             {finding.photoKey ? (
               <img
                 src={'/api/uploads/' + finding.photoKey}
                 alt="지적 사진"
                 onClick={() => setViewerSrc('/api/uploads/' + finding.photoKey)}
-                style={{
-                  width: '100%',
-                  maxHeight: 240,
-                  objectFit: 'cover',
-                  borderRadius: 10,
-                  border: '1px solid var(--bd)',
-                  display: 'block',
-                  marginTop: 12,
-                  cursor: 'pointer',
-                }}
+                className="w-full max-h-[240px] object-cover rounded-[10px] border border-border-default block mt-3 cursor-pointer"
               />
             ) : (
-              <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 8 }}>사진 없음</div>
+              <div className="text-[13px] text-text-tertiary mt-2">사진 없음</div>
             )}
           </div>
 
           {/* Section 3: 조치 내용 입력 (open 상태만) */}
           {finding.status === 'open' && (
-            <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
+            <div className="px-4 py-5 border-b border-border-default">
               <SectionHeader>조치 내용</SectionHeader>
 
               {/* 수리이력에서 선택 */}
               {!linkedRepair && (
-                <button onClick={() => setShowRepairPicker(!showRepairPicker)}
-                  style={{ width:'100%', marginBottom:12, padding:'10px', borderRadius:8, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.2)', color:'var(--info)', fontSize:12, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                <button
+                  onClick={() => setShowRepairPicker(!showRepairPicker)}
+                  className="w-full mb-3 p-[10px] rounded-sm bg-[rgba(59,130,246,0.08)] border border-[rgba(59,130,246,0.2)] text-info-bar text-caption font-bold cursor-pointer inline-flex items-center justify-center gap-1.5"
+                >
                   <Wrench size={14} />
                   수리이력에서 조치 선택
                 </button>
               )}
               {showRepairPicker && !linkedRepair && (
-                <div style={{ marginBottom:12, background:'var(--bg3)', borderRadius:8, padding:10, maxHeight:200, overflowY:'auto' }}>
+                <div className="mb-3 bg-surface-sunken rounded-sm p-[10px] max-h-[200px] overflow-y-auto">
                   {repairList.filter((r: any) => r.sourceType === 'standalone').length === 0 && (
-                    <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', padding:8 }}>수리 이력이 없습니다</div>
+                    <div className="text-[11px] text-text-tertiary text-center p-2">수리 이력이 없습니다</div>
                   )}
                   {repairList.filter((r: any) => r.sourceType === 'standalone').map((r: any) => (
-                    <div key={r.id} onClick={() => {
-                      setLinkedRepair(r)
-                      setMemo(r.title + (r.detail && r.detail !== r.title ? '\n' + r.detail : ''))
-                      setResolveDate(r.date)
-                      setShowRepairPicker(false)
-                    }} style={{ padding:'8px 10px', borderRadius:6, cursor:'pointer', marginBottom:4, background:'var(--bg2)', border:'1px solid var(--bd)', fontSize:11 }}>
-                      <div style={{ fontWeight:600, color:'var(--t1)' }}>{r.title}</div>
-                      <div style={{ color:'var(--t3)', marginTop:2 }}>{r.date}{r.company ? ` · ${r.company}` : ''}</div>
+                    <div
+                      key={r.id}
+                      onClick={() => {
+                        setLinkedRepair(r)
+                        setMemo(r.title + (r.detail && r.detail !== r.title ? '\n' + r.detail : ''))
+                        setResolveDate(r.date)
+                        setShowRepairPicker(false)
+                      }}
+                      className="px-[10px] py-2 rounded-[6px] cursor-pointer mb-1 bg-surface-raised border border-border-default text-[11px]"
+                    >
+                      <div className="font-semibold text-text-primary">{r.title}</div>
+                      <div className="text-text-tertiary mt-0.5">{r.date}{r.company ? ` · ${r.company}` : ''}</div>
                     </div>
                   ))}
                 </div>
               )}
               {linkedRepair && (
-                <div style={{ marginBottom:12, background:'rgba(34,197,94,.06)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'8px 12px', display:'flex', alignItems:'center', gap:8 }}>
-                  <div style={{ flex:1, fontSize:11 }}>
-                    <span style={{ fontWeight:700, color:'var(--safe)', display:'inline-flex', alignItems:'center', gap:4, verticalAlign:'middle' }}><Wrench size={14} />연결됨: </span>
-                    <span style={{ color:'var(--t1)' }}>{linkedRepair.date} · {linkedRepair.title}</span>
+                <div className="mb-3 bg-[rgba(34,197,94,0.06)] border border-[rgba(34,197,94,0.2)] rounded-sm px-3 py-2 flex items-center gap-2">
+                  <div className="flex-1 text-[11px]">
+                    <span className="font-bold text-safe-bar inline-flex items-center gap-1 align-middle"><Wrench size={14} />연결됨: </span>
+                    <span className="text-text-primary">{linkedRepair.date} · {linkedRepair.title}</span>
                   </div>
-                  <button onClick={() => setLinkedRepair(null)} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:14, cursor:'pointer' }}>✕</button>
+                  <button onClick={() => setLinkedRepair(null)} className="bg-transparent border-none text-text-tertiary cursor-pointer"><X size={14} /></button>
                 </div>
               )}
 
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 4 }}>조치일</div>
+              <div className="mb-3">
+                <div className="text-caption text-text-tertiary mb-1">조치일</div>
                 <input
                   type="date"
                   value={resolveDate}
                   onChange={e => setResolveDate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 9,
-                    background: 'var(--bg3)',
-                    border: '1px solid var(--bd2)',
-                    color: 'var(--t1)',
-                    fontSize: 13,
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                    boxSizing: 'border-box',
-                    minWidth: 0,
-                    WebkitAppearance: 'none',
-                    appearance: 'none',
-                  } as React.CSSProperties}
+                  className="w-full px-3 py-[10px] rounded-[9px] bg-surface-sunken border border-border-strong text-text-primary text-[13px] outline-none font-[inherit] box-border min-w-0 appearance-none [-webkit-appearance:none]"
                 />
               </div>
               <textarea
@@ -382,47 +344,29 @@ export default function ElevatorFindingDetailPage() {
                 onChange={e => setMemo(e.target.value)}
                 placeholder="조치 내용을 입력하세요"
                 rows={4}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg3)',
-                  borderRadius: 8,
-                  padding: 12,
-                  border: '1px solid var(--bd2)',
-                  color: 'var(--t1)',
-                  fontSize: 14,
-                  boxSizing: 'border-box',
-                  fontFamily: 'Noto Sans KR, sans-serif',
-                  lineHeight: 1.5,
-                  resize: 'vertical',
-                  outline: 'none',
-                }}
+                className="w-full bg-surface-sunken rounded-sm p-3 border border-border-strong text-text-primary text-[14px] box-border font-['Noto_Sans_KR',sans-serif] leading-[1.5] resize-y outline-none"
               />
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 6 }}>조치 사진 ({photoKeys.length}/5)</div>
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+              <div className="mt-3">
+                <div className="text-caption text-text-tertiary mb-1.5">조치 사진 ({photoKeys.length}/5)</div>
+                <div className="flex gap-2 overflow-x-auto">
                   {/* 추가 버튼 (1:1 정사각형) */}
-                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }} />
-                  <input ref={albumInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }} />
+                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }} />
+                  <input ref={albumInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }} />
                   <PhotoSourceModal open={showPhotoPicker} onClose={() => setShowPhotoPicker(false)} onCamera={() => cameraInputRef.current?.click()} onAlbum={() => albumInputRef.current?.click()} />
                   {photoKeys.length < 5 && (
                     <button
                       onClick={() => !uploading && setShowPhotoPicker(true)}
-                      style={{
-                        width: 72, height: 72, flexShrink: 0, borderRadius: 10,
-                        border: '1px dashed var(--bd2)', background: 'var(--bg3)',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-                        cursor: uploading ? 'wait' : 'pointer',
-                      }}
+                      className={`w-[72px] h-[72px] shrink-0 rounded-[10px] border border-dashed border-border-strong bg-surface-sunken flex flex-col items-center justify-center gap-1 ${uploading ? 'cursor-wait' : 'cursor-pointer'}`}
                     >
-                      <span style={{ fontSize: 22 }}>📷</span>
-                      <span style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600 }}>{uploading ? '업로드 중' : `${photoKeys.length}/5`}</span>
+                      <span className="text-[22px]">📷</span>
+                      <span className="text-[9px] text-text-tertiary font-semibold">{uploading ? '업로드 중' : `${photoKeys.length}/5`}</span>
                     </button>
                   )}
                   {/* 업로드된 사진 썸네일 */}
                   {photoKeys.map((key, idx) => (
-                    <div key={key} style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
-                      <img src={`/api/uploads/${key}`} alt={`조치 사진 ${idx+1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)' }} />
-                      <button onClick={() => setPhotoKeys(prev => prev.filter((_, i) => i !== idx))} style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'var(--danger)', color: '#fff', border: 'none', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    <div key={key} className="relative w-[72px] h-[72px] shrink-0">
+                      <img src={`/api/uploads/${key}`} alt={`조치 사진 ${idx+1}`} className="w-[72px] h-[72px] object-cover rounded-[10px] border border-border-default" />
+                      <button onClick={() => setPhotoKeys(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-danger-bar text-white border-none cursor-pointer flex items-center justify-center"><X size={10} /></button>
                     </div>
                   ))}
                 </div>
@@ -432,13 +376,13 @@ export default function ElevatorFindingDetailPage() {
 
           {/* Section 4: 조치 완료 (resolved 상태만) */}
           {finding.status === 'resolved' && (
-            <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
+            <div className="px-4 py-5 border-b border-border-default">
               <SectionHeader>조치 결과</SectionHeader>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 <KVRow label="조치일시">{fmtDate(finding.resolvedAt)}</KVRow>
                 <KVRow label="조치자">{finding.resolvedByName ?? finding.resolvedBy ?? '-'}</KVRow>
                 <KVRow label="조치 내용">
-                  <span style={{ whiteSpace: 'pre-wrap' }}>{finding.resolutionMemo ?? '-'}</span>
+                  <span className="whitespace-pre-wrap">{finding.resolutionMemo ?? '-'}</span>
                 </KVRow>
               </div>
               {finding.resolutionPhotoKey && (() => {
@@ -447,15 +391,15 @@ export default function ElevatorFindingDetailPage() {
                   return (
                     <img src={'/api/uploads/' + keys[0]} alt="조치 사진"
                       onClick={() => setViewerSrc('/api/uploads/' + keys[0])}
-                      style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block', marginTop: 12, cursor: 'pointer' }}
+                      className="w-full max-h-[240px] object-cover rounded-[10px] border border-border-default block mt-3 cursor-pointer"
                     />
                   )
                 }
                 return (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                  <div className="flex gap-1.5 flex-wrap mt-3">
                     {keys.map((key, idx) => (
                       <img key={key} src={'/api/uploads/' + key} alt={`조치 사진 ${idx+1}`}
-                        style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--bd)', cursor: 'pointer' }}
+                        className="w-20 h-20 object-cover rounded-sm border border-border-default cursor-pointer"
                         onClick={() => setViewerSrc('/api/uploads/' + key)}
                       />
                     ))}
@@ -469,32 +413,11 @@ export default function ElevatorFindingDetailPage() {
 
       {/* 고정 하단 CTA (open 상태만) */}
       {!isLoading && finding && finding.status === 'open' && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'var(--bg)',
-          borderTop: '1px solid var(--bd)',
-          padding: '12px 16px',
-          paddingBottom: 'calc(12px + var(--sab, 0px))',
-        }}>
+        <div className="fixed bottom-0 left-0 right-0 bg-surface-page border-t border-border-default px-4 py-3 pb-[calc(12px+var(--sab,0px))]">
           <button
             onClick={handleResolve}
             disabled={isSubmitting}
-            style={{
-              width: '100%',
-              height: 48,
-              background: 'var(--acl)',
-              color: '#fff',
-              fontSize: 14,
-              fontWeight: 700,
-              border: 'none',
-              borderRadius: 12,
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              opacity: isSubmitting ? 0.5 : 1,
-              transition: 'opacity 0.15s',
-            }}
+            className={`w-full h-8 bg-accent text-white text-[14px] font-bold border-none rounded-md transition-opacity duration-150 ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
           >
             {isSubmitting ? '처리 중...' : '조치 완료'}
           </button>
