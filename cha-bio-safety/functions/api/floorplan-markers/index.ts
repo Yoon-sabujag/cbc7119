@@ -109,18 +109,59 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     return Response.json({ success: false, error: 'floor, plan_type, x_pct, y_pct 필수' }, { status: 400 })
   }
 
-  // Phase 24: extinguisher 자산 마커는 빈 개소 상태로 추가 (cp_id NULL).
-  // 자산 배치 시점에 cp 가 만들어짐 → 점검 대상 노출은 자산 매핑 후에만.
+  // Phase 24: extinguisher 자산 마커 (소화기 4종) 는 빈 개소 상태로 추가 (cp_id NULL).
+  //   자산 배치 시점에 cp 가 만들어짐 → 점검 대상 노출은 자산 매핑 후에만.
+  // 사고 사례 (260528): 소화전/완강기 마커도 같은 흐름 타고 cp_id NULL 로 추가됨
+  //   → 일반점검 페이지에 안 보임 + 도면 점검하기 버튼 비활성. 이 두 카테고리는
+  //   자산 분리 흐름이 없으므로 마커 추가 시점에 cp 자동 생성.
+  const AUTO_CP_MARKER_TYPES: Record<string, { suffix: string; category: string }> = {
+    indoor_hydrant:       { suffix: 'SH', category: '소화전' },
+    descending_lifeline:  { suffix: 'WK', category: '완강기' },
+  }
+  let checkPointId: string | null = body.check_point_id ?? null
+  const autoCpCfg = body.marker_type ? AUTO_CP_MARKER_TYPES[body.marker_type] : undefined
+  if (!checkPointId && autoCpCfg && body.label && body.label.trim()) {
+    // 같은 floor + category 의 기존 checkpoint location_no 끝 숫자 + 1
+    const rows = await env.DB.prepare(
+      `SELECT location_no FROM check_points WHERE category = ? AND floor = ?`
+    ).bind(autoCpCfg.category, body.floor).all<{ location_no: string | null }>()
+    let maxSeq = 0
+    for (const r of rows.results ?? []) {
+      const m = (r.location_no ?? '').match(/(\d+)$/)
+      if (m) maxSeq = Math.max(maxSeq, Number(m[1]))
+    }
+    const seq = maxSeq + 1
+    const newCpId = `CP-${body.floor}-${seq}-${autoCpCfg.suffix}`
+    const newQr = `QR-${newCpId}`
+    const locNo = `${body.floor}-${seq}`
+    try {
+      await env.DB.prepare(
+        `INSERT INTO check_points (id, qr_code, floor, zone, location, category, location_no, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1)`
+      ).bind(
+        newCpId, newQr, body.floor, body.zone ?? 'office',
+        body.label.trim(), autoCpCfg.category, locNo,
+      ).run()
+      checkPointId = newCpId
+    } catch (e: any) {
+      console.error('[floorplan-markers POST] auto cp 생성 실패', e)
+      return Response.json(
+        { success: false, error: `${autoCpCfg.category} 개소 자동 생성 실패: ${e?.message ?? 'unknown'}` },
+        { status: 500 },
+      )
+    }
+  }
+
   const id = 'FPM-' + nanoid(12)
   await env.DB.prepare(`
     INSERT INTO floor_plan_markers (id, floor, plan_type, marker_type, x_pct, y_pct, label, check_point_id, zone, created_by)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id, body.floor, body.plan_type, body.marker_type ?? null,
-    body.x_pct, body.y_pct, body.label ?? null, body.check_point_id ?? null,
+    body.x_pct, body.y_pct, body.label ?? null, checkPointId,
     body.zone ?? null,
     (data as any).staffName ?? null
   ).run()
 
-  return Response.json({ success: true, data: { id } }, { status: 201 })
+  return Response.json({ success: true, data: { id, check_point_id: checkPointId } }, { status: 201 })
 }
