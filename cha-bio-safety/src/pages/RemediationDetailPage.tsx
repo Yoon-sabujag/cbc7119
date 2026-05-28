@@ -266,7 +266,7 @@ export default function RemediationDetailPage() {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }} className="bg-surface-page">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-page">
       {/* 자체 헤더 — sketch .det-page-hd */}
       <div className="h-12 bg-surface-raised border-b border-border-default flex items-center justify-center relative flex-shrink-0 px-3">
         <button
@@ -281,15 +281,15 @@ export default function RemediationDetailPage() {
 
       {/* 로딩 */}
       {isLoading && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="border-2 border-border-strong border-t-accent rounded-full" style={{ width: 28, height: 28, animation: 'spin .7s linear infinite' }} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="border-2 border-border-strong border-t-accent rounded-full w-[28px] h-[28px] [animation:spin_.7s_linear_infinite]" />
           <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
         </div>
       )}
 
       {/* 에러 */}
       {error && !isLoading && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }} className="text-body-sm text-text-secondary">
+        <div className="flex-1 flex items-center justify-center px-6 text-center text-body-sm text-text-secondary">
           항목을 불러오지 못했습니다. 뒤로 가서 다시 시도하세요.
         </div>
       )}
@@ -297,10 +297,7 @@ export default function RemediationDetailPage() {
       {/* 콘텐츠 */}
       {!isLoading && !error && record && (
         <div
-          className="flex-1 overflow-y-auto"
-          style={{
-            paddingBottom: record.status === 'open' ? 'calc(72px + var(--sab, 0px))' : 24,
-          }}
+          className={`flex-1 overflow-y-auto ${record.status === 'open' ? 'pb-[calc(72px+var(--sab,0px))]' : 'pb-6'}`}
         >
           {/* Section 1: 점검 정보 — sketch .det-section */}
           <div className="py-5 px-4 border-b border-border-default">
@@ -349,10 +346,10 @@ export default function RemediationDetailPage() {
                 <KVRow label="조치일시">{fmtDate(record.resolvedAt)}</KVRow>
                 <KVRow label="조치자">{record.resolvedBy ?? '-'}</KVRow>
                 <KVRow label="조치 메모">
-                  <span style={{ whiteSpace: 'pre-wrap' }}>{record.resolutionMemo ?? '-'}</span>
+                  <span className="whitespace-pre-wrap">{record.resolutionMemo ?? '-'}</span>
                 </KVRow>
                 <KVRow label="소모 자재">
-                  <span style={{ whiteSpace: 'pre-wrap' }}>{record.materialsUsed ?? '-'}</span>
+                  <span className="whitespace-pre-wrap">{record.materialsUsed ?? '-'}</span>
                 </KVRow>
               </div>
               {record.resolutionPhotoKey && (
@@ -508,14 +505,12 @@ export default function RemediationDetailPage() {
       {/* 고정 하단 CTA (open only) — sketch .det-cta */}
       {!isLoading && !error && record && record.status !== 'resolved' && (
         <div
-          className="fixed bottom-0 left-0 right-0 bg-surface-page border-t border-border-default px-4 py-3"
-          style={{ paddingBottom: 'calc(12px + var(--sab, 0px))' }}
+          className="fixed bottom-0 left-0 right-0 bg-surface-page border-t border-border-default px-4 py-3 pb-[calc(12px+var(--sab,0px))]"
         >
           <button
             onClick={handleResolve}
             disabled={submitting}
-            className="w-full h-12 bg-accent text-on-accent text-body-sm font-bold border-none rounded-xl transition-opacity flex items-center justify-center gap-1.5 leading-none"
-            style={{ cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.5 : 1 }}
+            className={`w-full h-12 bg-accent text-on-accent text-body-sm font-bold border-none rounded-xl transition-opacity flex items-center justify-center gap-1.5 leading-none ${submitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
           >
             <Check size={16} />
             {submitting ? '처리 중...' : '조치 완료'}
