@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — bug-fix batch (WorkShift Excel + 제출용 탭 드래그 순서)
+상태:           안정 (SYNCED) — watchdog fixes + PPT 복구 다이얼로그 해결
 진행 작업:       없음
-기준 production: `57fed69` (feat: WorkShift Excel + 제출용 탭 드래그 순서)
+기준 production: `c6bb65d` (fix: PPT 양식 잔존 slide rels 정리)
 마지막 동기화:   2026-05-28
-마지막 배포 URL: https://1da4f3b7.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://66773b14.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
@@ -66,6 +66,9 @@
 | 2026-05-27 | color audit tier1 followup — LegalPage 결과내역서 X 빨강 | `df0f99d` | `94f31bc` | (배치 끝에 deploy) | LegalPage.tsx L1073 회색 X (bg-surface-active text-text-secondary border-strong) → 빨강 (bg-danger-bar text-text-on-accent border-0) — 같은 페이지 다른 사진제거 X 패턴 일관. cherry-pick 충돌 0. |
 | 2026-05-27 | color audit tier2 — border-{status} 57곳 → border-{status}-bar | `1270ce7` | `068a7c8` | https://c92fc8e3.cbc7119.pages.dev | InspectionPage 44 + FloorPlanPage 10 + DashboardPage 2 + SchedulePage 1. perl lookahead (?![-\w]) 로 -bar/-bg variant 보호. 시각 변화 미미 (border 살짝 더 saturated). 3건 배치로 단일 deploy. cherry-pick 충돌 0. |
 | 2026-05-28 | settings 테마 wire + 데드 코드 정리 | (production 직접 작업) | `12b1220` | https://75f6e539.cbc7119.pages.dev | SettingsPanel 화면 섹션: 테마 select 에 utils/theme 의 getThemePreference/setThemePreference 연결 (다크/라이트/시스템 실동작). 주간 현황 기준/결과 즉시 저장 Row 제거 (dead UI). SideMenu MenuItem.soon 필드 + 22 항목 + 준비중 배지 분기 제거. DesktopSidebar NavItem.soon prop + 분기 제거. FloorPlanPage PLAN_TYPES.ready + planReady + 준비중 배지 + 도면 준비 중 fallback 제거. AdminPage.tsx 삭제 (라우팅 없음). 5 파일 60+/94-. |
+| 2026-05-28 | watchdog R2 업로드 multipart 1101 fix | (production 직접 작업 — Windows ps1 only) | `47e6f23` | (배포 영향 0 — Windows 와치독) | Process-LegalReportPdf 의 multipart 본문에 folder 필드 part 를 추가했더니 PDF 바이너리가 file part 의 본문 자리 밖에 매달려 Cloudflare Worker formData() throw → Error 1101. Menu PDF 와 동일한 단일 file part 패턴으로 복귀 + ftr 앞 CRLF 추가 (RFC 2046). 사용자 Windows 머신에 ps1 재복사 + 와치독 재시작 필요. |
+| 2026-05-28 | watchdog simple-mode 경로 시도 후 revert | (production 직접 작업 — Windows ps1 only) | `0fab4b8` + `b7d8e74` | (배포 영향 0) | 0fab4b8: legal_report/legal_ppt 에 parent="소방점검조치" 추가 → 4단 깊이 (group/parent/label/year/month). b7d8e74: 사용자 요청에 따라 원복 (기존 3단 group/label/year/month). |
+| 2026-05-28 | submission-ppt PPT 복구 다이얼로그 fix | (production 직접 작업) | `c6bb65d` | https://66773b14.cbc7119.pages.dev | **원인**: 양식 template.pptx 가 8-slide → 2-slide 슬림화 잔존 — presentation.xml.rels 에 rId4~rId9 (slide3~slide8 dangling, slide6~8 미존재). [Content_Types].xml 에도 slide3~8 Override. 우리 코드가 rId101+ 더 얹어 duplicate target → PowerPoint 손상 플래그. **수정**: (1) presentation.xml.rels 의 slide rels 모두 strip 후 actualSlideCount 만큼 신규 rId 재발급. (2) sldIdLst 전체 재구성. (3) Content_Types slide Override strip + 재추가. (4) 복제 슬라이드의 slide2.rels notesSlide rels 제거 (notesSlide1 ↔ slide2 bidirectional 보존). 추가: R2 의 양식 template.pptx 자체를 cleaned version 으로 교체 + template-backup-260528.pptx 백업. |
 
 ---
 
