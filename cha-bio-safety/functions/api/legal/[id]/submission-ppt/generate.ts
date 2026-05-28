@@ -29,7 +29,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
       SELECT id, location, description, submission_label, photo_keys, resolution_photo_keys
       FROM legal_findings
       WHERE schedule_item_id = ? AND submission_selected = 1
-      ORDER BY created_at
+      ORDER BY CASE WHEN submission_order > 0 THEN submission_order ELSE 999999 END, created_at
     `).bind(scheduleItemId).all<{
       id: string; location: string | null; description: string;
       submission_label: string | null;

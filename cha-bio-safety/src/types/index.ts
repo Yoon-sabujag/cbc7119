@@ -114,6 +114,7 @@ export interface LegalFinding {
   createdAt: string
   submissionSelected: boolean
   submissionLabel: string | null
+  submissionOrder: number          // 0 = 미포함, 1..N = PPT 표시 순서
 }
 
 // ── Elevator Inspection Certs ───────────────────────────

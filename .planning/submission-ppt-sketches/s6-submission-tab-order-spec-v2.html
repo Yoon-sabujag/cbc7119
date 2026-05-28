@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>S6 v2 — 제출용 탭 카드 순서 (드래그&드롭 + 체크 자동순서)</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --text-primary:    #e6edf3;
+    --text-secondary:  #adb6c0;
+    --text-tertiary:   #8b949e;
+    --text-disabled:   #5d646e;
+    --text-on-accent:  #ffffff;
+    --border-default:  rgba(255, 255, 255, 0.14);
+    --border-strong:   rgba(255, 255, 255, 0.22);
+    --accent:          #3b82f6;
+    --safe:            #4ade80;
+    --safe-bg:         rgba(34, 197, 94, 0.16);
+    --warning:         #fbbf24;
+    --warning-bg:      rgba(245, 158, 11, 0.16);
+    --warning-bar:     #f59e0b;
+    --danger:          #f87171;
+    --danger-bg:       rgba(239, 68, 68, 0.16);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: #050709;
+    font-family: -apple-system, "Noto Sans KR", sans-serif;
+    color: var(--text-primary);
+    display: grid;
+    grid-template-columns: 540px 460px;
+    gap: 32px;
+    align-items: start;
+  }
+  h1.page-h { grid-column: 1 / -1; font-size: 18px; margin: 0 0 4px; }
+  .page-sub { grid-column: 1 / -1; font-size: 12px; color: var(--text-secondary); margin: 0 0 12px; }
+
+  .col2 {
+    background: var(--surface-page);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .col2-header { padding: 14px 16px; border-bottom: 1px solid var(--border-default); display:flex; justify-content:space-between; align-items:center; }
+  .col2-title { font-size: 14px; font-weight: 700; }
+  .save-btn-top {
+    background: var(--accent); color: var(--text-on-accent); border: none;
+    font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 6px; cursor: pointer;
+  }
+  .sub-tabs { display: flex; border-bottom: 1px solid var(--border-default); background: var(--surface-raised); }
+  .sub-tab { flex: 1; padding: 11px; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-tertiary); border-bottom: 2px solid transparent; cursor: pointer; }
+  .sub-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface-page); }
+  .sub-tab .count {
+    display: inline-block; margin-left: 4px;
+    background: var(--surface-sunken); color: var(--text-secondary);
+    font-size: 11px; padding: 1px 6px; border-radius: 99px;
+  }
+  .sub-tab.active .count { background: var(--accent); color: var(--text-on-accent); }
+
+  .findings { padding: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 720px; overflow-y: auto; }
+
+  /* === 카드 (드래그 가능) === */
+  .sub-finding {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px 12px 12px 8px;
+    display: grid;
+    grid-template-columns: 18px 1fr; /* 좌측 드래그 핸들 + 우측 컨텐츠 */
+    column-gap: 8px;
+    align-items: stretch;
+    position: relative;
+    transition: transform 0.15s, opacity 0.15s, border-color 0.15s;
+  }
+  .sub-finding.selected { border-color: var(--accent); background: var(--surface-active); }
+  .sub-finding.unselected { opacity: 0.92; }
+
+  /* 드래그 핸들 (선택된 카드만 활성) */
+  .drag-handle {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--text-tertiary);
+    cursor: grab;
+    user-select: none;
+    padding: 4px 0;
+    border-radius: 4px;
+  }
+  .drag-handle:hover { color: var(--accent); background: rgba(59,130,246,0.08); }
+  .drag-handle:active { cursor: grabbing; }
+  .sub-finding.unselected .drag-handle {
+    cursor: not-allowed;
+    opacity: 0.25;
+  }
+  .drag-handle svg {
+    width: 14px; height: 14px;
+  }
+
+  /* 드래그 중 / 드롭 위치 표시 */
+  .sub-finding.dragging { opacity: 0.5; transform: scale(0.98); }
+  .drop-indicator {
+    height: 3px; background: var(--accent); border-radius: 2px;
+    margin: -5px 0; opacity: 0;
+  }
+  .drop-indicator.active { opacity: 1; }
+
+  /* 카드 우측 컨텐츠 */
+  .card-content { display: flex; flex-direction: column; gap: 8px; }
+
+  /* 순서 row */
+  .order-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: -2px;
+  }
+  .order-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: var(--text-on-accent);
+    font-size: 11px; font-weight: 800;
+    height: 22px; padding: 0 9px;
+    border-radius: 11px;
+    letter-spacing: 0.02em;
+  }
+  .order-spacer { flex: 1; }
+  .order-ppt-hint {
+    font-size: 11px; color: var(--text-tertiary);
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .order-ppt-hint b { color: var(--accent); font-weight: 700; }
+
+  .info-line { font-size: 13px; font-weight: 700; line-height: 1.4; color: var(--text-primary); }
+  .info-line .seg-loc { color: var(--text-secondary); }
+  .info-line .seg-sep { color: var(--text-tertiary); padding: 0 6px; }
+
+  .input-row { display: flex; gap: 10px; align-items: stretch; }
+  .check-wrap { display: flex; align-items: center; flex-shrink: 0; }
+  .check {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border-strong); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .check.on { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); font-size: 16px; font-weight: 700; }
+  .label-input {
+    flex: 1; background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary); font-size: 12px;
+    padding: 8px 10px; border-radius: 6px; min-height: 36px;
+    font-family: inherit;
+  }
+  .label-input:disabled { color: var(--text-disabled); background: transparent; }
+  .save-btn {
+    background: var(--warning-bg); color: var(--warning); border: none;
+    font-size: 11px; font-weight: 700; padding: 0 12px; border-radius: 6px;
+    cursor: pointer; flex-shrink: 0; align-self: stretch;
+  }
+  .save-btn:disabled { background: var(--surface-sunken); color: var(--text-disabled); cursor: not-allowed; }
+
+  .meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; gap: 8px; }
+  .photo-status { display: inline-flex; align-items: center; gap: 6px; }
+  .photo-status .label { color: var(--text-tertiary); font-weight: 700; margin-right: 2px; }
+  .photo-status .chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .photo-status .chip.has { background: var(--safe-bg); color: var(--safe); }
+  .photo-status .chip.missing { background: var(--danger-bg); color: var(--danger); }
+  .save-indicator { display: inline-flex; align-items: center; gap: 4px; color: var(--text-tertiary); }
+  .save-indicator.saved { color: var(--safe); }
+  .save-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* 구분선 */
+  .divider {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 2px; color: var(--text-tertiary); font-size: 11px;
+  }
+  .divider > div { flex:1; height:1px; background: var(--border-default); }
+
+  /* === 우측 패널 === */
+  .right { display: flex; flex-direction: column; gap: 16px; }
+  .annot {
+    background: #11151a;
+    border: 1px solid var(--border-default);
+    border-radius: 12px; padding: 18px;
+    font-size: 12px; line-height: 1.7; color: var(--text-secondary);
+  }
+  .annot h2 { margin: 0 0 8px; color: var(--text-primary); font-size: 14px; }
+  .annot h3 { margin: 14px 0 6px; color: var(--text-primary); font-size: 12px; }
+  .annot code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; color: var(--text-primary); font-family: ui-monospace, monospace; font-size: 11px; }
+  .annot ul { margin: 4px 0; padding-left: 18px; }
+  .annot li { margin-bottom: 4px; }
+
+  .ppt-page { background: #fafafa; color: #111; border: 1px solid var(--border-default); border-radius: 8px; padding: 8px; }
+  .ppt-page-title { font-size: 11px; color: var(--text-secondary); font-weight: 700; margin: 0 0 8px; padding-left: 2px; }
+  .ppt-table { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 20px 110px 20px 110px; gap: 0; border: 1px solid #333; }
+  .ppt-cell { border: 1px solid #999; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #444; text-align: center; padding: 4px; }
+  .ppt-cell.lbl { background: #f0f0f0; font-size: 10px; color: #222; }
+  .ppt-cell.photo { background: linear-gradient(135deg, #c8d6ec 25%, #a6bfe0 25%, #a6bfe0 50%, #c8d6ec 50%, #c8d6ec 75%, #a6bfe0 75%); background-size: 12px 12px; color: #1f3a5f; }
+  .ppt-cell.empty { background: #e8e8e8; color: #999; }
+  .slot-tag { display: inline-block; background: var(--accent); color: var(--text-on-accent); font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 8px; margin-right: 4px; }
+
+  .scenario { background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 12px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; }
+  .scenario h3 { margin: 0 0 8px; font-size: 12px; color: var(--text-primary); }
+  .scenario .step { display: flex; gap: 8px; margin: 4px 0; align-items: flex-start; }
+  .scenario .step b { color: var(--accent); flex-shrink: 0; min-width: 56px; }
+  .scenario code { background: var(--surface-sunken); color: var(--text-primary); padding: 1px 5px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 10px; }
+
+  /* 데모용 드래그 효과 (정적 시각만) */
+  .demo-drag-state { background: var(--surface-active); transform: scale(0.99); border-color: var(--accent); box-shadow: 0 4px 12px rgba(59,130,246,0.18); }
+</style>
+</head>
+<body>
+
+<h1 class="page-h">S6 v2 — 제출용 탭 카드 순서 (드래그&드롭 + 체크 자동순서)</h1>
+<p class="page-sub">v1 의 ↑↓ 버튼 → 드래그&드롭 핸들로 교체. 새로 체크되면 자동으로 마지막 번호 부여.</p>
+
+<!-- 좌: SubmissionTabPanel -->
+<div class="col2">
+  <div class="col2-header">
+    <div>
+      <div class="col2-title">소방 상반기 종합정밀점검</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">2026.05.13 ~ 05.18</div>
+    </div>
+    <button class="save-btn-top">저장하기</button>
+  </div>
+  <div class="sub-tabs">
+    <div class="sub-tab">내부용 <span class="count">5</span></div>
+    <div class="sub-tab active">제출용 <span class="count">3</span></div>
+  </div>
+
+  <div class="findings">
+
+    <!-- 카드 #1: 선택됨 -->
+    <div class="sub-finding selected">
+      <div class="drag-handle" title="드래그해서 순서 변경">
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/>
+          <circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/>
+          <circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <div class="order-row">
+          <span class="order-badge">#1</span>
+          <span class="order-spacer"></span>
+          <span class="order-ppt-hint">PPT <b>1페이지 좌측</b></span>
+        </div>
+        <div class="info-line">
+          <span class="seg-loc">지하 B3 F3기둥 근처</span>
+          <span class="seg-sep">|</span>
+          <span>유도등 — 예비전원 불량</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check on">✓</div></div>
+          <textarea class="label-input">지하 B3 F3기둥 근처 유도등 예비전원 불량</textarea>
+          <button class="save-btn" disabled>저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip has">조치 후 ✓</span>
+          </div>
+          <div class="save-indicator saved"><span class="dot"></span>저장됨</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 드래그 중 표시 (드롭 위치 안내) -->
+    <div class="drop-indicator active"></div>
+
+    <!-- 카드 #2: 선택됨 + "드래그 중" 데모 상태 -->
+    <div class="sub-finding selected demo-drag-state">
+      <div class="drag-handle" title="드래그해서 순서 변경">
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/>
+          <circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/>
+          <circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <div class="order-row">
+          <span class="order-badge">#2</span>
+          <span class="order-spacer"></span>
+          <span class="order-ppt-hint">PPT <b>1페이지 우측</b></span>
+        </div>
+        <div class="info-line">
+          <span class="seg-loc">연구동 7F 동측 복도</span>
+          <span class="seg-sep">|</span>
+          <span>소화기 — 압력 미달</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check on">✓</div></div>
+          <textarea class="label-input">연구동 7F 동측 복도 소화기 압력 미달</textarea>
+          <button class="save-btn" disabled>저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip has">조치 후 ✓</span>
+          </div>
+          <div class="save-indicator saved"><span class="dot"></span>저장됨</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 카드 #3: 선택됨 -->
+    <div class="sub-finding selected">
+      <div class="drag-handle" title="드래그해서 순서 변경">
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/>
+          <circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/>
+          <circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <div class="order-row">
+          <span class="order-badge">#3</span>
+          <span class="order-spacer"></span>
+          <span class="order-ppt-hint">PPT <b>2페이지 좌측</b></span>
+        </div>
+        <div class="info-line">
+          <span class="seg-loc">연구동 8F ABSL3 실험구역 내부창고 (802f) 맞은편 P/R실 옆 전실</span>
+          <span class="seg-sep">|</span>
+          <span>전실제연댐퍼 — 작동 불량</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check on">✓</div></div>
+          <textarea class="label-input">8F ABSL3 P/R실 전실 제연댐퍼 작동 불량</textarea>
+          <button class="save-btn" disabled>저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip has">조치 후 ✓</span>
+          </div>
+          <div class="save-indicator saved"><span class="dot"></span>저장됨</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 구분선 ── -->
+    <div class="divider">
+      <div></div><span>아래는 PPT 미포함</span><div></div>
+    </div>
+
+    <!-- 카드: 미선택 (드래그 핸들 비활성) -->
+    <div class="sub-finding unselected">
+      <div class="drag-handle" title="체크 후 드래그 가능">
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/>
+          <circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/>
+          <circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <div class="info-line">
+          <span class="seg-loc">관리동 2F 사무실</span>
+          <span class="seg-sep">|</span>
+          <span>유도등 — 미점등</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check">&nbsp;</div></div>
+          <textarea class="label-input" disabled placeholder="체크하면 PPT 라벨 입력 가능"></textarea>
+          <button class="save-btn" disabled>저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip has">조치 후 ✓</span>
+          </div>
+          <div class="save-indicator" style="color:var(--text-tertiary);">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 카드: 미선택 + 사진부족 -->
+    <div class="sub-finding unselected" style="opacity:0.6;">
+      <div class="drag-handle" title="체크 불가">
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/>
+          <circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/>
+          <circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <div class="info-line">
+          <span class="seg-loc">기계실 펌프 5번</span>
+          <span class="seg-sep">|</span>
+          <span>밸브 누수</span>
+        </div>
+        <div class="input-row">
+          <div class="check-wrap"><div class="check" style="cursor:not-allowed;border-color:var(--border-default);">&nbsp;</div></div>
+          <textarea class="label-input" disabled></textarea>
+          <button class="save-btn" disabled>저장</button>
+        </div>
+        <div class="meta-row">
+          <div class="photo-status">
+            <span class="label">사진 :</span>
+            <span class="chip has">조치 전 ✓</span>
+            <span class="chip missing">조치 후 ✗</span>
+          </div>
+          <div class="save-indicator" style="color:var(--danger);">사진 부족 — 저장 불가</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 우: 설명 + PPT 매핑 + 시나리오 -->
+<div class="right">
+
+  <div class="annot">
+    <h2>v2 변경점</h2>
+    <ul>
+      <li><b style="color:var(--text-primary);">↑↓ 버튼 제거</b> — 카드 좌측에 <b style="color:var(--accent);">드래그 핸들 ⋮⋮</b> 추가. 더 직관적, 한번에 멀리 이동 가능</li>
+      <li><b style="color:var(--text-primary);">체크 자동 순서</b> — 새로 체크하면 자동으로 마지막 번호 + 구분선 위 맨 아래에 배치. 별도 조작 불필요</li>
+      <li><b style="color:var(--text-primary);">드래그 중 표시</b> — 들고 있는 카드는 흐릿/축소, 드롭 위치는 파란 막대로 표시 (시안에서 #2 카드가 그 상태)</li>
+    </ul>
+
+    <h3>인터랙션</h3>
+    <ul>
+      <li><b>체크 ON</b> → 자동으로 마지막 번호(#N+1) 부여, 위치는 구분선 위 맨 아래</li>
+      <li><b>체크 OFF</b> → 구분선 아래로 이동 + 남은 카드 1,2,3 으로 renumber</li>
+      <li><b>드래그</b> → 핸들 잡고 위/아래로. 데스크톱만 (제출용 탭 자체가 데스크톱 전용)</li>
+      <li><b>미선택 카드 드래그</b> → 핸들 흐림(25%), cursor not-allowed (가이드 only)</li>
+    </ul>
+
+    <h3>DB / API</h3>
+    <ul>
+      <li><code>legal_findings.submission_order INTEGER DEFAULT 0</code> 추가 (migration 0088)</li>
+      <li>새 API <code>PUT /api/legal/:id/submission-order</code> body <code>{ findingIds: string[] }</code> — 단일 트랜잭션 일괄 renumber</li>
+      <li>드래그 drop / 체크 토글 모두 같은 API 호출. 클라이언트는 항상 선택된 ID 의 ordered list 만 보냄</li>
+      <li><code>generate.ts</code>: <code>ORDER BY submission_order ASC, created_at ASC</code></li>
+    </ul>
+
+    <h3>드래그 구현</h3>
+    <ul>
+      <li>HTML5 native drag-and-drop (<code>draggable</code> + <code>onDragStart/Over/Drop</code>) — 추가 라이브러리 0</li>
+      <li>4건 max 정도라 native 로 충분. 시각 효과만 인라인 스타일로</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="ppt-page-title">PPT 페이지 1 (#1 좌측, #2 우측)</p>
+    <div class="ppt-page">
+      <div class="ppt-table">
+        <div class="ppt-cell lbl"><span class="slot-tag">#1</span>조치 전</div>
+        <div class="ppt-cell lbl"><span class="slot-tag">#2</span>조치 전</div>
+        <div class="ppt-cell photo">좌상<br>(카드 #1)</div>
+        <div class="ppt-cell photo">우상<br>(카드 #2)</div>
+        <div class="ppt-cell lbl"><span class="slot-tag">#1</span>조치 후</div>
+        <div class="ppt-cell lbl"><span class="slot-tag">#2</span>조치 후</div>
+        <div class="ppt-cell photo">좌하<br>(카드 #1)</div>
+        <div class="ppt-cell photo">우하<br>(카드 #2)</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="ppt-page-title">PPT 페이지 2 (#3 만 — 우측 빈 셀)</p>
+    <div class="ppt-page">
+      <div class="ppt-table">
+        <div class="ppt-cell lbl"><span class="slot-tag">#3</span>조치 전</div>
+        <div class="ppt-cell empty">(빈 셀)</div>
+        <div class="ppt-cell photo">좌상<br>(카드 #3)</div>
+        <div class="ppt-cell empty">(빈 셀)</div>
+        <div class="ppt-cell lbl"><span class="slot-tag">#3</span>조치 후</div>
+        <div class="ppt-cell empty">(빈 셀)</div>
+        <div class="ppt-cell photo">좌하<br>(카드 #3)</div>
+        <div class="ppt-cell empty">(빈 셀)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>예시 시나리오</h3>
+    <div class="step"><b>0개 → 3개</b><span>3개를 a, b, c 순서대로 체크 → #1=a, #2=b, #3=c 자동 부여</span></div>
+    <div class="step"><b>순서 변경</b><span>#3(c) 핸들 잡고 #1(a) 위로 드래그 → 새 순서: #1=c, #2=a, #3=b</span></div>
+    <div class="step"><b>체크 OFF</b><span>#2 (=a) 언체크 → 남은: #1=c, #2=b 로 renumber. a 는 구분선 아래로</span></div>
+    <div class="step"><b>다시 체크</b><span>a 재체크 → 자동으로 #3=a (현재 #N+1)</span></div>
+  </div>
+
+</div>
+
+</body>
+</html>

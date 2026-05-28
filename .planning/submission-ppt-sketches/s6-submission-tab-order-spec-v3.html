@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>S6 v3 — 제출용 탭 (체크 제거, 드래그 only)</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --text-primary:    #e6edf3;
+    --text-secondary:  #adb6c0;
+    --text-tertiary:   #8b949e;
+    --text-disabled:   #5d646e;
+    --text-on-accent:  #ffffff;
+    --border-default:  rgba(255, 255, 255, 0.14);
+    --border-strong:   rgba(255, 255, 255, 0.22);
+    --accent:          #3b82f6;
+    --safe:            #4ade80;
+    --safe-bg:         rgba(34, 197, 94, 0.16);
+    --warning:         #fbbf24;
+    --warning-bg:      rgba(245, 158, 11, 0.16);
+    --warning-bar:     #f59e0b;
+    --danger:          #f87171;
+    --danger-bg:       rgba(239, 68, 68, 0.16);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: #050709;
+    font-family: -apple-system, "Noto Sans KR", sans-serif;
+    color: var(--text-primary);
+    display: grid; grid-template-columns: 540px 420px; gap: 32px;
+    align-items: start;
+  }
+  h1.page-h { grid-column: 1 / -1; font-size: 18px; margin: 0 0 4px; }
+  .page-sub { grid-column: 1 / -1; font-size: 12px; color: var(--text-secondary); margin: 0 0 12px; }
+
+  .col2 {
+    background: var(--surface-page);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .col2-header { padding: 14px 16px; border-bottom: 1px solid var(--border-default); display:flex; justify-content:space-between; align-items:center; }
+  .col2-title { font-size: 14px; font-weight: 700; }
+  .save-btn-top { background: var(--accent); color: var(--text-on-accent); border: none; font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 6px; cursor: pointer; }
+  .sub-tabs { display: flex; border-bottom: 1px solid var(--border-default); background: var(--surface-raised); }
+  .sub-tab { flex: 1; padding: 11px; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-tertiary); border-bottom: 2px solid transparent; cursor: pointer; }
+  .sub-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface-page); }
+  .sub-tab .count { display: inline-block; margin-left: 4px; background: var(--surface-sunken); color: var(--text-secondary); font-size: 11px; padding: 1px 6px; border-radius: 99px; }
+  .sub-tab.active .count { background: var(--accent); color: var(--text-on-accent); }
+
+  .findings { padding: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 740px; overflow-y: auto; }
+
+  /* ── 카드 (4 컬럼 grid: handle | badge | textarea | save-btn) ── */
+  .sub-finding {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px 12px 12px 8px;
+    display: grid;
+    grid-template-columns: 18px 28px 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    row-gap: 8px;
+    align-items: stretch;
+    position: relative;
+    transition: transform 0.15s, opacity 0.15s, border-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+  }
+  .sub-finding.selected { border-color: var(--accent); background: var(--surface-active); }
+  .sub-finding.dragging { opacity: 0.35; transform: scale(0.98); }
+  .sub-finding.drag-over-top { box-shadow: 0 -3px 0 var(--accent); }
+  .sub-finding.drag-over-bottom { box-shadow: 0 3px 0 var(--accent); }
+
+  .drag-handle {
+    grid-column: 1; grid-row: 1 / span 2;
+    align-self: center; justify-self: center;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-tertiary);
+    cursor: grab;
+    border-radius: 4px;
+    width: 18px; height: 22px;
+  }
+  .drag-handle:hover { color: var(--accent); background: rgba(59,130,246,0.08); }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle svg { width: 14px; height: 14px; }
+
+  /* 순서 뱃지 슬롯 (카드 세로 중앙, 핸들과 같은 라인) */
+  .badge-slot {
+    grid-column: 2; grid-row: 1 / span 2;
+    align-self: center; justify-self: center;
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .order-badge {
+    background: var(--accent); color: var(--text-on-accent);
+    font-size: 11px; font-weight: 800;
+    height: 28px; min-width: 28px; padding: 0 6px;
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    letter-spacing: 0.02em;
+  }
+
+  .label-input {
+    grid-column: 3; grid-row: 1;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary); font-size: 12px;
+    padding: 8px 10px; border-radius: 6px;
+    min-height: 56px;
+    font-family: inherit; line-height: 1.45;
+    resize: vertical;
+    width: 100%;
+  }
+  .label-input:focus { border-color: var(--accent); outline: none; }
+  .label-input.readonly {
+    color: var(--text-tertiary);
+    background: var(--surface-page);
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+  .save-btn {
+    grid-column: 4; grid-row: 1;
+    background: var(--warning-bg); color: var(--warning); border: none;
+    font-size: 11px; font-weight: 700; padding: 0 12px; border-radius: 6px;
+    cursor: pointer; flex-shrink: 0; align-self: stretch;
+  }
+  .save-btn:disabled { background: var(--surface-sunken); color: var(--text-disabled); cursor: not-allowed; }
+
+  /* meta-row: textarea 컬럼(3) — 사진 chip(좌) + PPT hint(우, textarea 우측 모서리 정렬) */
+  .meta-row {
+    grid-column: 3; grid-row: 2;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; gap: 8px;
+  }
+  /* save-status: 저장버튼 컬럼(4) — 인디케이터/저장됨 (save-btn 좌측 모서리 정렬) */
+  .save-status {
+    grid-column: 4; grid-row: 2;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .photo-status { display: inline-flex; align-items: center; gap: 6px; }
+  .photo-status .label { color: var(--text-tertiary); font-weight: 700; margin-right: 2px; }
+  .photo-status .chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .photo-status .chip.has { background: var(--safe-bg); color: var(--safe); }
+  .photo-status .chip.missing { background: var(--danger-bg); color: var(--danger); }
+
+  .save-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-tertiary);
+  }
+  .save-indicator.saved { color: var(--safe); }
+  .save-indicator.saving { color: var(--accent); }
+  .save-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .save-indicator .ppt-hint {
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+  .save-indicator .ppt-hint b { color: var(--accent); font-weight: 700; }
+  .save-indicator .sep { color: var(--border-strong); margin: 0 2px; }
+
+  /* ── 빈 영역 (선택 0개일 때 상단) ── */
+  .empty-zone {
+    border: 1.5px dashed var(--border-strong);
+    border-radius: 10px;
+    min-height: 116px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    padding: 16px;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .empty-zone.drag-over { border-color: var(--accent); background: rgba(59,130,246,0.06); color: var(--accent); }
+  .empty-zone svg { width: 22px; height: 22px; opacity: 0.7; }
+  .empty-zone .strong { color: var(--text-secondary); font-weight: 700; font-size: 13px; }
+  .empty-zone.drag-over .strong { color: var(--accent); }
+
+  /* ── 구분선 ── */
+  .divider {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 2px;
+    color: var(--text-tertiary); font-size: 11px;
+    user-select: none;
+  }
+  .divider > .line { flex:1; height:1px; background: var(--border-default); }
+  .divider.drag-over > .line { background: var(--accent); }
+  .divider.drag-over { color: var(--accent); }
+
+  /* === 우측 패널 === */
+  .right { display: flex; flex-direction: column; gap: 16px; }
+  .annot { background: #11151a; border: 1px solid var(--border-default); border-radius: 12px; padding: 18px; font-size: 12px; line-height: 1.7; color: var(--text-secondary); }
+  .annot h2 { margin: 0 0 8px; color: var(--text-primary); font-size: 14px; }
+  .annot h3 { margin: 14px 0 6px; color: var(--text-primary); font-size: 12px; }
+  .annot code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; color: var(--text-primary); font-family: ui-monospace, monospace; font-size: 11px; }
+  .annot ul { margin: 4px 0; padding-left: 18px; }
+  .annot li { margin-bottom: 4px; }
+  .annot kbd { background: var(--surface-sunken); border: 1px solid var(--border-strong); padding: 1px 6px; border-radius: 3px; font-size: 10px; color: var(--text-primary); font-family: ui-monospace, monospace; }
+
+  .reset-btn {
+    background: var(--surface-sunken); color: var(--text-secondary);
+    border: 1px solid var(--border-strong);
+    padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    margin-top: 8px;
+  }
+  .reset-btn:hover { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1 class="page-h">S6 v3 — 제출용 탭 (체크박스 제거, 드래그 only)</h1>
+<p class="page-sub">아래 카드를 잡고 위쪽 빈 영역으로 끌면 PPT 포함. 위쪽 카드를 다시 아래로 끌면 미포함.</p>
+
+<!-- 좌: SubmissionTabPanel (실제 동작) -->
+<div class="col2">
+  <div class="col2-header">
+    <div>
+      <div class="col2-title">소방 상반기 종합정밀점검</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">2026.05.13 ~ 05.18</div>
+    </div>
+    <button class="save-btn-top">저장하기</button>
+  </div>
+  <div class="sub-tabs">
+    <div class="sub-tab">내부용 <span class="count">5</span></div>
+    <div class="sub-tab active">제출용 <span class="count" id="selected-count">0</span></div>
+  </div>
+
+  <div class="findings" id="findings-root">
+    <!-- JS 가 채움 -->
+  </div>
+</div>
+
+<!-- 우: 설명 + 컨트롤 -->
+<div class="right">
+  <div class="annot">
+    <h2>v3 변경점</h2>
+    <ul>
+      <li><b style="color:var(--text-primary);">체크박스 제거</b> — 카드를 위쪽으로 드래그 = PPT 포함, 아래로 = 미포함</li>
+      <li><b style="color:var(--text-primary);">빈 영역</b> — 선택 0개일 때 상단에 점선 박스 (드롭 가이드). 1개 이상 선택되면 사라짐</li>
+      <li><b style="color:var(--text-primary);">정보 통합</b> — 위치/지적내용을 textarea 에 prefill. 별도 info-line 행 제거</li>
+      <li><b style="color:var(--text-primary);">미포함 카드</b> — textarea readonly (점선 border, 회색). 수정 불가</li>
+      <li><b style="color:var(--text-primary);">순서 뱃지</b> — textarea 좌측, 체크박스 자리. 선택 시 #1, #2 …</li>
+      <li><b style="color:var(--text-primary);">PPT hint 위치</b> — meta-row 의 사진 chip 우측, 저장상태 사이</li>
+      <li><b style="color:var(--text-primary);">사진 chip 정렬</b> — textarea 좌측 라인과 동일 (들여쓰기 38px)</li>
+    </ul>
+    <h3>드래그 룰</h3>
+    <ul>
+      <li>드래그 핸들 <kbd>⋮⋮</kbd> 카드 좌측 — 잡고 위/아래 위치로</li>
+      <li>드롭 위치: 다른 카드 위/아래 (파란 막대), 구분선, 빈영역 모두 OK</li>
+      <li>구분선 위 → PPT 포함 (자동 # 부여). 아래 → 미포함 (textarea readonly)</li>
+    </ul>
+
+    <button class="reset-btn" id="reset-btn">시안 초기 상태로 리셋</button>
+  </div>
+</div>
+
+<script>
+  // ── 데모 데이터 ──────────────────────────────────────
+  const FINDINGS = [
+    { id: 'f1', loc: '지하 B3 F3기둥 근처', desc: '유도등 — 예비전원 불량',           hasBefore: true,  hasAfter: true  },
+    { id: 'f2', loc: '연구동 7F 동측 복도', desc: '소화기 — 압력 미달',                hasBefore: true,  hasAfter: true  },
+    { id: 'f3', loc: '연구동 8F ABSL3 실험구역 내부창고 (802f) 맞은편 P/R실 옆 전실', desc: '전실제연댐퍼 — 작동 불량', hasBefore: true,  hasAfter: true  },
+    { id: 'f4', loc: '관리동 2F 사무실',     desc: '유도등 — 미점등',                  hasBefore: true,  hasAfter: true  },
+    { id: 'f5', loc: '기계실 펌프 5번',      desc: '밸브 누수',                         hasBefore: true,  hasAfter: false },
+  ];
+
+  // 상태: selectedOrder (id 배열, 순서 의미), 나머지는 unselected
+  let selectedOrder = [];
+
+  // ── 렌더 ─────────────────────────────────────────────
+  function render() {
+    const root = document.getElementById('findings-root');
+    root.innerHTML = '';
+
+    // 상단: 선택된 카드 / 또는 빈 영역
+    if (selectedOrder.length === 0) {
+      root.appendChild(renderEmptyZone());
+    } else {
+      selectedOrder.forEach((id, idx) => {
+        const f = FINDINGS.find(x => x.id === id);
+        if (f) root.appendChild(renderCard(f, true, idx + 1));
+      });
+    }
+
+    // 구분선
+    root.appendChild(renderDivider());
+
+    // 하단: 미포함
+    FINDINGS.forEach(f => {
+      if (!selectedOrder.includes(f.id)) {
+        root.appendChild(renderCard(f, false, null));
+      }
+    });
+
+    // 선택 카운트
+    document.getElementById('selected-count').textContent = selectedOrder.length;
+  }
+
+  // ── 카드 ────────────────────────────────────────────
+  function renderCard(f, isSelected, orderNum) {
+    const el = document.createElement('div');
+    el.className = 'sub-finding' + (isSelected ? ' selected' : '');
+    el.draggable = true;
+    el.dataset.fid = f.id;
+
+    // 좌측 드래그 핸들 (col 1, span 2 rows)
+    const handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.title = '드래그해서 위치 변경';
+    handle.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor">
+      <circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/>
+      <circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/>
+      <circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/>
+    </svg>`;
+    el.appendChild(handle);
+
+    // 순서 뱃지 슬롯 (col 2, span 2 rows, 카드 세로 중앙)
+    const badgeSlot = document.createElement('div');
+    badgeSlot.className = 'badge-slot';
+    if (isSelected) {
+      const badge = document.createElement('span');
+      badge.className = 'order-badge';
+      badge.textContent = '#' + orderNum;
+      badgeSlot.appendChild(badge);
+    }
+    el.appendChild(badgeSlot);
+
+    // textarea (col 3, row 1)
+    const textarea = document.createElement('textarea');
+    textarea.className = 'label-input' + (isSelected ? '' : ' readonly');
+    textarea.value = (f.loc + ' ' + f.desc).trim();
+    if (!isSelected) {
+      textarea.readOnly = true;
+      textarea.tabIndex = -1;
+    }
+    el.appendChild(textarea);
+
+    // save 버튼 (col 4, row 1)
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'save-btn';
+    saveBtn.textContent = '저장';
+    saveBtn.disabled = !isSelected;
+    el.appendChild(saveBtn);
+
+    // meta-row (col 3, row 2): 사진 chip(좌) + 인디케이터(우, textarea 우측 모서리 정렬)
+    const metaRow = document.createElement('div');
+    metaRow.className = 'meta-row';
+
+    const photoStatus = document.createElement('div');
+    photoStatus.className = 'photo-status';
+    photoStatus.innerHTML = `
+      <span class="label">사진 :</span>
+      <span class="chip ${f.hasBefore ? 'has' : 'missing'}">조치 전 ${f.hasBefore ? '✓' : '✗'}</span>
+      <span class="chip ${f.hasAfter ? 'has' : 'missing'}">조치 후 ${f.hasAfter ? '✓' : '✗'}</span>
+    `;
+    metaRow.appendChild(photoStatus);
+
+    // meta-row 우측: PPT hint (선택 시) OR 미포함 안내 (미선택 시)
+    const metaRight = document.createElement('div');
+    metaRight.className = 'save-indicator';
+    if (isSelected) {
+      const pptPage = Math.ceil(orderNum / 2);
+      const pptSide = orderNum % 2 === 1 ? '좌측' : '우측';
+      metaRight.innerHTML = `<span class="ppt-hint">PPT <b>${pptPage}페이지 ${pptSide}</b></span>`;
+    } else if (!f.hasBefore || !f.hasAfter) {
+      metaRight.style.color = 'var(--danger)';
+      metaRight.innerHTML = '사진 부족 — PPT 포함 불가';
+    } else {
+      metaRight.innerHTML = '<span>—</span>';
+    }
+    metaRow.appendChild(metaRight);
+
+    el.appendChild(metaRow);
+
+    // save-status (col 4 row 2): 인디케이터 + 저장됨 — save-btn 좌측 모서리에 정렬
+    if (isSelected) {
+      const saveStatus = document.createElement('div');
+      saveStatus.className = 'save-status save-indicator saved';
+      saveStatus.innerHTML = `<span class="dot"></span><span>저장됨</span>`;
+      el.appendChild(saveStatus);
+    }
+
+    // 드래그 이벤트
+    attachDragEvents(el, f);
+
+    return el;
+  }
+
+  // ── 빈 영역 (드롭 가이드) ─────────────────────────────
+  function renderEmptyZone() {
+    const el = document.createElement('div');
+    el.className = 'empty-zone';
+    el.dataset.dropTarget = 'top';
+    el.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M5 12l7-7 7 7"/>
+      </svg>
+      <span class="strong">PPT 에 포함할 카드를 여기로 드래그</span>
+      <span>아래 미포함 영역에서 카드를 잡고 위로 끌면 자동으로 #1 부여</span>
+    `;
+
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      const fid = e.dataTransfer.getData('text/plain');
+      if (!fid) return;
+      moveTo(fid, 'top-position', 0);
+    });
+
+    return el;
+  }
+
+  // ── 구분선 ────────────────────────────────────────────
+  function renderDivider() {
+    const el = document.createElement('div');
+    el.className = 'divider';
+    el.dataset.dropTarget = 'divider';
+    el.innerHTML = '<div class="line"></div><span>아래는 PPT 미포함</span><div class="line"></div>';
+
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      const fid = e.dataTransfer.getData('text/plain');
+      if (!fid) return;
+      // 구분선 드롭 = 미포함 으로 이동 (top of unselected)
+      moveTo(fid, 'unselected', 0);
+    });
+
+    return el;
+  }
+
+  // ── 드래그 이벤트 ─────────────────────────────────────
+  function attachDragEvents(cardEl, f) {
+    cardEl.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', f.id);
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => cardEl.classList.add('dragging'), 0);
+    });
+    cardEl.addEventListener('dragend', () => {
+      cardEl.classList.remove('dragging');
+    });
+    cardEl.addEventListener('dragover', e => {
+      e.preventDefault();
+      const rect = cardEl.getBoundingClientRect();
+      const halfway = rect.top + rect.height / 2;
+      const isTop = e.clientY < halfway;
+      cardEl.classList.toggle('drag-over-top', isTop);
+      cardEl.classList.toggle('drag-over-bottom', !isTop);
+    });
+    cardEl.addEventListener('dragleave', () => {
+      cardEl.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    cardEl.addEventListener('drop', e => {
+      e.preventDefault();
+      const fromFid = e.dataTransfer.getData('text/plain');
+      if (!fromFid || fromFid === f.id) {
+        cardEl.classList.remove('drag-over-top', 'drag-over-bottom');
+        return;
+      }
+      const rect = cardEl.getBoundingClientRect();
+      const halfway = rect.top + rect.height / 2;
+      const insertBefore = e.clientY < halfway;
+
+      // 타겟 카드가 selected 인지 unselected 인지 판정
+      const targetIsSelected = cardEl.classList.contains('selected');
+      const targetIdx = targetIsSelected
+        ? selectedOrder.indexOf(f.id)
+        : FINDINGS.filter(x => !selectedOrder.includes(x.id)).findIndex(x => x.id === f.id);
+
+      const insertIdx = insertBefore ? targetIdx : targetIdx + 1;
+      moveTo(fromFid, targetIsSelected ? 'selected' : 'unselected', insertIdx);
+
+      cardEl.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+  }
+
+  // ── 위치 이동 (단일 진입점) ──────────────────────────
+  function moveTo(fid, zone, idx) {
+    // 현재 selectedOrder 에서 제거
+    selectedOrder = selectedOrder.filter(x => x !== fid);
+
+    if (zone === 'selected' || zone === 'top-position') {
+      // selected 영역에 idx 위치로 삽입
+      const insertAt = Math.max(0, Math.min(idx, selectedOrder.length));
+      selectedOrder.splice(insertAt, 0, fid);
+    }
+    // zone === 'unselected' 면 selectedOrder 에서 빠진 채로 유지
+
+    render();
+  }
+
+  // ── 리셋 ─────────────────────────────────────────────
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    selectedOrder = [];
+    render();
+  });
+
+  // 초기 렌더
+  render();
+</script>
+
+</body>
+</html>

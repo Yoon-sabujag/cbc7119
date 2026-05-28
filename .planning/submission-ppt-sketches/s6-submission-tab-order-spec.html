@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>S6 — 제출용 탭 카드 순서 지정 spec</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --text-primary:    #e6edf3;
+    --text-secondary:  #adb6c0;
+    --text-tertiary:   #8b949e;
+    --text-disabled:   #5d646e;
+    --text-on-accent:  #ffffff;
+    --border-default:  rgba(255, 255, 255, 0.14);
+    --border-strong:   rgba(255, 255, 255, 0.22);
+    --accent:          #3b82f6;
+    --safe:            #4ade80;
+    --safe-bg:         rgba(34, 197, 94, 0.16);
+    --warning:         #fbbf24;
+    --warning-bg:      rgba(245, 158, 11, 0.16);
+    --warning-bar:     #f59e0b;
+    --danger:          #f87171;
+    --danger-bg:       rgba(239, 68, 68, 0.16);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: #050709;
+    font-family: -apple-system, "Noto Sans KR", sans-serif;
+    color: var(--text-primary);
+    display: grid;
+    grid-template-columns: 540px 460px;
+    gap: 32px;
+    align-items: start;
+  }
+  h1.page-h { grid-column: 1 / -1; font-size: 18px; margin: 0 0 4px; color: var(--text-primary); }
+  .page-sub { grid-column: 1 / -1; font-size: 12px; color: var(--text-secondary); margin: 0 0 12px; }
+
+  /* === 2열 패널 === */
+  .col2 {
+    background: var(--surface-page);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .col2-header { padding: 14px 16px; border-bottom: 1px solid var(--border-default); display:flex; justify-content:space-between; align-items:center; }
+  .col2-title { font-size: 14px; font-weight: 700; }
+  .save-btn-top {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border: none;
+    font-size: 12px; font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .sub-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-default);
+    background: var(--surface-raised);
+  }
+  .sub-tab {
+    flex: 1; padding: 11px; text-align: center;
+    font-size: 13px; font-weight: 700;
+    color: var(--text-tertiary);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .sub-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface-page); }
+  .sub-tab .count {
+    display: inline-block; margin-left: 4px;
+    background: var(--surface-sunken); color: var(--text-secondary);
+    font-size: 11px; padding: 1px 6px; border-radius: 99px;
+  }
+  .sub-tab.active .count { background: var(--accent); color: var(--text-on-accent); }
+
+  /* === 카드 === */
+  .findings {
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 640px; overflow-y: auto;
+  }
+  .sub-finding {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex; flex-direction: column;
+    gap: 8px;
+    position: relative;
+  }
+  .sub-finding.selected {
+    border-color: var(--accent);
+    background: var(--surface-active);
+  }
+
+  /* NEW: 순서 뱃지 (선택된 카드만) */
+  .order-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: -2px;
+  }
+  .order-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: var(--text-on-accent);
+    font-size: 11px; font-weight: 800;
+    height: 22px; padding: 0 9px;
+    border-radius: 11px;
+    letter-spacing: 0.02em;
+  }
+  .order-arrows {
+    display: inline-flex; gap: 4px;
+  }
+  .order-arrow {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 11px; font-weight: 700;
+  }
+  .order-arrow:hover { color: var(--accent); border-color: var(--accent); }
+  .order-arrow.disabled {
+    opacity: 0.35; cursor: not-allowed; color: var(--text-disabled);
+  }
+  .order-spacer { flex: 1; }
+  .order-ppt-hint {
+    font-size: 11px; color: var(--text-tertiary);
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .order-ppt-hint b { color: var(--accent); font-weight: 700; }
+
+  .info-line {
+    font-size: 13px; font-weight: 700; line-height: 1.4;
+    color: var(--text-primary);
+  }
+  .info-line .seg-loc { color: var(--text-secondary); }
+  .info-line .seg-sep { color: var(--text-tertiary); padding: 0 6px; }
+
+  .input-row { display: flex; gap: 10px; align-items: stretch; }
+  .check-wrap { display: flex; align-items: center; flex-shrink: 0; }
+  .check {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border-strong);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .check.on { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); font-size: 16px; font-weight: 700; }
+  .label-input {
+    flex: 1; background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary); font-size: 12px;
+    padding: 8px 10px; border-radius: 6px; min-height: 36px;
+    font-family: inherit;
+  }
+  .label-input:disabled { color: var(--text-disabled); background: transparent; }
+  .save-btn {
+    background: var(--warning-bg); color: var(--warning);
+    border: none; font-size: 11px; font-weight: 700;
+    padding: 0 12px; border-radius: 6px; cursor: pointer;
+    flex-shrink: 0; align-self: stretch;
+  }
+  .save-btn:disabled { background: var(--surface-sunken); color: var(--text-disabled); cursor: not-allowed; }
+
+  .meta-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; gap: 8px;
+  }
+  .photo-status { display: inline-flex; align-items: center; gap: 6px; }
+  .photo-status .label { color: var(--text-tertiary); font-weight: 700; margin-right: 2px; }
+  .photo-status .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 6px; border-radius: 4px; font-weight: 700;
+  }
+  .photo-status .chip.has { background: var(--safe-bg); color: var(--safe); }
+  .photo-status .chip.missing { background: var(--danger-bg); color: var(--danger); }
+  .save-indicator { display: inline-flex; align-items: center; gap: 4px; color: var(--text-tertiary); }
+  .save-indicator.saved { color: var(--safe); }
+  .save-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* === 우측: 설명 + PPT 매핑 다이어그램 === */
+  .right { display: flex; flex-direction: column; gap: 16px; }
+  .annot {
+    background: #11151a;
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 12px; line-height: 1.7;
+    color: var(--text-secondary);
+  }
+  .annot h2 { margin: 0 0 8px; color: var(--text-primary); font-size: 14px; }
+  .annot h3 { margin: 16px 0 6px; color: var(--text-primary); font-size: 12px; }
+  .annot code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; color: var(--text-primary); font-family: ui-monospace, monospace; font-size: 11px; }
+  .annot ul { margin: 4px 0; padding-left: 18px; }
+  .annot li { margin-bottom: 4px; }
+
+  /* PPT 미리보기 그림 */
+  .ppt-page {
+    background: #fafafa; color: #111;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 8px;
+    font-family: -apple-system, sans-serif;
+  }
+  .ppt-page-title { font-size: 11px; color: var(--text-secondary); font-weight: 700; margin: 0 0 8px; padding-left: 2px; }
+  .ppt-table { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 20px 110px 20px 110px; gap: 0; border: 1px solid #333; }
+  .ppt-cell {
+    border: 1px solid #999;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #444;
+    text-align: center; padding: 4px;
+  }
+  .ppt-cell.lbl { background: #f0f0f0; font-size: 10px; color: #222; }
+  .ppt-cell.photo {
+    background: linear-gradient(135deg, #c8d6ec 25%, #a6bfe0 25%, #a6bfe0 50%, #c8d6ec 50%, #c8d6ec 75%, #a6bfe0 75%);
+    background-size: 12px 12px;
+    color: #1f3a5f;
+  }
+  .slot-tag {
+    display: inline-block;
+    background: var(--accent); color: var(--text-on-accent);
+    font-size: 9px; font-weight: 800;
+    padding: 1px 5px; border-radius: 8px;
+    margin-right: 4px;
+  }
+
+  /* 동작 다이어그램 (toggle 시나리오) */
+  .scenario {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .scenario h3 { margin: 0 0 8px; font-size: 12px; color: var(--text-primary); }
+  .scenario .step { display: flex; gap: 8px; margin: 4px 0; align-items: flex-start; }
+  .scenario .step b { color: var(--accent); flex-shrink: 0; min-width: 38px; }
+  .scenario code { background: var(--surface-sunken); color: var(--text-primary); padding: 1px 5px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 10px; }
+</style>
+</head>
+<body>
+
+<h1 class="page-h">S6 — 제출용 탭 카드 순서 지정 spec (Bug 2 fix 시안)</h1>
+<p class="page-sub">제출용 탭에서 체크된 카드에 순서 번호(#1, #2, ...) 부여 + ↑↓ 버튼으로 PPT 슬롯 순서 변경.</p>
+
+<!-- ─────────────── 좌: SubmissionTabPanel (제출용 탭) ─────────────── -->
+<div class="col2">
+  <div class="col2-header">
+    <div>
+      <div class="col2-title">소방 상반기 종합정밀점검</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">2026.05.13 ~ 05.18</div>
+    </div>
+    <button class="save-btn-top">저장하기</button>
+  </div>
+  <div class="sub-tabs">
+    <div class="sub-tab">내부용 <span class="count">5</span></div>
+    <div class="sub-tab active">제출용 <span class="count">3</span></div>
+  </div>
+
+  <div class="findings">
+
+    <!-- 카드 #1: 선택됨, 첫번째 (↑ disabled) -->
+    <div class="sub-finding selected">
+      <div class="order-row">
+        <span class="order-badge">#1</span>
+        <span class="order-arrows">
+          <span class="order-arrow disabled" title="이미 첫번째">▲</span>
+          <span class="order-arrow" title="아래로">▼</span>
+        </span>
+        <span class="order-spacer"></span>
+        <span class="order-ppt-hint">PPT <b>1페이지 좌측</b></span>
+      </div>
+      <div class="info-line">
+        <span class="seg-loc">지하 B3 F3기둥 근처</span>
+        <span class="seg-sep">|</span>
+        <span>유도등 — 예비전원 불량</span>
+      </div>
+      <div class="input-row">
+        <div class="check-wrap"><div class="check on">✓</div></div>
+        <textarea class="label-input">지하 B3 F3기둥 근처 유도등 예비전원 불량</textarea>
+        <button class="save-btn" disabled>저장</button>
+      </div>
+      <div class="meta-row">
+        <div class="photo-status">
+          <span class="label">사진 :</span>
+          <span class="chip has">조치 전 ✓</span>
+          <span class="chip has">조치 후 ✓</span>
+        </div>
+        <div class="save-indicator saved"><span class="dot"></span>저장됨</div>
+      </div>
+    </div>
+
+    <!-- 카드 #2: 선택됨, 중간 (↑↓ 둘 다 활성) -->
+    <div class="sub-finding selected">
+      <div class="order-row">
+        <span class="order-badge">#2</span>
+        <span class="order-arrows">
+          <span class="order-arrow" title="위로">▲</span>
+          <span class="order-arrow" title="아래로">▼</span>
+        </span>
+        <span class="order-spacer"></span>
+        <span class="order-ppt-hint">PPT <b>1페이지 우측</b></span>
+      </div>
+      <div class="info-line">
+        <span class="seg-loc">연구동 7F 동측 복도</span>
+        <span class="seg-sep">|</span>
+        <span>소화기 — 압력 미달</span>
+      </div>
+      <div class="input-row">
+        <div class="check-wrap"><div class="check on">✓</div></div>
+        <textarea class="label-input">연구동 7F 동측 복도 소화기 압력 미달</textarea>
+        <button class="save-btn" disabled>저장</button>
+      </div>
+      <div class="meta-row">
+        <div class="photo-status">
+          <span class="label">사진 :</span>
+          <span class="chip has">조치 전 ✓</span>
+          <span class="chip has">조치 후 ✓</span>
+        </div>
+        <div class="save-indicator saved"><span class="dot"></span>저장됨</div>
+      </div>
+    </div>
+
+    <!-- 카드 #3: 선택됨, 마지막 (↓ disabled) -->
+    <div class="sub-finding selected">
+      <div class="order-row">
+        <span class="order-badge">#3</span>
+        <span class="order-arrows">
+          <span class="order-arrow" title="위로">▲</span>
+          <span class="order-arrow disabled" title="이미 마지막">▼</span>
+        </span>
+        <span class="order-spacer"></span>
+        <span class="order-ppt-hint">PPT <b>2페이지 좌측</b></span>
+      </div>
+      <div class="info-line">
+        <span class="seg-loc">연구동 8F ABSL3 실험구역 내부창고 (802f) 맞은편 P/R실 옆 전실</span>
+        <span class="seg-sep">|</span>
+        <span>전실제연댐퍼 — 작동 불량</span>
+      </div>
+      <div class="input-row">
+        <div class="check-wrap"><div class="check on">✓</div></div>
+        <textarea class="label-input">8F ABSL3 P/R실 전실 제연댐퍼 작동 불량</textarea>
+        <button class="save-btn" disabled>저장</button>
+      </div>
+      <div class="meta-row">
+        <div class="photo-status">
+          <span class="label">사진 :</span>
+          <span class="chip has">조치 전 ✓</span>
+          <span class="chip has">조치 후 ✓</span>
+        </div>
+        <div class="save-indicator saved"><span class="dot"></span>저장됨</div>
+      </div>
+    </div>
+
+    <!-- ── 구분선 (선택 vs 미선택) ── -->
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 2px;color:var(--text-tertiary);font-size:11px;">
+      <div style="flex:1;height:1px;background:var(--border-default);"></div>
+      <span>아래는 PPT 미포함</span>
+      <div style="flex:1;height:1px;background:var(--border-default);"></div>
+    </div>
+
+    <!-- 카드: 미선택 (순서 row 없음) -->
+    <div class="sub-finding">
+      <div class="info-line">
+        <span class="seg-loc">관리동 2F 사무실</span>
+        <span class="seg-sep">|</span>
+        <span>유도등 — 미점등</span>
+      </div>
+      <div class="input-row">
+        <div class="check-wrap"><div class="check">&nbsp;</div></div>
+        <textarea class="label-input" disabled placeholder="체크하면 PPT 라벨 입력 가능"></textarea>
+        <button class="save-btn" disabled>저장</button>
+      </div>
+      <div class="meta-row">
+        <div class="photo-status">
+          <span class="label">사진 :</span>
+          <span class="chip has">조치 전 ✓</span>
+          <span class="chip has">조치 후 ✓</span>
+        </div>
+        <div class="save-indicator" style="color:var(--text-tertiary);">—</div>
+      </div>
+    </div>
+
+    <!-- 카드: 미선택 + 사진부족 -->
+    <div class="sub-finding" style="opacity:0.7;">
+      <div class="info-line">
+        <span class="seg-loc">기계실 펌프 5번</span>
+        <span class="seg-sep">|</span>
+        <span>밸브 누수</span>
+      </div>
+      <div class="input-row">
+        <div class="check-wrap"><div class="check" style="cursor:not-allowed;border-color:var(--border-default);">&nbsp;</div></div>
+        <textarea class="label-input" disabled></textarea>
+        <button class="save-btn" disabled>저장</button>
+      </div>
+      <div class="meta-row">
+        <div class="photo-status">
+          <span class="label">사진 :</span>
+          <span class="chip has">조치 전 ✓</span>
+          <span class="chip missing">조치 후 ✗</span>
+        </div>
+        <div class="save-indicator" style="color:var(--danger);">사진 부족 — 저장 불가</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────── 우: 설명 + PPT 매핑 + 시나리오 ─────────────── -->
+<div class="right">
+
+  <div class="annot">
+    <h2>새로 추가되는 것 (시각)</h2>
+    <ul>
+      <li><b style="color:var(--text-primary);">순서 뱃지</b> — 선택된 카드 좌상단에 <code>#1</code>, <code>#2</code>, ... (accent 색)</li>
+      <li><b style="color:var(--text-primary);">↑↓ 버튼</b> — 뱃지 옆. 맨 위 카드 ↑ disabled / 맨 아래 카드 ↓ disabled</li>
+      <li><b style="color:var(--text-primary);">우측 hint</b> — "PPT 1페이지 좌측" 처럼 어디로 가는지 즉시 표시</li>
+      <li><b style="color:var(--text-primary);">정렬</b> — 선택 카드를 <code>order ASC</code> 로 상단 → 미선택은 기존 status/createdAt 룰</li>
+    </ul>
+
+    <h3>변경 없는 것</h3>
+    <ul>
+      <li>체크박스, 라벨 textarea, 저장 버튼, 사진 chip, 저장 인디케이터 — 위치/디자인 그대로</li>
+      <li>미선택 카드는 순서 row 가 아예 안 보임 (체크 시 등장)</li>
+    </ul>
+
+    <h3>DB / API</h3>
+    <ul>
+      <li><code>legal_findings.submission_order INTEGER DEFAULT 0</code> 추가 (migration 0088)</li>
+      <li>새 API <code>PUT /api/legal/:id/submission-order</code> body <code>{ findingIds: string[] }</code> — 트랜잭션으로 일괄 renumber</li>
+      <li><code>generate.ts</code>: <code>ORDER BY submission_order ASC, created_at ASC</code></li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="ppt-page-title">PPT 페이지 1 (카드 #1, #2 매핑)</p>
+    <div class="ppt-page">
+      <div class="ppt-table">
+        <div class="ppt-cell lbl"><span class="slot-tag">#1</span>조치 전</div>
+        <div class="ppt-cell lbl"><span class="slot-tag">#2</span>조치 전</div>
+        <div class="ppt-cell photo">좌상<br>(카드 #1)</div>
+        <div class="ppt-cell photo">우상<br>(카드 #2)</div>
+        <div class="ppt-cell lbl"><span class="slot-tag">#1</span>조치 후</div>
+        <div class="ppt-cell lbl"><span class="slot-tag">#2</span>조치 후</div>
+        <div class="ppt-cell photo">좌하<br>(카드 #1)</div>
+        <div class="ppt-cell photo">우하<br>(카드 #2)</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="ppt-page-title">PPT 페이지 2 (카드 #3 — #4 미선택이면 우측 빈칸)</p>
+    <div class="ppt-page">
+      <div class="ppt-table">
+        <div class="ppt-cell lbl"><span class="slot-tag">#3</span>조치 전</div>
+        <div class="ppt-cell lbl" style="color:#999;">(없음)</div>
+        <div class="ppt-cell photo">좌상<br>(카드 #3)</div>
+        <div class="ppt-cell" style="background:#e8e8e8;color:#999;">(빈 셀)</div>
+        <div class="ppt-cell lbl"><span class="slot-tag">#3</span>조치 후</div>
+        <div class="ppt-cell lbl" style="color:#999;">(없음)</div>
+        <div class="ppt-cell photo">좌하<br>(카드 #3)</div>
+        <div class="ppt-cell" style="background:#e8e8e8;color:#999;">(빈 셀)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>동작 시나리오</h3>
+    <div class="step"><b>체크 ON</b><span>아직 0번이면 → 현재 최대값 + 1 자동 부여. 카드는 선택 목록 맨 아래로.</span></div>
+    <div class="step"><b>체크 OFF</b><span>해당 카드 order=0 으로. 남은 카드를 1, 2, 3, ... 로 자동 renumber (빈 번호 없음).</span></div>
+    <div class="step"><b>↑ 클릭</b><span>해당 카드와 바로 위 카드의 order 를 swap. 우측 "PPT N페이지 좌/우" hint 도 즉시 갱신.</span></div>
+    <div class="step"><b>↓ 클릭</b><span>해당 카드와 바로 아래 카드의 order 를 swap.</span></div>
+    <div class="step"><b>저장</b><span>↑↓/체크 변경 즉시 <code>PUT submission-order</code> 호출 → 우측 3열 미리보기 + PPT 생성 모두 새 순서로.</span></div>
+  </div>
+
+</div>
+
+</body>
+</html>

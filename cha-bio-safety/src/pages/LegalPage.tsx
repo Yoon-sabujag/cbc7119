@@ -243,7 +243,7 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab,
 }
 
 // ══════════════════════════════════════════════════════════════════
-// ── 데스크톱: 2열 제출용 탭 (체크박스 + 라벨 + 자동저장) ──────────────
+// ── 데스크톱: 2열 제출용 탭 (드래그&드롭 순서, 체크박스 제거 W10) ────────
 // ══════════════════════════════════════════════════════════════════
 function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: boolean }) {
   const queryClient = useQueryClient()
@@ -260,6 +260,9 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
   const [saveStates, setSaveStates] = useState<Record<string, 'saved' | 'dirty' | 'saving' | 'error'>>({})
   // 디바운스 타이머
   const debounceTimers = useRef<Record<string, number>>({})
+  // 드래그 중인 finding id (시각 효과용)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ kind: 'card'|'empty'|'divider'; id?: string; pos?: 'top'|'bottom' } | null>(null)
 
   // 라운드 바뀌면 로컬 상태 초기화
   useEffect(() => {
@@ -272,14 +275,7 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
   const persistLabel = (fid: string, label: string) => {
     setSaveStates(prev => ({ ...prev, [fid]: 'saving' }))
     legalApi.updateFinding(roundId, fid, { submission_label: label })
-      .then(() => {
-        setSaveStates(prev => ({ ...prev, [fid]: 'saved' }))
-        // localLabels 는 그대로 유지 — textarea 의 controlled value 가 재설정되면
-        // 커서 위치가 문장 끝으로 점프하고 입력 중인 글자가 중복/소실되는 사고 (260527 발견)
-        // 라운드 전환 시 useEffect 에서 일괄 reset 함
-        // invalidateQueries 도 생략 — 라벨 저장은 다른 mutation 결과에 영향 X
-        // 체크박스 토글 (handleToggle) 은 별도로 invalidate
-      })
+      .then(() => setSaveStates(prev => ({ ...prev, [fid]: 'saved' })))
       .catch((err: any) => {
         setSaveStates(prev => ({ ...prev, [fid]: 'error' }))
         toast.error(err?.message ?? '라벨 저장 실패')
@@ -292,16 +288,9 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
     if (debounceTimers.current[fid]) clearTimeout(debounceTimers.current[fid])
     debounceTimers.current[fid] = window.setTimeout(() => persistLabel(fid, label), 500)
   }
-
   const handleSaveNow = (fid: string, label: string) => {
     if (debounceTimers.current[fid]) clearTimeout(debounceTimers.current[fid])
     persistLabel(fid, label)
-  }
-
-  const handleToggle = (fid: string, current: boolean) => {
-    legalApi.updateFinding(roundId, fid, { submission_selected: !current })
-      .then(() => queryClient.invalidateQueries({ queryKey: ['legal-findings', roundId] }))
-      .catch((err: any) => toast.error(err?.message ?? '선택 변경 실패'))
   }
 
   const getDisplayLabel = (f: LegalFinding): string => {
@@ -310,21 +299,105 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
     return `${f.location ?? ''} ${f.description}`.trim()
   }
 
-  const sorted = [...(findings ?? [])].sort((a, b) => {
-    if (a.status === 'open' && b.status !== 'open') return -1
-    if (a.status !== 'open' && b.status === 'open') return 1
-    return b.createdAt.localeCompare(a.createdAt)
+  // 선택된 카드: submissionOrder ASC. 미선택: status open 우선 + createdAt DESC.
+  const all = findings ?? []
+  const selected = all.filter(f => f.submissionOrder > 0).sort((a, b) => a.submissionOrder - b.submissionOrder)
+  const unselected = all
+    .filter(f => f.submissionOrder === 0)
+    .sort((a, b) => {
+      if (a.status === 'open' && b.status !== 'open') return -1
+      if (a.status !== 'open' && b.status === 'open') return 1
+      return b.createdAt.localeCompare(a.createdAt)
+    })
+
+  // ── 순서 저장 mutation (optimistic) ──
+  const orderMutation = useMutation({
+    mutationFn: (ids: string[]) => legalApi.setSubmissionOrder(roundId, ids),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: ['legal-findings', roundId] })
+      const prev = queryClient.getQueryData<LegalFinding[]>(['legal-findings', roundId])
+      queryClient.setQueryData<LegalFinding[]>(['legal-findings', roundId], (cur) => {
+        if (!cur) return cur
+        const idxMap = new Map(ids.map((id, i) => [id, i + 1]))
+        return cur.map(f => ({
+          ...f,
+          submissionOrder: idxMap.get(f.id) ?? 0,
+          submissionSelected: idxMap.has(f.id),
+        }))
+      })
+      return { prev }
+    },
+    onError: (err: any, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['legal-findings', roundId], ctx.prev)
+      toast.error(err?.message ?? '순서 저장 실패')
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['legal-findings', roundId] }),
   })
 
-  if (isLoading) {
-    return (
-      <div style={{ flex: 1, padding: 16 }}>
-        <div className={SKELETON_CLS} style={SKELETON_STYLE} />
-      </div>
-    )
+  // 드롭 → 새 순서 계산 후 mutation
+  const reorder = (fromFid: string, target: { kind: 'top' } | { kind: 'card'; id: string; pos: 'top'|'bottom' } | { kind: 'divider' }) => {
+    const curIds = selected.map(f => f.id)
+    const without = curIds.filter(id => id !== fromFid)
+    let nextIds: string[]
+    if (target.kind === 'divider') {
+      // 구분선 드롭 = 미포함 처리
+      nextIds = without
+    } else if (target.kind === 'top') {
+      // 빈 영역 = 선택 영역의 맨 끝에 (현재 0개 → idx 0)
+      nextIds = [...without, fromFid]
+    } else {
+      const targetIdx = without.indexOf(target.id)
+      if (targetIdx === -1) {
+        // 타겟이 미포함 카드면 = 미포함 → 미포함은 그대로, fromFid 만 제거
+        nextIds = without
+      } else {
+        const insertAt = target.pos === 'top' ? targetIdx : targetIdx + 1
+        nextIds = [...without.slice(0, insertAt), fromFid, ...without.slice(insertAt)]
+      }
+    }
+    orderMutation.mutate(nextIds)
   }
 
-  if (sorted.length === 0) {
+  // ── 카드 드래그 핸들러 ──
+  const onCardDragStart = (e: React.DragEvent<HTMLDivElement>, fid: string, photosOk: boolean) => {
+    if (isLocked || !photosOk) { e.preventDefault(); return }
+    e.dataTransfer.setData('text/plain', fid)
+    e.dataTransfer.effectAllowed = 'move'
+    setTimeout(() => setDraggingId(fid), 0)
+  }
+  const onCardDragEnd = () => { setDraggingId(null); setDropTarget(null) }
+  const onCardDragOver = (e: React.DragEvent<HTMLDivElement>, targetFid: string) => {
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const halfway = rect.top + rect.height / 2
+    setDropTarget({ kind: 'card', id: targetFid, pos: e.clientY < halfway ? 'top' : 'bottom' })
+  }
+  const onCardDrop = (e: React.DragEvent<HTMLDivElement>, targetFid: string) => {
+    e.preventDefault()
+    const fromFid = e.dataTransfer.getData('text/plain')
+    if (!fromFid || fromFid === targetFid) { setDropTarget(null); return }
+    const rect = e.currentTarget.getBoundingClientRect()
+    const halfway = rect.top + rect.height / 2
+    reorder(fromFid, { kind: 'card', id: targetFid, pos: e.clientY < halfway ? 'top' : 'bottom' })
+    setDropTarget(null)
+  }
+  const onEmptyDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const fromFid = e.dataTransfer.getData('text/plain')
+    if (fromFid) reorder(fromFid, { kind: 'top' })
+    setDropTarget(null)
+  }
+  const onDividerDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const fromFid = e.dataTransfer.getData('text/plain')
+    if (fromFid) reorder(fromFid, { kind: 'divider' })
+    setDropTarget(null)
+  }
+
+  if (isLoading) {
+    return <div style={{ flex: 1, padding: 16 }}><div className={SKELETON_CLS} style={SKELETON_STYLE} /></div>
+  }
+  if (all.length === 0) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div className="text-label text-text-tertiary" style={{ textAlign: 'center', lineHeight: 1.6 }}>
@@ -335,99 +408,230 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
     )
   }
 
-  return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {sorted.map(f => {
-        const hasBefore = f.photoKeys.length > 0
-        const hasAfter = f.resolutionPhotoKeys.length > 0
-        const photosOk = hasBefore && hasAfter
-        const isSelected = f.submissionSelected
-        const label = getDisplayLabel(f)
-        const saveState = saveStates[f.id] ?? 'saved'
-        const cardDisabled = isLocked || !photosOk
-        // 저장 버튼 활성: selected + photosOk + !locked + (dirty OR error)
-        const canSaveBtn = isSelected && photosOk && !isLocked && (saveState === 'dirty' || saveState === 'error')
+  // ── 카드 렌더 ──
+  const renderCard = (f: LegalFinding, isSelected: boolean, orderNum: number | null) => {
+    const hasBefore = f.photoKeys.length > 0
+    const hasAfter = f.resolutionPhotoKeys.length > 0
+    const photosOk = hasBefore && hasAfter
+    const label = getDisplayLabel(f)
+    const saveState = saveStates[f.id] ?? 'saved'
+    const cardDraggable = !isLocked && photosOk
+    const cardDimmed = !photosOk && !isSelected
+    const dropOver = dropTarget?.kind === 'card' && dropTarget.id === f.id
+    const dragging = draggingId === f.id
+    const pptPage = orderNum ? Math.ceil(orderNum / 2) : 0
+    const pptSide = orderNum && orderNum % 2 === 1 ? '좌측' : orderNum ? '우측' : ''
 
-        return (
-          <div
-            key={f.id}
-            className={`rounded-md border ${isSelected ? 'bg-surface-active border-accent' : 'bg-surface-raised border-border-strong'}`}
-            style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, opacity: cardDisabled && !isSelected ? 0.7 : 1 }}
-          >
-            {/* info-line: location | description */}
-            <div className="text-label font-bold text-text-primary" style={{ lineHeight: 1.4 }}>
-              <span className="text-text-secondary">{f.location ?? '위치 미지정'}</span>
-              <span className="text-text-tertiary" style={{ padding: '0 6px' }}>|</span>
-              <span className="text-text-primary">{f.description}</span>
-            </div>
+    return (
+      <div
+        key={f.id}
+        draggable={cardDraggable}
+        onDragStart={(e) => onCardDragStart(e, f.id, photosOk)}
+        onDragEnd={onCardDragEnd}
+        onDragOver={(e) => onCardDragOver(e, f.id)}
+        onDragLeave={() => setDropTarget(null)}
+        onDrop={(e) => onCardDrop(e, f.id)}
+        className={`rounded-md border ${isSelected ? 'bg-surface-active border-accent' : 'bg-surface-raised border-border-strong'}`}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '18px 28px 1fr auto',
+          gridTemplateRows: 'auto auto',
+          columnGap: 10,
+          rowGap: 8,
+          padding: '12px 12px 12px 8px',
+          opacity: dragging ? 0.35 : (cardDimmed ? 0.7 : 1),
+          transition: 'transform .15s, opacity .15s, border-color .15s, box-shadow .15s',
+          transform: dragging ? 'scale(0.98)' : 'none',
+          boxShadow: dropOver
+            ? (dropTarget?.pos === 'top' ? 'inset 0 3px 0 var(--accent)' : 'inset 0 -3px 0 var(--accent)')
+            : 'none',
+          userSelect: 'none',
+          cursor: cardDraggable ? 'grab' : 'default',
+        }}
+      >
+        {/* 드래그 핸들 (col 1, span 2 rows, 카드 세로 중앙) */}
+        <div
+          style={{
+            gridColumn: 1, gridRow: '1 / span 2',
+            alignSelf: 'center', justifySelf: 'center',
+            color: cardDraggable ? 'var(--t3)' : 'var(--text-disabled)',
+            opacity: cardDraggable ? 1 : 0.25,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 18, height: 22,
+          }}
+          aria-hidden
+        >
+          <svg width={14} height={14} viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="5" cy="3" r="1.4" /><circle cx="11" cy="3" r="1.4" />
+            <circle cx="5" cy="8" r="1.4" /><circle cx="11" cy="8" r="1.4" />
+            <circle cx="5" cy="13" r="1.4" /><circle cx="11" cy="13" r="1.4" />
+          </svg>
+        </div>
 
-            {/* input-row: 체크 (가로축 중앙) + textarea + 저장 버튼 */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
-              <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                <button
-                  type="button"
-                  onClick={() => { if (!cardDisabled) handleToggle(f.id, isSelected) }}
-                  disabled={cardDisabled}
-                  aria-pressed={isSelected}
-                  className={`rounded-sm flex items-center justify-center font-bold ${
-                    isSelected
-                      ? 'bg-accent border-2 border-accent text-text-on-accent'
-                      : cardDisabled
-                        ? 'border-2 border-border-default text-text-disabled'
-                        : 'border-2 border-border-strong text-text-disabled'
-                  }`}
-                  style={{ width: 28, height: 28, fontSize: 18, lineHeight: 1, cursor: cardDisabled ? 'not-allowed' : 'pointer' }}
-                >{isSelected ? <Check size={14} className="inline-block" /> : null}</button>
-              </div>
-              <textarea
-                value={label}
-                disabled={!isSelected || cardDisabled}
-                onChange={(e) => handleLabelChange(f.id, e.target.value)}
-                placeholder={isSelected ? '' : '체크하면 PPT 라벨 입력 가능'}
-                className="bg-surface-sunken border border-border-strong text-text-primary rounded-sm focus:border-accent focus:outline-none"
-                style={{ flex: 1, minHeight: 36, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' }}
-              />
-              <button
-                type="button"
-                onClick={() => handleSaveNow(f.id, label)}
-                disabled={!canSaveBtn}
-                className={`text-caption font-bold leading-none rounded-sm border-0 ${canSaveBtn ? 'bg-accent text-text-on-accent' : 'bg-surface-sunken text-text-disabled'}`}
-                style={{ padding: '0 12px', cursor: canSaveBtn ? 'pointer' : 'not-allowed', alignSelf: 'stretch', flexShrink: 0 }}
-              >저장</button>
-            </div>
+        {/* 순서 뱃지 슬롯 (col 2, span 2 rows, 카드 세로 중앙) */}
+        <div
+          style={{
+            gridColumn: 2, gridRow: '1 / span 2',
+            alignSelf: 'center', justifySelf: 'center',
+            width: 28, height: 28,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {isSelected && orderNum !== null && (
+            <span
+              className="bg-accent text-text-on-accent text-caption font-extrabold rounded-sm inline-flex items-center justify-center"
+              style={{ height: 28, minWidth: 28, padding: '0 6px' }}
+            >#{orderNum}</span>
+          )}
+        </div>
 
-            {/* meta-row: 사진 chip (좌) + 저장 인디케이터 (우, 저장버튼 우측 모서리 정렬) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span className="text-caption font-bold text-text-tertiary">사진 :</span>
-                <span className={`text-caption font-bold leading-none rounded-sm ${hasBefore ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
-                  조치 전 {hasBefore ? <Check size={12} className="inline-block align-text-bottom ml-0.5" /> : <X size={12} className="inline-block align-text-bottom ml-0.5" />}
-                </span>
-                <span className={`text-caption font-bold leading-none rounded-sm ${hasAfter ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
-                  조치 후 {hasAfter ? <Check size={12} className="inline-block align-text-bottom ml-0.5" /> : <X size={12} className="inline-block align-text-bottom ml-0.5" />}
-                </span>
-              </div>
-              <div className="text-caption leading-none" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                {!photosOk ? (
-                  <span className="text-danger">사진 부족 — 저장 불가</span>
-                ) : isLocked ? (
-                  <span className="text-text-tertiary inline-flex items-center gap-1"><Lock size={12} />제출 완료</span>
-                ) : !isSelected ? (
-                  <span className="text-text-tertiary">—</span>
-                ) : saveState === 'saving' ? (
-                  <span className="text-accent"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장중...</span>
-                ) : saveState === 'dirty' ? (
-                  <span className="text-warning"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />변경됨</span>
-                ) : saveState === 'error' ? (
-                  <span className="text-danger"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장 실패</span>
-                ) : (
-                  <span className="text-safe"><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />저장됨</span>
-                )}
-              </div>
-            </div>
+        {/* textarea (col 3, row 1) — 미선택 카드는 readonly */}
+        <textarea
+          value={label}
+          readOnly={!isSelected || isLocked}
+          onChange={(e) => isSelected && !isLocked && handleLabelChange(f.id, e.target.value)}
+          placeholder=""
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
+          className={`text-text-primary border rounded-sm focus:border-accent focus:outline-none ${isSelected ? 'bg-surface-sunken border-border-strong' : 'bg-surface-page border-border-strong text-text-tertiary'}`}
+          style={{
+            gridColumn: 3, gridRow: 1,
+            padding: '8px 10px', fontSize: 12, fontFamily: 'inherit',
+            minHeight: 56, lineHeight: 1.45, resize: 'vertical',
+            width: '100%',
+            borderStyle: isSelected ? 'solid' : 'dashed',
+            cursor: isSelected ? 'text' : 'not-allowed',
+          }}
+        />
+
+        {/* 저장 버튼 (col 4, row 1) — selected + dirty/error 일 때만 의미 */}
+        <button
+          type="button"
+          onClick={() => handleSaveNow(f.id, label)}
+          disabled={!isSelected || isLocked || !(saveState === 'dirty' || saveState === 'error')}
+          className={`text-caption font-bold leading-none rounded-sm border-0 ${
+            isSelected && (saveState === 'dirty' || saveState === 'error')
+              ? 'bg-warning-bg text-warning'
+              : 'bg-surface-sunken text-text-disabled'
+          }`}
+          style={{
+            gridColumn: 4, gridRow: 1,
+            padding: '0 12px', cursor: isSelected && (saveState === 'dirty' || saveState === 'error') ? 'pointer' : 'not-allowed',
+            alignSelf: 'stretch', flexShrink: 0,
+          }}
+        >저장</button>
+
+        {/* meta-row (col 3, row 2) — 사진 chip(좌) + PPT hint or 상태문구(우, textarea 우측 모서리) */}
+        <div
+          style={{
+            gridColumn: 3, gridRow: 2,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            fontSize: 11, gap: 8,
+          }}
+        >
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span className="text-caption font-bold text-text-tertiary">사진 :</span>
+            <span className={`text-caption font-bold leading-none rounded-sm ${hasBefore ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
+              조치 전 {hasBefore ? <Check size={12} className="inline-block align-text-bottom ml-0.5" /> : <X size={12} className="inline-block align-text-bottom ml-0.5" />}
+            </span>
+            <span className={`text-caption font-bold leading-none rounded-sm ${hasAfter ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`} style={{ padding: '2px 6px' }}>
+              조치 후 {hasAfter ? <Check size={12} className="inline-block align-text-bottom ml-0.5" /> : <X size={12} className="inline-block align-text-bottom ml-0.5" />}
+            </span>
           </div>
-        )
-      })}
+          {/* 우측 끝: 선택 시 PPT hint, 미선택 + 사진부족 시 안내문구 */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+            {isSelected ? (
+              <span className="text-text-tertiary">PPT <b className="text-accent font-bold">{pptPage}페이지 {pptSide}</b></span>
+            ) : !photosOk ? (
+              <span className="text-danger">사진 부족 — PPT 포함 불가</span>
+            ) : (
+              <span className="text-text-tertiary">—</span>
+            )}
+          </div>
+        </div>
+
+        {/* save-status (col 4, row 2) — 인디케이터 + 저장됨/저장중 (save-btn 좌측 모서리 정렬) */}
+        {isSelected && (
+          <div
+            style={{
+              gridColumn: 4, gridRow: 2,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 11, whiteSpace: 'nowrap',
+            }}
+            className={`leading-none ${
+              isLocked ? 'text-text-tertiary' :
+              saveState === 'saving' ? 'text-accent' :
+              saveState === 'dirty'  ? 'text-warning' :
+              saveState === 'error'  ? 'text-danger'  :
+              'text-safe'
+            }`}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+            <span>{
+              isLocked          ? <><Lock size={12} className="inline-block align-text-bottom mr-1" />제출 완료</> :
+              saveState === 'saving' ? '저장중...' :
+              saveState === 'dirty'  ? '변경됨' :
+              saveState === 'error'  ? '저장 실패' :
+              '저장됨'
+            }</span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}
+    >
+      {/* 상단: 선택된 카드 OR 빈 영역 */}
+      {selected.length === 0 ? (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDropTarget({ kind: 'empty' }) }}
+          onDragLeave={() => setDropTarget(null)}
+          onDrop={onEmptyDrop}
+          style={{
+            border: `1.5px dashed ${dropTarget?.kind === 'empty' ? 'var(--accent)' : 'var(--border-strong)'}`,
+            background: dropTarget?.kind === 'empty' ? 'rgba(59,130,246,0.06)' : 'transparent',
+            borderRadius: 10, minHeight: 116,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 6, padding: 16, textAlign: 'center',
+            color: dropTarget?.kind === 'empty' ? 'var(--accent)' : 'var(--t3)',
+            transition: 'border-color .15s, background .15s',
+          }}
+        >
+          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M12 5v14M5 12l7-7 7 7" />
+          </svg>
+          <span className="text-label font-bold" style={{ color: dropTarget?.kind === 'empty' ? 'var(--accent)' : 'var(--t2)' }}>
+            PPT 에 포함할 카드를 여기로 드래그
+          </span>
+          <span className="text-caption">아래 미포함 카드를 잡고 위로 끌면 자동으로 #1 부여</span>
+        </div>
+      ) : (
+        selected.map((f, idx) => renderCard(f, true, idx + 1))
+      )}
+
+      {/* 구분선 */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDropTarget({ kind: 'divider' }) }}
+        onDragLeave={() => setDropTarget(null)}
+        onDrop={onDividerDrop}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '4px 2px', fontSize: 11,
+          color: dropTarget?.kind === 'divider' ? 'var(--accent)' : 'var(--t3)',
+          userSelect: 'none',
+        }}
+      >
+        <div style={{ flex: 1, height: 1, background: dropTarget?.kind === 'divider' ? 'var(--accent)' : 'var(--bd)' }} />
+        <span>아래는 PPT 미포함</span>
+        <div style={{ flex: 1, height: 1, background: dropTarget?.kind === 'divider' ? 'var(--accent)' : 'var(--bd)' }} />
+      </div>
+
+      {/* 하단: 미포함 카드 */}
+      {unselected.map(f => renderCard(f, false, null))}
     </div>
   )
 }
@@ -449,10 +653,15 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
     staleTime: 30_000,
   })
 
-  // 선택된 finding 만 (체크박스 ON + 사진 둘 다 있음 = PPT 포함 가능)
-  const eligibleFindings = (findings ?? []).filter(f =>
-    f.submissionSelected && f.photoKeys.length > 0 && f.resolutionPhotoKeys.length > 0
-  )
+  // 선택된 finding 만 (submission_order > 0 + 사진 둘 다 있음 = PPT 포함). W10: order 순으로 정렬.
+  const eligibleFindings = (findings ?? [])
+    .filter(f => f.submissionSelected && f.photoKeys.length > 0 && f.resolutionPhotoKeys.length > 0)
+    .sort((a, b) => {
+      const ao = a.submissionOrder > 0 ? a.submissionOrder : 999999
+      const bo = b.submissionOrder > 0 ? b.submissionOrder : 999999
+      if (ao !== bo) return ao - bo
+      return a.createdAt.localeCompare(b.createdAt)
+    })
 
   // 자동저장 상태
   const [genState, setGenState] = useState<'saved' | 'dirty' | 'saving' | 'error' | 'idle'>('idle')

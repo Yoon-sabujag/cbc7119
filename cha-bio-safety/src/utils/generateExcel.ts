@@ -692,6 +692,20 @@ export async function generateShiftExcel(year: number, month: number, staffData?
   // 제목
   xml = patchCell(xml, 'D1', `${year}년 ${month}월 출근부`)
 
+  // 직원 이름/직책 (B4~B7 = title, C4~C7 = name) — 양식 하드코딩된 순서를 페이지 STAFF_ORDER 와 맞춤
+  // 사고 사례 (260528): 양식 C 열에 이름 4건이 다른 순서로 박혀있어, shift 만 패치하면
+  // "김병조의 시프트가 박보융 행에 출력" 되는 행렬 어긋남이 발생함.
+  for (let i = 0; i < 4; i++) {
+    const s = staffRows[i]
+    if (s) {
+      xml = patchCell(xml, `B${i + 4}`, s.title)
+      xml = patchCell(xml, `C${i + 4}`, s.name)
+    } else {
+      xml = patchCell(xml, `B${i + 4}`, null)
+      xml = patchCell(xml, `C${i + 4}`, null)
+    }
+  }
+
   for (let d = 1; d <= 31; d++) {
     const col = dayToCol(d)
     if (d <= daysInMonth) {
@@ -714,6 +728,16 @@ export async function generateShiftExcel(year: number, month: number, staffData?
   xml = xml.replace(/(<pane\b[^>]*)topLeftCell="[^"]*"/, '$1topLeftCell="D4"')
 
   files['xl/worksheets/sheet1.xml'] = strToU8(xml)
+
+  // 시트명 패치 — 양식이 "12월" 하드코딩 → 실제 월로
+  //   workbook.xml: <sheet name="12월"> (탭 이름) + definedName 의 'sheetName'! 참조
+  {
+    const sheetName = `${month}월`
+    let wb = strFromU8(files['xl/workbook.xml'])
+    wb = wb.replace(/(<sheet\b[^>]*\bname=")[^"]*(")/, `$1${sheetName}$2`)
+    wb = wb.replace(/>'[^']+'!/g, `>'${sheetName}'!`)
+    files['xl/workbook.xml'] = strToU8(wb)
+  }
 
   // 다운로드
   const zipped = zipSync(files, { level: 6 })
