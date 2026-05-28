@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-28 - Completed Phase B Wave 2 (260528-c9s): LoginPage 28→2 + SplashScreen 13→1 = 41→3 inline (-92.7%, 캘리브 룰 옵션 X 정확값 보존)
+Last activity: 2026-05-28 - Completed Phase B Wave 3 (260528-cjn): WorkShift 24→5 + Annual 21→1 = 45→6 inline (-86.7%, yearPos 캘리브 LOCKED, HDR_H/ROW_H/SHIFT_COLOR 옵션 N)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -114,6 +114,7 @@ Recent decisions affecting current work:
 | 260528-0hr | Phase B 마스터 로드맵 v2 — 모바일 우선 22 wave 구조 (Tier 1 모바일 위주 11 + Tier 2 큰 데스크톱 분기 페이지 4 모바일 + 4 데스크톱 + Tier 3 컴포넌트 3). 코드 grep 검증으로 Q1-Q8 중 5건 확정 (InspectionPage emoji 25 / ElevatorFindingDetail sweep / AdminPage skip / sketch 신규 X / 비색 1곳 SettingsPanel L143). 모바일/데스크톱 zone 분류 brace tracking 분석 28 페이지. Cherry-pick 묶음 A (Legal 완료) + B + C1/C2 + D. | 2026-05-28 | aaf18ce | [260528-0hr-phase-b-master-roadmap](./quick/260528-0hr-phase-b-master-roadmap/) |
 | 260528-a3v | Phase B Wave 1 워밍업 — QRScanPage 1→0 (w-full) + DivPage 4→4 (동적 color/chartH 옵션 N 잔존) + ReportsPage 3→0 (flex-col h-full overflow-hidden + bg-surface-page tailwind 토큰). 합계 8→4 (-50%). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (9종 × 3 파일 + onClick precise) identical. TypeScript 0 error. 변경 파일 2 (DivPage 미수정). | 2026-05-28 | 18fd138 | [260528-a3v-phase-b-wave-1](./quick/260528-a3v-phase-b-wave-1/) |
 | 260528-c9s | Phase B Wave 2 인증/스플래시 (캘리브 risk) — LoginPage 28→2 (옵션 M conditional + 동적 색변수 N 잔존 L98/L103 isSelected 분기) + SplashScreen 13→1 (캘리브 룰 옵션 X 정확값 보존, width:\`${pct}%\` 동적 옵션 N 잔존 L55). 합계 41→3 (-92.7%). w-8/h-8/p-8=48px tailwind override 함정 회피 (`pb-[32px]` arbitrary 적용, 메모리 anchor `feedback_tailwind_w8_h8_is_48px.md`). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (5종 × 2 파일 + onClick precise) identical. TypeScript 0 error. 변경 파일 2. LoginPage 223→215줄 / SplashScreen 89→72줄. | 2026-05-28 | d36a20f | [260528-c9s-phase-b-wave-2](./quick/260528-c9s-phase-b-wave-2/) |
+| 260528-cjn | Phase B Wave 3 근무/연간 (양쪽 캘리브 risk) — WorkShiftPage 24→5 (HDR_H/ROW_H 상수 + SHIFT_COLOR 동적 변수 옵션 N 잔존, L195 tdy spread → conditional className 옵션 M) + AnnualPlanPage 21→1 (L79 yearPos 캘리브 좌표 시그니처 LOCKED 보존, OQ #5 주석). 합계 45→6 (-86.7%). w-7=32/p-7=32 config override 함정 자체 발견+follow-up patch (pb-7 → pb-[28px], 메모리 anchor `feedback_tailwind_w8_h8_is_48px.md` 일반화). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (9종 × 2 파일 + onClick precise) identical. TypeScript 0 error. holidays fetch + yearPos.y/x + HDR_H=52/ROW_H=46 보존. | 2026-05-28 | 4e99270 | [260528-cjn-phase-b-wave-3](./quick/260528-cjn-phase-b-wave-3/) |
 
 ## Session Continuity
 
