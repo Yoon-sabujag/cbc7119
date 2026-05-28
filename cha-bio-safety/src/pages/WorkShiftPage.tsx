@@ -209,7 +209,7 @@ export default function WorkShiftPage() {
           </div>
 
           {/* 범례 — 테이블 바로 아래 정렬 */}
-          <div className="flex flex-wrap justify-center gap-[14px] pt-[10px] pb-7">
+          <div className="flex flex-wrap justify-center gap-[14px] pt-[10px] pb-[28px]">
             {(['당','비','주','휴'] as RawShift[]).map(sh => (
               <div key={sh} className="flex items-center gap-[5px]">
                 <div
