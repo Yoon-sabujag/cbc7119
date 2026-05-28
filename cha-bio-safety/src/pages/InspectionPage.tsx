@@ -19,7 +19,7 @@ import { computeCardCompletion } from '../utils/inspectionProgress'
 import { getReplaceWarning } from '../utils/extinguisher'
 import { CCTV_DVRS } from '../utils/cctv'
 import {
-  ChevronLeft, ChevronRight, Bell, X, TrendingUp, Flame,
+  ChevronLeft, ChevronRight, Bell, Check, X, TrendingUp, Flame,
   // 카테고리 lucide (11종)
   Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Server,
   FlaskConical, Building2, TrainFront,
@@ -211,11 +211,11 @@ function WheelPicker({ items, onSelect, records }: {
       <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 bg-info-bg/60 border-t border-b border-info-bar/30 pointer-events-none z-[2]"
            style={{ height: ITEM_H }} />
       {/* 상단 페이드 */}
-      <div className="absolute top-0 left-0 right-0 pointer-events-none z-[3]"
-           style={{ height: pad, background: 'linear-gradient(to bottom, var(--surface-raised) 30%, transparent)' }} />
+      <div className="absolute top-0 left-0 right-0 pointer-events-none z-[3] bg-[linear-gradient(to_bottom,var(--surface-raised)_30%,transparent)]"
+           style={{ height: pad }} />
       {/* 하단 페이드 */}
-      <div className="absolute bottom-0 left-0 right-0 pointer-events-none z-[3]"
-           style={{ height: pad, background: 'linear-gradient(to top, var(--surface-raised) 30%, transparent)' }} />
+      <div className="absolute bottom-0 left-0 right-0 pointer-events-none z-[3] bg-[linear-gradient(to_top,var(--surface-raised)_30%,transparent)]"
+           style={{ height: pad }} />
 
       <div
         ref={scrollRef}
@@ -392,7 +392,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
                 onClick={() => setSelectedSW(sw.id)}
                 className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap inline-flex items-center justify-center transition-colors ${stateCls}`}
               >
-                {sw.id}{done && !isActive && <span className="text-caption ml-1 opacity-85">✓</span>}
+                {sw.id}{done && !isActive && <Check size={12} className="inline-block ml-1 opacity-85" />}
               </button>
             )
           })}
@@ -857,7 +857,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
             return (
               <button key={z} onClick={() => setZone(z)}
                 className={`flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                {ZIcon && <ZIcon size={14} />}{BY_ZONE_LABELS[z]}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
+                {ZIcon && <ZIcon size={14} />}{BY_ZONE_LABELS[z]}{allDone && <Check size={12} className="inline-block ml-1 opacity-80" />}
               </button>
             )
           })}
@@ -879,7 +879,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
               return (
                 <button key={f} onClick={() => setSelFloor(f)}
                   className={`flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                  {f}{fDone && <span className="text-caption ml-0.5 opacity-75">✓</span>}
+                  {f}{fDone && <Check size={12} className="inline-block ml-0.5 opacity-75" />}
                 </button>
               )
             })}
@@ -903,7 +903,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
               return (
                 <button key={cp.id} onClick={() => setSelectedId(cp.id)}
                   className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                  {getPositionLabel(cp)}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
+                  {getPositionLabel(cp)}{isDone && <Check size={12} className="inline-block ml-1 opacity-80" />}
                 </button>
               )
             })}
@@ -931,7 +931,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
               />
             )}
             {!!records[selectedCP.id] && !justSaved && (
-              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
+              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5"><Check size={14} />이미 점검 완료된 항목입니다</div>
             )}
             <div>
               <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
@@ -966,7 +966,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
               </div>
             </div>
             {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe flex items-center gap-1.5"><Check size={14} />저장 완료</div>}
           </div>
         )}
       </div>
@@ -980,8 +980,11 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
         <button
           onClick={handleSave}
           disabled={submitting || photo.uploading || !selectedCP}
-          className="flex-1 py-[13px] rounded-md border-none text-white text-body-sm font-bold cursor-pointer transition-colors disabled:text-text-tertiary disabled:cursor-default"
-          style={{ background: submitting||photo.uploading||!selectedCP ? 'var(--border-strong)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)' }}
+          className={`flex-1 py-[13px] rounded-md border-none text-white text-body-sm font-bold cursor-pointer transition-colors disabled:text-text-tertiary disabled:cursor-default ${
+            submitting||photo.uploading||!selectedCP
+              ? 'bg-border-strong'
+              : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)]'
+          }`}
         >
           {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : '점검 기록 저장'}
         </button>
@@ -1072,30 +1075,31 @@ function DivUnderPicker({ items, activeIdx, onChange }: {
       style={{ height: containerH }}
     >
       <div
-        className="absolute left-0 right-0 z-[2] pointer-events-none bg-[rgba(14,165,233,.08)] border-y border-[rgba(14,165,233,.22)]"
-        style={{ top:'50%', height: ITEM_H, transform:'translateY(-50%)' }}
+        className="absolute top-1/2 left-0 right-0 -translate-y-1/2 z-[2] pointer-events-none bg-[rgba(14,165,233,.08)] border-y border-[rgba(14,165,233,.22)]"
+        style={{ height: ITEM_H }}
       />
       <div
-        className="absolute top-0 left-0 right-0 z-[3] pointer-events-none"
-        style={{ height: pad, background:'linear-gradient(to bottom, var(--surface-raised) 30%, transparent)' }}
+        className="absolute top-0 left-0 right-0 z-[3] pointer-events-none bg-[linear-gradient(to_bottom,var(--surface-raised)_30%,transparent)]"
+        style={{ height: pad }}
       />
       <div
-        className="absolute bottom-0 left-0 right-0 z-[3] pointer-events-none"
-        style={{ height: pad, background:'linear-gradient(to top, var(--surface-raised) 30%, transparent)' }}
+        className="absolute bottom-0 left-0 right-0 z-[3] pointer-events-none bg-[linear-gradient(to_top,var(--surface-raised)_30%,transparent)]"
+        style={{ height: pad }}
       />
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto box-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        style={{ scrollSnapType:'y mandatory', paddingTop: pad, paddingBottom: pad }}
+        className="h-full overflow-y-auto box-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [scroll-snap-type:y_mandatory]"
+        style={{ paddingTop: pad, paddingBottom: pad }}
       >
         {items.map((item, idx) => {
           const dist = Math.abs(idx - activeIdx)
+          const opacityClass = dist === 0 ? 'opacity-100' : dist === 1 ? 'opacity-[0.48]' : 'opacity-[0.15]'
           return (
             <div
               key={item.id}
-              className="flex items-center px-3.5 cursor-pointer transition-opacity duration-100"
-              style={{ height: ITEM_H, scrollSnapAlign:'center', opacity: dist===0 ? 1 : dist===1 ? 0.48 : 0.15 }}
+              className={`flex items-center px-3.5 cursor-pointer transition-opacity duration-100 [scroll-snap-align:center] ${opacityClass}`}
+              style={{ height: ITEM_H }}
             >
               <span className={dist === 0 ? 'text-label font-bold text-text-primary' : 'text-caption font-normal text-text-primary'}>
                 {item.label}
@@ -1130,8 +1134,7 @@ function DivTrendSubview({ point, records, onClose }: {
 
   return (
     <div
-      className="fixed left-0 right-0 z-[99] flex flex-col bg-surface-page"
-      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
+      className="fixed left-0 right-0 z-[99] flex flex-col bg-surface-page top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]"
     >
       {/* 헤더 */}
       <div className="flex items-center px-4 py-3 border-b border-border-default gap-2.5 flex-shrink-0">
@@ -1171,7 +1174,7 @@ function DivTrendSubview({ point, records, onClose }: {
                   <div key={key}>
                     <div className="text-caption font-bold mb-1" style={{ color }}>{label}</div>
                     <div className="overflow-x-auto">
-                      <svg width={Math.max(W, n * 28)} height={sH} style={{ display:'block' }}>
+                      <svg width={Math.max(W, n * 28)} height={sH} className="block">
                         {sTicks.map((t, ti) => (
                           <g key={ti}>
                             <text x={sPadL-5} y={spy(t)+4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="11" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
@@ -1235,7 +1238,7 @@ function DivTrendSubview({ point, records, onClose }: {
                 <div key={`${r.year}-${r.month}`} className="grid grid-cols-[60px_1fr_1fr_1fr] px-2.5 py-1.5 border-t border-border-default">
                   <div className="text-caption text-text-tertiary text-center font-mono">{r.year}-{String(r.month).padStart(2,'0')}</div>
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                    <div key={i} className="text-caption font-bold text-center font-mono" style={{ color: ['#3b82f6','#f97316','#22c55e'][i] }}>
+                    <div key={i} className={`text-caption font-bold text-center font-mono ${i === 0 ? 'text-[#3b82f6]' : i === 1 ? 'text-[#f97316]' : 'text-[#22c55e]'}`}>
                       {v != null ? v.toFixed(1) : '-'}
                     </div>
                   ))}
@@ -1519,8 +1522,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
   // ── 완료 화면 ──
   if (done) return (
     <div
-      className="fixed left-0 right-0 z-[99] flex flex-col items-center justify-center gap-4 bg-surface-page"
-      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
+      className="fixed left-0 right-0 z-[99] flex flex-col items-center justify-center gap-4 bg-surface-page top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]"
     >
       <CheckCircle2 size={48} className="text-safe" />
       <div className="text-title font-bold text-text-primary">점검 완료</div>
@@ -1535,8 +1537,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 
   return (
     <div
-      className="fixed left-0 right-0 z-[99] flex flex-col overflow-hidden bg-surface-page"
-      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
+      className="fixed left-0 right-0 z-[99] flex flex-col overflow-hidden bg-surface-page top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]"
     >
       {/* 헤더 */}
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
@@ -2019,8 +2020,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
 
   if (done) return (
     <div
-      className="fixed left-0 right-0 flex flex-col items-center justify-center gap-4 bg-surface-page"
-      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM, zIndex: mode === 'from-div' ? 120 : 99 }}
+      className={`fixed left-0 right-0 flex flex-col items-center justify-center gap-4 bg-surface-page top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))] ${mode === 'from-div' ? 'z-[120]' : 'z-[99]'}`}
     >
       <CheckCircle2 size={48} className="text-safe" />
       <div className="text-title font-bold text-text-primary">점검 완료</div>
@@ -2035,8 +2035,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
 
   return (
     <div
-      className="fixed left-0 right-0 flex flex-col overflow-hidden bg-surface-page"
-      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM, zIndex: mode === 'from-div' ? 120 : 99 }}
+      className={`fixed left-0 right-0 flex flex-col overflow-hidden bg-surface-page top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))] ${mode === 'from-div' ? 'z-[120]' : 'z-[99]'}`}
     >
       {/* 헤더 */}
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
@@ -2385,7 +2384,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)} className={`${baseCls} ${stateCls}`}>
-                {ZIcon && <ZIcon size={14} />}{PP_ZONE_LABELS[z]}{!isActive && allDone && <span className="text-caption ml-1 opacity-85">✓</span>}
+                {ZIcon && <ZIcon size={14} />}{PP_ZONE_LABELS[z]}{!isActive && allDone && <Check size={12} className="inline-block ml-1 opacity-85" />}
               </button>
             )
           })}
@@ -2641,7 +2640,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={label} onClick={() => setItem(label)} className={`${baseCls} ${stateCls}`}>
-                {label}{!isActive && allDone && <span className="text-caption ml-1 opacity-85">✓</span>}
+                {label}{!isActive && allDone && <Check size={12} className="inline-block ml-1 opacity-85" />}
               </button>
             )
           })}
@@ -2663,7 +2662,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
                              :             'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={door} onClick={() => setSubItem(door)} className={`${baseCls} ${stateCls}`}>
-                  {door}{!isActive && doneDoor && <span className="text-caption ml-1 opacity-85">✓</span>}
+                  {door}{!isActive && doneDoor && <Check size={12} className="inline-block ml-1 opacity-85" />}
                 </button>
               )
             })}
@@ -3030,7 +3029,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
             return (
               <button key={label} onClick={() => setItem(label)}
                 className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                {label}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
+                {label}{allDone && <Check size={12} className="inline-block ml-1 opacity-80" />}
               </button>
             )
           })}
@@ -3054,7 +3053,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               return (
                 <button key={num} onClick={() => { setSelectedEquip(null); setSelectedStair(num) }}
                   className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                  {num}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
+                  {num}{done && <Check size={12} className="inline-block ml-1 opacity-80" />}
                 </button>
               )
             })}
@@ -3069,7 +3068,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               return (
                 <button key={cp.id} onClick={() => { setSelectedStair(null); setSelectedEquip(cp.id) }}
                   className={`px-2.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                  {cp.location}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
+                  {cp.location}{done && <Check size={12} className="inline-block ml-1 opacity-80" />}
                 </button>
               )
             })}
@@ -3093,7 +3092,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               return (
                 <button key={cp.id} onClick={() => setSubItem(cp.location)}
                   className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                  {cp.location}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
+                  {cp.location}{isDone && <Check size={12} className="inline-block ml-1 opacity-80" />}
                 </button>
               )
             })}
@@ -3127,7 +3126,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
           <>
             {stairDoneCount > 0 && !justSaved && (
               <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-1.5 text-label text-safe flex items-center gap-1.5">
-                ✓ {stairDoneCount}/{stairCPs.length}층 이미 점검 완료
+                <Check size={14} />{stairDoneCount}/{stairCPs.length}층 이미 점검 완료
               </div>
             )}
 
@@ -3227,7 +3226,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
             </div>
 
             {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe flex items-center gap-1.5"><Check size={14} />저장 완료</div>}
           </>
         )}
 
@@ -3239,7 +3238,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
           return (
             <>
               {eqDone && !justSaved && (
-                <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
+                <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5"><Check size={14} />이미 점검 완료된 항목입니다</div>
               )}
               <div>
                 <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
@@ -3292,7 +3291,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                 </div>
               </div>
               {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-              {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
+              {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe flex items-center gap-1.5"><Check size={14} />저장 완료</div>}
             </>
           )
         })()}
@@ -3309,7 +3308,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         {item === '연결송수관' && subItem && (
           <>
             {yscpId && records[yscpId] && !justSaved && (
-              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
+              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5"><Check size={14} />이미 점검 완료된 항목입니다</div>
             )}
             <div>
               <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
@@ -3340,7 +3339,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               </div>
             </div>
             {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe flex items-center gap-1.5"><Check size={14} />저장 완료</div>}
           </>
         )}
           </div>
@@ -3356,8 +3355,11 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         <button
           onClick={jdMode === 'stair' ? handleStairSave : handleSingleSave}
           disabled={submitting || photo.uploading || !canSave}
-          className="flex-1 py-[13px] rounded-md border-none text-white text-body-sm font-bold cursor-pointer transition-colors disabled:text-text-tertiary disabled:cursor-default"
-          style={{ background: submitting||photo.uploading||!canSave ? 'var(--border-strong)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)' }}
+          className={`flex-1 py-[13px] rounded-md border-none text-white text-body-sm font-bold cursor-pointer transition-colors disabled:text-text-tertiary disabled:cursor-default ${
+            submitting||photo.uploading||!canSave
+              ? 'bg-border-strong'
+              : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)]'
+          }`}
         >
           {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : jdMode === 'stair' ? `계단전실 ${selectedStair} 점검 저장` : '점검 기록 저장'}
         </button>
@@ -3914,8 +3916,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         <div className="px-3.5 pt-2.5 pb-2 shrink-0 bg-surface-page">
           {pendingCPs.length >= 1 && (
             <div
-              className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default flex items-center gap-2.5"
-              style={{ touchAction: 'pan-y' }}
+              className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default flex items-center gap-2.5 touch-pan-y"
               onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
               onTouchEnd={e => {
                 const sx = (e.currentTarget as any)._swX
@@ -4232,7 +4233,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           <div className="bg-danger-bg/40 border border-danger-bar/30 rounded-sm px-3 py-2 text-caption text-danger">{submitError}</div>
         )}
         {justSaved && !submitError && (
-          <div className="bg-safe-bg/40 border border-safe-bar/30 rounded-sm px-3 py-2 text-caption text-safe">✓ 저장 완료</div>
+          <div className="bg-safe-bg/40 border border-safe-bar/30 rounded-sm px-3 py-2 text-caption text-safe flex items-center gap-1.5"><Check size={12} />저장 완료</div>
         )}
       </div>
 
@@ -4508,8 +4509,7 @@ function PhotoViewer({ url, onClose }: { url: string; onClose: () => void }) {
     <div onClick={onClose} className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center cursor-pointer p-4">
       <img src={url} alt="사진" className="max-w-full max-h-full object-contain" onClick={e => e.stopPropagation()} />
       <button onClick={onClose}
-              className="absolute right-4 w-9 h-9 rounded-full bg-white/20 border-0 text-white text-body cursor-pointer flex items-center justify-center hover:bg-white/30 transition-colors"
-              style={{ top: 'calc(var(--sat, 0px) + 14px)' }}>✕</button>
+              className="absolute top-[calc(var(--sat,0px)+14px)] right-4 w-9 h-9 rounded-full bg-white/20 border-0 text-white text-body cursor-pointer flex items-center justify-center hover:bg-white/30 transition-colors"><X size={14} /></button>
     </div>
   )
 }
@@ -4644,7 +4644,7 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
                 : 'bg-[linear-gradient(135deg,#16a34a,#22c55e)] text-text-on-accent cursor-pointer hover:shadow-[0_2px_8px_rgba(22,163,74,0.3)]'
             }`}
           >
-            {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : '✓ 조치 완료'}
+            {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : <><Check size={14} className="inline-block align-text-bottom mr-1" />조치 완료</>}
           </button>
         </div>
       </div>
@@ -5202,7 +5202,7 @@ export default function InspectionPage() {
                         <div key={l} className="text-caption font-semibold text-text-primary truncate leading-snug">{l}</div>
                       ))}
                       <div className={`text-caption mt-0.5 font-medium ${allDone ? 'text-safe font-bold' : doneCnt > 0 ? 'text-warning' : 'text-text-tertiary'}`}>
-                        {g.categories.includes('화재수신반') ? '기록' : total === 0 ? '없음' : allDone ? '✓ 완료' : doneCnt > 0 ? `${doneCnt}/${total}` : `${total}개`}
+                        {g.categories.includes('화재수신반') ? '기록' : total === 0 ? '없음' : allDone ? <><Check size={12} className="inline-block align-text-bottom mr-0.5" />완료</> : doneCnt > 0 ? `${doneCnt}/${total}` : `${total}개`}
                       </div>
                     </div>
                   </div>
@@ -5361,8 +5361,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const inputCls = 'w-full box-border px-3 py-2.5 rounded-sm border border-border-default bg-surface-raised text-text-primary text-label outline-none min-w-0 [appearance:none] [-webkit-appearance:none] focus:border-border-focus transition-colors'
 
   return (
-    <div className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden"
-         style={{ top: 'var(--sat, 0px)', bottom: NAV_BOTTOM }}>
+    <div className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]">
       {/* 헤더 */}
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Bell size={18} className="text-text-secondary flex-shrink-0" />
@@ -5861,7 +5860,7 @@ function DesktopInspectionView({
                     {/* 우하단: 점검 완료 개소 수 */}
                     {c.completed > 0 && (
                       <span className="text-caption font-bold text-safe bg-safe-bg px-1.5 py-0.5 rounded-sm shrink-0">
-                        ✓ 점검완료 {c.completed}
+                        <Check size={12} className="inline-block align-text-bottom mr-1" />점검완료 {c.completed}
                       </span>
                     )}
                   </div>
@@ -5978,7 +5977,7 @@ function DesktopInspectionView({
                     ? 'border border-accent bg-accent/15 text-accent'
                     : 'border border-border-default bg-surface-sunken text-text-tertiary hover:bg-surface-active'
                 }`}>
-                {excludeNormal ? '✓ 정상 제외' : '정상 제외'}
+                {excludeNormal ? <><Check size={12} className="inline-block align-text-bottom mr-0.5" />정상 제외</> : '정상 제외'}
               </button>
               <span className="text-caption text-text-tertiary">{categoryRecords.length}건</span>
             </div>
