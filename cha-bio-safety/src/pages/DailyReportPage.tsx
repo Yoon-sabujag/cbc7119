@@ -391,7 +391,7 @@ export default function DailyReportPage() {
 
   // ── 렌더 — 모바일 ──────────────────────────────────────
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-page)' }}>
+    <div className="h-full flex flex-col overflow-hidden bg-surface-page">
       {/* 헤더 */}
       <header className="page-header">
         <button type="button" onClick={() => navigate(-1)} className="back-btn" aria-label="뒤로 가기">
@@ -402,7 +402,7 @@ export default function DailyReportPage() {
       </header>
 
       {/* 스크롤 본문 */}
-      <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="page-body flex-1 overflow-y-auto">
         {formContent}
       </div>
     </div>

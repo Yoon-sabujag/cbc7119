@@ -498,9 +498,7 @@ export default function DashboardPage() {
 
         {/* ① 오늘 점검 대상 배너 */}
         <div
-          className="rounded-md border border-info-bar/30 px-3 py-2 flex items-center gap-2.5 bg-[linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08))]"
-          // animation 은 keyframe — Tailwind 정의 안 됨, 인라인 허용 키
-          style={{ animation:'slideUp .28s ease-out' }}
+          className="rounded-md border border-info-bar/30 px-3 py-2 flex items-center gap-2.5 bg-[linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08))] [animation:slideUp_.28s_ease-out]"
         >
           <div className="w-1.5 h-1.5 rounded-full bg-info-bar shrink-0 animate-[blink_2s_ease-in-out_infinite]" />
           <div className="flex-1">
@@ -521,7 +519,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ② 오늘 현황 — §6.2 Stat Card negative rule */}
-        <div style={{ animation:'slideUp .28s .06s ease-out both' }}>
+        <div className="[animation:slideUp_.28s_.06s_ease-out_both]">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-caption font-bold text-text-secondary">오늘 현황</span>
             {stats.streakDays > 0 && (
@@ -600,7 +598,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ③ 빠른 도구 모음 — §7.1 일관성: 모두 회색 통일 */}
-        <div style={{ animation:'slideUp .28s .12s ease-out both' }}>
+        <div className="[animation:slideUp_.28s_.12s_ease-out_both]">
           <div className="flex items-center mb-1.5">
             <span className="text-caption font-bold text-text-secondary">빠른 도구 모음</span>
           </div>
@@ -625,8 +623,7 @@ export default function DashboardPage() {
 
         {/* ④ 오늘 일정 */}
         <div
-          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col min-h-0"
-          style={{ animation:'slideUp .28s .16s ease-out both' }}
+          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col min-h-0 [animation:slideUp_.28s_.16s_ease-out_both]"
         >
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border-default shrink-0">
             <span className="text-caption font-bold text-text-secondary">오늘 일정</span>
@@ -650,12 +647,9 @@ export default function DashboardPage() {
 
         {/* ⑤ 이번 달 점검 현황 — 메모리 룰: 가로 스크롤 (flex-nowrap) */}
         <div
-          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col"
-          style={{
-            animation:'slideUp .28s .20s ease-out both',
-            // IS_ANDROID 분기 동적 height — 인라인 허용 키
-            height: IS_ANDROID ? 125 : undefined,
-          }}
+          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col [animation:slideUp_.28s_.20s_ease-out_both]"
+          // IS_ANDROID 분기 동적 height — 인라인 허용 키
+          style={{ height: IS_ANDROID ? 125 : undefined }}
         >
           <div className="flex items-center justify-between px-3 py-1 border-b border-border-default shrink-0">
             <span className="text-caption font-bold text-text-secondary">이번 달 점검 현황</span>
@@ -708,9 +702,7 @@ export default function DashboardPage() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-[400px] bg-surface-raised rounded-t-lg pt-4 px-4"
-            // safe-area-bottom 동적 — 인라인 허용 (calc + var)
-            style={{ paddingBottom: 'calc(16px + var(--sab, 0px))' }}
+            className="w-full max-w-[400px] bg-surface-raised rounded-t-lg pt-4 px-4 pb-[calc(16px+var(--sab,0px))]"
           >
             <div className="text-body-sm font-bold text-text-primary text-center mb-3.5">
               {contactStaff.name}

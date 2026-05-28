@@ -564,7 +564,7 @@ export default function WorkLogPage() {
         {isSaving ? '저장 중...' : (
           <>
             <Save size={14} />
-            <span style={{ marginLeft: 6 }}>저장</span>
+            <span className="ml-[6px]">저장</span>
             {isDirty && (
               <span className="worklog-footer-save-dirty">· 수정됨</span>
             )}
@@ -582,7 +582,7 @@ export default function WorkLogPage() {
         {generating ? '출력 중...' : (
           <>
             <Download size={14} />
-            <span style={{ marginLeft: 6 }}>엑셀 출력</span>
+            <span className="ml-[6px]">엑셀 출력</span>
           </>
         )}
       </button>
@@ -634,14 +634,14 @@ export default function WorkLogPage() {
 
         {/* 좌측 편집 패널 — 페이지 제목은 App.tsx 헤더에서 표시 */}
         <div className="worklog-desktop-edit-panel">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 20 }}>
+          <div className="flex items-center justify-end mb-5">
             {monthNav}
           </div>
           {formContent}
-          <div style={{ marginTop: 4 }}>
+          <div className="mt-1">
             {footerButtons}
           </div>
-          <div style={{ height: 24 }} />
+          <div className="h-6" />
         </div>
 
         {/* 우측 A4 세로 미리보기 패널 */}
@@ -676,7 +676,7 @@ export default function WorkLogPage() {
 
   // ── 렌더 — 모바일 ──────────────────────────────────────
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div className="h-full flex flex-col overflow-hidden bg-surface-page">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
 
       {/* 헤더 — 14-reports inherit chrome (page-header / back-btn / page-title) */}
@@ -692,9 +692,9 @@ export default function WorkLogPage() {
       </header>
 
       {/* 스크롤 본문 */}
-      <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="page-body flex-1 overflow-y-auto">
         {formContent}
-        <div style={{ height: 72 }} />
+        <div className="h-[72px]" />
       </div>
 
       {/* 고정 푸터 — iOS safe-area paddingBottom calc(10px + var(--sab)) */}
@@ -1004,35 +1004,20 @@ function WorkLogPortraitPreview({
 
       {/* 캘리브레이션 안내 바 */}
       {calibMode && (
-        <div style={{
-          position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.9)', color: '#fff',
-          padding: '10px 20px', borderRadius: 10,
-          fontSize: 14, fontWeight: 700,
-          display: 'flex', alignItems: 'center', gap: 16, zIndex: 10,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          whiteSpace: 'nowrap',
-        }}>
-          <span style={{
-            width: 24, height: 24, borderRadius: '50%',
-            background: WORKLOG_CALIB_STEPS[calibStep].color,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12, flexShrink: 0,
-          }}>{calibStep + 1}</span>
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-[rgba(0,0,0,0.9)] text-white px-5 py-[10px] rounded-[10px] text-[14px] font-bold flex items-center gap-4 z-10 shadow-[0_4px_12px_rgba(0,0,0,0.3)] whitespace-nowrap">
+          <span
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] shrink-0"
+            // WORKLOG_CALIB_STEPS[calibStep].color 동적 색 — 인라인 허용
+            style={{ background: WORKLOG_CALIB_STEPS[calibStep].color }}
+          >{calibStep + 1}</span>
           <span>{WORKLOG_CALIB_STEPS[calibStep].label}</span>
-          <span style={{ fontSize: 11, color: '#aaa' }}>
+          <span className="text-[11px] text-[#aaa]">
             {activePoint ? `(${activePoint.x.toFixed(1)}, ${activePoint.y.toFixed(1)})` : '터치/클릭'}
           </span>
           {activePoint && (
-            <button onClick={confirmPoint} style={{
-              background: '#22c55e', border: 'none', color: '#fff',
-              padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700,
-            }}>확인</button>
+            <button onClick={confirmPoint} className="bg-[#22c55e] border-0 text-white px-4 py-[6px] rounded-[6px] cursor-pointer text-[13px] font-bold">확인</button>
           )}
-          <button onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }} style={{
-            background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
-            padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12,
-          }}>취소</button>
+          <button onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }} className="bg-[rgba(255,255,255,0.15)] border-0 text-white px-[14px] py-[6px] rounded-[6px] cursor-pointer text-[12px]">취소</button>
         </div>
       )}
 
