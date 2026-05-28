@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-28 - Completed Phase B Wave 3 (260528-cjn): WorkShift 24→5 + Annual 21→1 = 45→6 inline (-86.7%, yearPos 캘리브 LOCKED, HDR_H/ROW_H/SHIFT_COLOR 옵션 N)
+Last activity: 2026-05-28 - Completed Phase B Wave 4 (260528-gsh): Dashboard 10→5 + Daily 10→8 + WorkLog 20→8 = 40→21 inline (-47.5%, IS_ANDROID 의도 + 캘리브 시스템 2종 보존)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -115,6 +115,7 @@ Recent decisions affecting current work:
 | 260528-a3v | Phase B Wave 1 워밍업 — QRScanPage 1→0 (w-full) + DivPage 4→4 (동적 color/chartH 옵션 N 잔존) + ReportsPage 3→0 (flex-col h-full overflow-hidden + bg-surface-page tailwind 토큰). 합계 8→4 (-50%). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (9종 × 3 파일 + onClick precise) identical. TypeScript 0 error. 변경 파일 2 (DivPage 미수정). | 2026-05-28 | 18fd138 | [260528-a3v-phase-b-wave-1](./quick/260528-a3v-phase-b-wave-1/) |
 | 260528-c9s | Phase B Wave 2 인증/스플래시 (캘리브 risk) — LoginPage 28→2 (옵션 M conditional + 동적 색변수 N 잔존 L98/L103 isSelected 분기) + SplashScreen 13→1 (캘리브 룰 옵션 X 정확값 보존, width:\`${pct}%\` 동적 옵션 N 잔존 L55). 합계 41→3 (-92.7%). w-8/h-8/p-8=48px tailwind override 함정 회피 (`pb-[32px]` arbitrary 적용, 메모리 anchor `feedback_tailwind_w8_h8_is_48px.md`). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (5종 × 2 파일 + onClick precise) identical. TypeScript 0 error. 변경 파일 2. LoginPage 223→215줄 / SplashScreen 89→72줄. | 2026-05-28 | d36a20f | [260528-c9s-phase-b-wave-2](./quick/260528-c9s-phase-b-wave-2/) |
 | 260528-cjn | Phase B Wave 3 근무/연간 (양쪽 캘리브 risk) — WorkShiftPage 24→5 (HDR_H/ROW_H 상수 + SHIFT_COLOR 동적 변수 옵션 N 잔존, L195 tdy spread → conditional className 옵션 M) + AnnualPlanPage 21→1 (L79 yearPos 캘리브 좌표 시그니처 LOCKED 보존, OQ #5 주석). 합계 45→6 (-86.7%). w-7=32/p-7=32 config override 함정 자체 발견+follow-up patch (pb-7 → pb-[28px], 메모리 anchor `feedback_tailwind_w8_h8_is_48px.md` 일반화). 옵션 X+P+M+색변수N 승계. 시각 0 byte. 비즈 anchor (9종 × 2 파일 + onClick precise) identical. TypeScript 0 error. holidays fetch + yearPos.y/x + HDR_H=52/ROW_H=46 보존. | 2026-05-28 | 4e99270 | [260528-cjn-phase-b-wave-3](./quick/260528-cjn-phase-b-wave-3/) |
+| 260528-gsh | Phase B Wave 4 보고/대시보드 — Dashboard 10→5 (IS_ANDROID 의도 인라인 3건 보존 + CAT_DOT/catColor 동적 2건 옵션 N, animation 4건 → [animation:slideUp_...] arbitrary + paddingBottom calc 변환) + DailyReport 10→8 (캘리브 시스템 imgRect/pt.x.y/textStyle spread/DAILY_CALIB_STEPS/4 marker 잔존, root + page-body 2건 변환) + WorkLog 20→8 (캘리브 마커 시스템 8건 잔존, toolbar + spacer + margin 12건 변환). 합계 40→21 (-47.5%). 옵션 X+P+M+색변수N + 의도 inline N. 시각 0 byte. 비즈 anchor (9종 × 3 파일 + onClick precise) identical. TypeScript 0 error. Wave 3 borderRadius 트랩 precedent preemptive 적용 (rounded-[10px]/[6px] arbitrary). | 2026-05-28 | 05fddf1 | [260528-gsh-phase-b-wave-4](./quick/260528-gsh-phase-b-wave-4/) |
 
 ## Session Continuity
 
