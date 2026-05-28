@@ -259,26 +259,9 @@ function MarkerIcon({
 
   // danger 마커 — 우상단 ! 배지 (시안 A안). pointerEvents:none 으로 클릭 통과.
   return (
-    <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+    <div className="relative inline-block leading-none">
       {svg}
-      <div style={{
-        position: 'absolute',
-        top: -8,
-        right: -8,
-        width: 12,
-        height: 12,
-        background: '#ef4444',
-        border: '1.5px solid #fff',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 9,
-        fontWeight: 900,
-        color: '#fff',
-        lineHeight: 1,
-        pointerEvents: 'none',
-      }}>!</div>
+      <div className="absolute -top-2 -right-2 w-3 h-3 bg-[#ef4444] border-[1.5px] border-white rounded-full flex items-center justify-center text-[9px] font-black text-white leading-none pointer-events-none">!</div>
     </div>
   )
 }
@@ -1041,13 +1024,13 @@ export default function FloorPlanPage() {
       >
         {/* ── 편집모드 안내 (absolute — 레이아웃 영향 없음) ── */}
         {editMode && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, padding: '6px 12px', background: 'rgba(59,130,246,0.85)', fontSize: 11, color: '#fff', fontWeight: 600, textAlign: 'center', pointerEvents: 'none' }}>
+          <div className="absolute top-0 left-0 right-0 z-20 py-[6px] px-3 bg-[rgba(59,130,246,0.85)] text-[11px] text-white font-semibold text-center pointer-events-none">
             {isDesktop ? '더블클릭으로 마커 추가 · 마커를 드래그하여 이동 · 클릭하여 선택' : '길게 누르면 마커 추가 · 마커를 터치하여 선택/삭제'}
           </div>
         )}
         {/* Phase 24: 소화기 배치 모드 안내 배너 */}
         {isPlacingMode && !editMode && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, padding: '7px 12px', background: 'rgba(239,68,68,0.9)', fontSize: 11, color: '#fff', fontWeight: 700, textAlign: 'center', pointerEvents: 'none' }}>
+          <div className="absolute top-0 left-0 right-0 z-20 py-[7px] px-3 bg-[rgba(239,68,68,0.9)] text-[11px] text-white font-bold text-center pointer-events-none">
             배치할 위치(개소)를 선택하세요 — 뒤로가기로 취소
           </div>
         )}
@@ -1075,7 +1058,7 @@ export default function FloorPlanPage() {
                 setImgRect({ offX: (cw - rw) / 2, offY: (ch - rh) / 2, w: rw, h: rh })
                 setImgLoaded(true)
               }}
-              style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', pointerEvents: 'none', userSelect: 'none' }}
+              className="w-full h-full object-contain block pointer-events-none select-none"
               draggable={false}
             />
 
@@ -1148,7 +1131,7 @@ export default function FloorPlanPage() {
             })}
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--t3)', fontSize: 14, fontWeight: 600 }}>
+          <div className="flex items-center justify-center h-full text-text-tertiary text-[14px] font-semibold">
             도면 준비 중
           </div>
         )}
@@ -1369,8 +1352,7 @@ export default function FloorPlanPage() {
         // ── 모바일: 바텀시트 ──
         return (
           <div
-            className="absolute bottom-0 left-0 right-0 bg-surface-raised border-t border-border-default rounded-t-lg px-4 pt-3 pb-5 z-30"
-            style={{ boxShadow: '0 -8px 32px rgba(0,0,0,0.4)' }}
+            className="absolute bottom-0 left-0 right-0 bg-surface-raised border-t border-border-default rounded-t-lg px-4 pt-3 pb-5 z-30 shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-9 h-1 rounded-pill bg-border-default mx-auto mb-3.5" />
@@ -1691,8 +1673,8 @@ export default function FloorPlanPage() {
 
       {/* ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 시) ── */}
       {revisitPopup && (
-        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-          <div style={{ position:'relative', width:'90%', maxWidth:320, minHeight:180 }}>
+        <div className="fixed inset-0 z-[60] bg-[rgba(0,0,0,0.55)] flex items-center justify-center p-4">
+          <div className="relative w-[90%] max-w-[320px] min-h-[180px]">
             <InspectionRevisitPopup
               variant={revisitPopup.variant}
               checkedAt={revisitPopup.checkedAt}
@@ -1741,8 +1723,7 @@ export default function FloorPlanPage() {
         if (isAccessBlocked) {
           return (
             <div
-              className="absolute inset-0 z-[50] flex items-center justify-center"
-              style={{ background: 'rgba(0,0,0,0.6)' }}
+              className="absolute inset-0 z-[50] flex items-center justify-center bg-[rgba(0,0,0,0.6)]"
               onClick={() => setInspectModal(false)}
             >
               <div
@@ -1756,8 +1737,7 @@ export default function FloorPlanPage() {
         }
         return (
         <div
-          className="absolute inset-0 z-[50] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.6)' }}
+          className="absolute inset-0 z-[50] flex items-center justify-center bg-[rgba(0,0,0,0.6)]"
           onClick={() => setInspectModal(false)}
         >
           <div
@@ -2093,8 +2073,7 @@ export default function FloorPlanPage() {
 
       {resolveModal && selected?.last_record_id && (
         <div
-          className="absolute inset-0 z-[50] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.6)' }}
+          className="absolute inset-0 z-[50] flex items-center justify-center bg-[rgba(0,0,0,0.6)]"
           onClick={() => setResolveModal(false)}
         >
           <div
@@ -2148,7 +2127,7 @@ export default function FloorPlanPage() {
 
                 {/* 자재명 + 개수 + 사진 — 한 줄 */}
                 <div className="flex gap-2 items-start mb-3.5">
-                  <div className="flex-1 min-w-0 flex flex-col gap-1" style={{ height: 72 }}>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1 h-[72px]">
                     <input
                       type="text"
                       value={resolveMaterialName}
