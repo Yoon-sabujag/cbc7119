@@ -26,7 +26,7 @@ function BottomSheet({ onClose, title, children }: {
 }) {
   return (
     <div
-      className="fixed inset-0 bg-[rgba(0,0,0,0.6)] z-[50] flex flex-col justify-end"
+      className="fixed inset-0 bg-[rgba(0,0,0,0.6)] z-[200] flex flex-col justify-end"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-surface-raised rounded-t-[16px] [animation:slideUp_0.28s_ease-out_both] max-h-[90vh] overflow-y-auto">
@@ -46,7 +46,7 @@ function DesktopModal({ onClose, title, children }: {
 }) {
   return (
     <div
-      className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-[50] flex items-center justify-center"
+      className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-[200] flex items-center justify-center"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-surface-raised rounded-[12px] w-[440px] max-h-[85vh] overflow-y-auto shadow-[0_8px_32px_rgba(0,0,0,0.18)]">
