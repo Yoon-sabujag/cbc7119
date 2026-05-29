@@ -1056,8 +1056,7 @@ export default function ElevatorPage() {
 
       {/* 본문 */}
       <main
-        className="flex-1 min-h-0 overflow-y-auto px-3 py-2.5 flex flex-col gap-2"
-        style={{ paddingBottom: 'calc(80px + var(--sab, 0px))' }}
+        className="flex-1 min-h-0 overflow-y-auto px-3 py-2.5 flex flex-col gap-2 pb-[calc(80px+var(--sab,0px))]"
       >
 
         {/* ── 목록 ── */}
@@ -1354,7 +1353,7 @@ export default function ElevatorPage() {
                                   <AlertTriangle size={12} />
                                   주의관찰 항목
                                 </div>
-                                <div className="bg-surface-sunken grid" style={{ gridTemplateColumns:'50px 1fr auto' }}>
+                                <div className="bg-surface-sunken grid [grid-template-columns:50px_1fr_auto]">
                                   {data.issues.map((issue, idx) => {
                                     const isLast = idx === data.issues.length - 1
                                     const resultCls = issue.result === 'C' ? 'text-danger' : 'text-warning'
@@ -1870,8 +1869,7 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
     <>
       <div
         onClick={onClose}
-        className="bg-surface-overlay"
-        style={{ position:'fixed', inset:0, zIndex:90 }}
+        className="bg-surface-overlay fixed inset-0 z-[90]"
       />
       <div
         id="ev-detail-modal-panel"
@@ -2324,8 +2322,8 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
 
   return (
     <div
-      className="fixed flex flex-col bg-surface-page"
-      style={{ top:0, left:0, right:0, bottom:NAV_H, zIndex:100, paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}
+      className="fixed flex flex-col bg-surface-page top-0 left-0 right-0 z-[100] pt-[var(--sat,44px)] box-border"
+      style={{ bottom: NAV_H }}
     >
       {/* 풀스크린 자체 헤더 */}
       <div className="flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center gap-2.5 px-4 pt-[14px] pb-3">
@@ -2464,8 +2462,7 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
         <button
           onClick={() => onSubmit({ id:fault.id, repairCompany, repairedAt:repairedAt+':00', repairDetail, repairPhotoKeys })}
           disabled={!repairDetail.trim()||loading}
-          style={{ opacity:(!repairDetail.trim()||loading)?0.5:1 }}
-          className="w-full h-[48px] rounded-lg font-bold text-body bg-accent text-text-on-accent border-none cursor-pointer transition"
+          className={`w-full h-[48px] rounded-lg font-bold text-body bg-accent text-text-on-accent border-none cursor-pointer transition ${(!repairDetail.trim()||loading) ? 'opacity-50' : 'opacity-100'}`}
         >
           {loading ? '처리 중...' : '수리 완료'}
         </button>
@@ -2480,23 +2477,23 @@ function CertViewerModal({ certKey, onClose }: { certKey:string; onClose:()=>voi
   const url   = `/api/uploads/${certKey}`
   return (
     <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.85)', zIndex:200 }} />
-      <div style={{ position:'fixed', inset:0, zIndex:201, display:'flex', flexDirection:'column', paddingTop:'var(--sat, 44px)', paddingBottom:'var(--sab, 0px)' }}>
+      <div onClick={onClose} className="fixed inset-0 bg-[rgba(0,0,0,0.85)] z-[200]" />
+      <div className="fixed inset-0 z-[201] flex flex-col pt-[var(--sat,44px)] pb-[var(--sab,0px)]">
         {/* 헤더 */}
-        <div style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', background:'rgba(22,27,34,0.97)', borderBottom:'1px solid var(--bd)' }}>
-          <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>검사성적서</span>
-          <div style={{ display:'flex', gap:8 }}>
-            <a href={url} target="_blank" rel="noopener" style={{ fontSize:11, fontWeight:700, color:'var(--acl)', padding:'6px 12px', borderRadius:8, background:'rgba(59,130,246,.15)', border:'1px solid rgba(59,130,246,.3)', textDecoration:'none' }}>새 탭 열기</a>
-            <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:20 }}>✕</button>
+        <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-[rgba(22,27,34,0.97)] border-b border-border-default">
+          <span className="text-body-sm font-bold text-text-primary">검사성적서</span>
+          <div className="flex gap-2">
+            <a href={url} target="_blank" rel="noopener" className="text-[11px] font-bold text-accent px-3 py-1.5 rounded-md bg-[rgba(59,130,246,0.15)] border border-[rgba(59,130,246,0.3)] no-underline">새 탭 열기</a>
+            <button onClick={onClose} className="bg-none border-0 text-text-tertiary cursor-pointer text-[20px]">✕</button>
           </div>
         </div>
         {/* 뷰어 영역 */}
-        <div style={{ flex:1, minHeight:0, overflow:'hidden', position:'relative', background:'var(--bg)' }}>
+        <div className="flex-1 min-h-0 overflow-hidden relative bg-surface-page">
           {isPdf ? (
             <PdfFloorPlan url={url} scale={1} onReady={() => {}} />
           ) : (
-            <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', overflow:'auto' }}>
-              <img src={url} alt="인증서" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain', display:'block' }} />
+            <div className="w-full h-full flex items-center justify-center overflow-auto">
+              <img src={url} alt="인증서" className="max-w-full max-h-full object-contain block" />
             </div>
           )}
         </div>
@@ -2516,7 +2513,7 @@ function FindingCountBadge({ elevatorId, inspectionId, isConditional }: { elevat
   if (!isConditional || findings.length === 0) return null
   const open = findings.filter(f => f.status === 'open').length
   return (
-    <span style={{ fontSize:9, fontWeight:700, padding:'1px 6px', borderRadius:6, background:'rgba(239,68,68,.12)', color:'var(--danger)' }}>
+    <span className="text-[9px] font-bold px-1.5 py-px rounded-md bg-[rgba(239,68,68,0.12)] text-danger-bar">
       지적 {findings.length}건{open > 0 ? ` (미조치 ${open})` : ''}
     </span>
   )
@@ -2593,56 +2590,53 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate, h
   })
 
   return (
-    <div style={{ padding:'6px 8px' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-        <span style={{ fontSize:10, fontWeight:700, color: inspectionResult === 'fail' ? 'var(--danger)' : 'var(--warn)' }}>지적사항 및 조치</span>
-        {findings.length > 0 && <span style={{ fontSize:9, color:'var(--t3)' }}>{findings.filter(f => f.status === 'resolved').length}/{findings.length} 조치</span>}
+    <div className="px-2 py-1.5">
+      <div className="flex items-center justify-between mb-1">
+        <span className={`text-[10px] font-bold ${inspectionResult === 'fail' ? 'text-danger-bar' : 'text-warning-bar'}`}>지적사항 및 조치</span>
+        {findings.length > 0 && <span className="text-[9px] text-text-tertiary">{findings.filter(f => f.status === 'resolved').length}/{findings.length} 조치</span>}
       </div>
 
-      {isLoading && <div style={{ fontSize:9, color:'var(--t3)' }}>불러오는 중...</div>}
+      {isLoading && <div className="text-[9px] text-text-tertiary">불러오는 중...</div>}
 
       {findings.map(f => (
-        <div key={f.id} style={{ padding:'4px 6px', background:'var(--bg2)', borderRadius:5, marginBottom:3 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:10 }}>
-            <span style={{ flex:1, color:'var(--t1)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.description}</span>
-            <span style={{ fontSize:8, fontWeight:700, padding:'1px 4px', borderRadius:6, flexShrink:0,
-              background: f.status === 'open' ? 'rgba(239,68,68,.12)' : 'rgba(34,197,94,.12)',
-              color: f.status === 'open' ? 'var(--danger)' : 'var(--safe)',
-            }}>{f.status === 'open' ? '미조치' : '완료'}</span>
+        <div key={f.id} className="px-1.5 py-1 bg-surface-raised rounded-[5px] mb-[3px]">
+          <div className="flex items-center gap-1 text-[10px]">
+            <span className="flex-1 text-text-primary font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{f.description}</span>
+            <span className={`text-[8px] font-bold px-1 py-px rounded-md shrink-0 ${f.status === 'open' ? 'bg-[rgba(239,68,68,0.12)] text-danger-bar' : 'bg-[rgba(34,197,94,0.12)] text-safe-bar'}`}>{f.status === 'open' ? '미조치' : '완료'}</span>
           </div>
           {f.status === 'open' && linkingFindingId !== f.id && (
             <button onClick={() => setLinkingFindingId(f.id)}
-              style={{ marginTop:2, padding:'2px 6px', borderRadius:4, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.15)', color:'var(--info)', fontSize:9, fontWeight:600, cursor:'pointer' }}>
+              className="mt-0.5 px-1.5 py-0.5 rounded bg-[rgba(59,130,246,0.08)] border border-[rgba(59,130,246,0.15)] text-info-bar text-[9px] font-semibold cursor-pointer">
               수리이력 연결
             </button>
           )}
           {linkingFindingId === f.id && (
-            <div style={{ marginTop:3, background:'var(--bg3)', borderRadius:4, padding:4, maxHeight:100, overflowY:'auto', border:'1px solid var(--bd)' }}>
-              {repairsList.filter((r: any) => r.sourceType === 'standalone').length === 0 && <div style={{ fontSize:9, color:'var(--t3)', padding:2 }}>수리 이력 없음</div>}
+            <div className="mt-[3px] bg-surface-sunken rounded p-1 max-h-[100px] overflow-y-auto border border-border-default">
+              {repairsList.filter((r: any) => r.sourceType === 'standalone').length === 0 && <div className="text-[9px] text-text-tertiary p-0.5">수리 이력 없음</div>}
               {repairsList.filter((r: any) => r.sourceType === 'standalone').map((r: any) => (
                 <div key={r.id} onClick={() => handleLinkRepair(f.id, r)}
-                  style={{ padding:'2px 5px', borderRadius:3, cursor:'pointer', marginBottom:1, background:'var(--bg2)', fontSize:9 }}>
-                  <span style={{ fontWeight:600, color:'var(--t1)' }}>{r.date}</span> <span style={{ color:'var(--t2)' }}>{r.title}</span>
+                  className="px-1.5 py-0.5 rounded-sm cursor-pointer mb-px bg-surface-raised text-[9px]">
+                  <span className="font-semibold text-text-primary">{r.date}</span> <span className="text-text-secondary">{r.title}</span>
                 </div>
               ))}
-              <button onClick={() => setLinkingFindingId(null)} style={{ marginTop:2, padding:'1px 5px', borderRadius:3, background:'none', border:'1px solid var(--bd)', color:'var(--t3)', fontSize:8, cursor:'pointer' }}>취소</button>
+              <button onClick={() => setLinkingFindingId(null)} className="mt-0.5 px-1.5 py-px rounded-sm bg-none border border-border-default text-text-tertiary text-[8px] cursor-pointer">취소</button>
             </div>
           )}
           {f.status === 'resolved' && f.resolutionMemo && (
-            <div style={{ fontSize:9, color:'var(--safe)', marginTop:2, display:'flex', alignItems:'center', gap:3 }}>
-              <CheckCircle2 size={10} style={{ flexShrink:0 }} />
+            <div className="text-[9px] text-safe-bar mt-0.5 flex items-center gap-[3px]">
+              <CheckCircle2 size={10} className="shrink-0" />
               <span>{f.resolutionMemo}</span>
             </div>
           )}
         </div>
       ))}
 
-      <div style={{ display:'flex', gap:4, marginTop:3 }}>
+      <div className="flex gap-1 mt-[3px]">
         <input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="지적사항 입력..."
           onKeyDown={e => e.key === 'Enter' && handleAddFinding()}
-          style={{ flex:1, padding:'3px 6px', borderRadius:4, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:10, outline:'none' }} />
+          className="flex-1 px-1.5 py-[3px] rounded border border-border-default bg-surface-page text-text-primary text-[10px] outline-none" />
         <button onClick={handleAddFinding} disabled={!newDesc.trim() || addingFinding}
-          style={{ padding:'3px 8px', borderRadius:4, border:'none', background: inspectionResult === 'fail' ? 'var(--danger)' : 'var(--warn)', color:'#fff', fontSize:9, fontWeight:700, cursor:'pointer', opacity: !newDesc.trim() || addingFinding ? 0.5 : 1 }}>
+          className={`px-2 py-[3px] rounded border-0 text-white text-[9px] font-bold cursor-pointer ${inspectionResult === 'fail' ? 'bg-danger-bar' : 'bg-warning-bar'} ${!newDesc.trim() || addingFinding ? 'opacity-50' : 'opacity-100'}`}>
           {addingFinding ? '..' : '추가'}
         </button>
       </div>
@@ -3116,9 +3110,9 @@ function RepairImageViewer({ src, onClose }: { src: string; onClose: () => void 
     return Math.sqrt(dx*dx+dy*dy)
   }
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.95)', display:'flex', flexDirection:'column' }}>
-      <div style={{ flexShrink:0, display:'flex', justifyContent:'flex-end', padding:'12px 16px', paddingTop:'calc(12px + var(--sat, 44px))' }}>
-        <button onClick={onClose} style={{ background:'none', border:'none', color:'#fff', fontSize:24, cursor:'pointer' }}>✕</button>
+    <div className="fixed inset-0 z-[300] bg-[rgba(0,0,0,0.95)] flex flex-col">
+      <div className="shrink-0 flex justify-end px-4 pt-[calc(12px+var(--sat,44px))] pb-3">
+        <button onClick={onClose} className="bg-none border-0 text-white text-[24px] cursor-pointer">✕</button>
       </div>
       <div
         onTouchStart={e => {
@@ -3134,9 +3128,9 @@ function RepairImageViewer({ src, onClose }: { src: string; onClose: () => void 
         }}
         onTouchEnd={() => { lastTouch.current = null; dragStart.current = null; setDragging(false); if (scale <= 1) setPos({x:0,y:0}) }}
         onDoubleClick={() => { if (scale > 1) { setScale(1); setPos({x:0,y:0}) } else setScale(2.5) }}
-        style={{ flex:1, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', touchAction:'none' }}
+        className="flex-1 overflow-hidden flex items-center justify-center touch-none"
       >
-        <img src={src} alt="" draggable={false} style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain', transform:`translate(${pos.x}px,${pos.y}px) scale(${scale})`, transition: dragging ? 'none' : 'transform 0.15s', userSelect:'none' }} />
+        <img src={src} alt="" draggable={false} className="max-w-full max-h-full object-contain select-none" style={{ transform:`translate(${pos.x}px,${pos.y}px) scale(${scale})`, transition: dragging ? 'none' : 'transform 0.15s' }} />
       </div>
     </div>
   )
@@ -3352,8 +3346,7 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              style={{ opacity: canSubmit ? 1 : 0.5 }}
-              className="w-full py-[13px] rounded-md border-none bg-accent hover:bg-accent-hover text-white text-body-sm font-bold cursor-pointer transition-colors disabled:cursor-not-allowed"
+              className={`w-full py-[13px] rounded-md border-none bg-accent hover:bg-accent-hover text-white text-body-sm font-bold cursor-pointer transition-colors disabled:cursor-not-allowed ${canSubmit ? 'opacity-100' : 'opacity-50'}`}
             >
               {saving ? '저장 중...' : (isEdit ? '수정 완료' : '수리 기록 저장')}
             </button>
