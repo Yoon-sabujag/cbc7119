@@ -322,17 +322,14 @@ export default function RemediationPage() {
           <div className="w-1/2 shrink-0 min-w-0 h-full overflow-hidden">
             {!detail ? (
               // sketch .rem-detail-empty: h-full flex items-center justify-center color tertiary font-size 13px
-              <div
-                className="h-full flex items-center justify-center text-text-tertiary"
-                style={{ fontSize: 13 }}
-              >
+              <div className="h-full flex items-center justify-center text-text-tertiary text-[13px]">
                 좌측에서 항목을 선택하세요
               </div>
             ) : (
               // sketch .rem-detail-pane: overflow-y-auto px-7 py-5 h-full box-border + 스크롤바 숨김
               <div
-                className="overflow-y-auto h-full"
-                style={{ padding: '20px 28px', boxSizing: 'border-box', scrollbarWidth: 'none' } as React.CSSProperties}
+                className="overflow-y-auto h-full py-5 px-[28px] box-border"
+                style={{ scrollbarWidth: 'none' } as React.CSSProperties}
               >
                 {/* 헤더 — sketch .rem-detail-hd: flex items-start gap-3 mb-4 */}
                 <div className="flex items-start gap-3 mb-4">
@@ -354,7 +351,7 @@ export default function RemediationPage() {
 
                 {/* 보고서 테이블 — sketch .rem-kv-table: w-full border-collapse mb-5 */}
                 {/* 인라인 style 화이트리스트 — sketch verbatim, Tailwind 매핑 시 가독성 손상 */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20 }}>
+                <table className="w-full border-collapse mb-5">
                   <tbody>
                     {[
                       ['카테고리', detail.category],
@@ -367,9 +364,9 @@ export default function RemediationPage() {
                     ].map(([label, value], i) => (
                       <tr key={i}>
                         {/* sketch th: width 110 padding 8/12 bg surface-sunken border border-default font 12/700 color secondary */}
-                        <th style={{ width: 110, padding: '8px 12px', background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left', verticalAlign: 'top', lineHeight: 1.5 }}>{label}</th>
+                        <th className="w-[110px] py-2 px-3 bg-surface-sunken border border-border-default text-[12px] font-bold text-text-secondary text-left align-top leading-[1.5]">{label}</th>
                         {/* sketch td: padding 8/12 border border-default font 13 color primary pre-wrap */}
-                        <td style={{ padding: '8px 12px', border: '1px solid var(--border-default)', fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', verticalAlign: 'top', lineHeight: 1.6 }}>
+                        <td className="py-2 px-3 border border-border-default text-[13px] text-text-primary whitespace-pre-wrap align-top leading-[1.6]">
                           {label === '판정결과' ? (
                             // sketch .rem-badge.danger / .rem-badge.warning — leading-none 필수
                             <span
@@ -397,20 +394,20 @@ export default function RemediationPage() {
                     {detail.status === 'resolved' && (
                       <>
                         <tr>
-                          <th style={{ width: 110, padding: '8px 12px', background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left', verticalAlign: 'top', lineHeight: 1.5 }}>조치일시</th>
-                          <td style={{ padding: '8px 12px', border: '1px solid var(--border-default)', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6 }}>{fmtDateTime(detail.resolvedAt)}</td>
+                          <th className="w-[110px] py-2 px-3 bg-surface-sunken border border-border-default text-[12px] font-bold text-text-secondary text-left align-top leading-[1.5]">조치일시</th>
+                          <td className="py-2 px-3 border border-border-default text-[13px] text-text-primary leading-[1.6]">{fmtDateTime(detail.resolvedAt)}</td>
                         </tr>
                         <tr>
-                          <th style={{ width: 110, padding: '8px 12px', background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left', verticalAlign: 'top', lineHeight: 1.5 }}>조치자</th>
-                          <td style={{ padding: '8px 12px', border: '1px solid var(--border-default)', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6 }}>{detail.resolvedBy ?? '-'}</td>
+                          <th className="w-[110px] py-2 px-3 bg-surface-sunken border border-border-default text-[12px] font-bold text-text-secondary text-left align-top leading-[1.5]">조치자</th>
+                          <td className="py-2 px-3 border border-border-default text-[13px] text-text-primary leading-[1.6]">{detail.resolvedBy ?? '-'}</td>
                         </tr>
                         <tr>
-                          <th style={{ width: 110, padding: '8px 12px', background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left', verticalAlign: 'top', lineHeight: 1.5 }}>조치 내용</th>
-                          <td style={{ padding: '8px 12px', border: '1px solid var(--border-default)', fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{detail.resolutionMemo ?? '-'}</td>
+                          <th className="w-[110px] py-2 px-3 bg-surface-sunken border border-border-default text-[12px] font-bold text-text-secondary text-left align-top leading-[1.5]">조치 내용</th>
+                          <td className="py-2 px-3 border border-border-default text-[13px] text-text-primary whitespace-pre-wrap leading-[1.6]">{detail.resolutionMemo ?? '-'}</td>
                         </tr>
                         <tr>
-                          <th style={{ width: 110, padding: '8px 12px', background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left', verticalAlign: 'top', lineHeight: 1.5 }}>소모 자재</th>
-                          <td style={{ padding: '8px 12px', border: '1px solid var(--border-default)', fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{detail.materialsUsed ?? '-'}</td>
+                          <th className="w-[110px] py-2 px-3 bg-surface-sunken border border-border-default text-[12px] font-bold text-text-secondary text-left align-top leading-[1.5]">소모 자재</th>
+                          <td className="py-2 px-3 border border-border-default text-[13px] text-text-primary whitespace-pre-wrap leading-[1.6]">{detail.materialsUsed ?? '-'}</td>
                         </tr>
                       </>
                     )}
