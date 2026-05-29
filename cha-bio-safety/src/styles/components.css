@@ -25,7 +25,7 @@
   .page-title { flex: 1; font-size: 18px; font-weight: 700; color: var(--text-primary); line-height: 1.4; }
   .year-pager { display: flex; align-items: center; gap: 2px; }
   .year-pager-slot { width: 24px; display: flex; justify-content: center; }
-  .year-nav-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-default); background: var(--surface-sunken); color: var(--text-primary); font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .year-nav-btn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border-default); background: var(--surface-sunken); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
   .year-label { min-width: 56px; text-align: center; font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1; white-space: nowrap; padding: 0 4px; }
 
   /* ── §2. 본문 + 카드 (W2/W3) ─────────────────────── */
@@ -93,13 +93,13 @@
     gap: 4px;  /* source navBtn gap 2 → 4 (노안 격상, space-1) */
   }
   .date-nav-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;  /* source navBtn 7 → 6 (sm-token 일관) */
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;  /* source navBtn 7 → 6 (sm-token 일관) */
     border: 1px solid var(--border-default);
     background: var(--surface-sunken);
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     cursor: pointer;
     display: flex;
@@ -118,8 +118,8 @@
     padding: 0 4px;
   }
   .date-nav-spacer {
-    width: 28px;  /* source line 397 width:28 verbatim */
-    height: 28px;
+    width: 32px;  /* source line 397 width:28 verbatim */
+    height: 32px;
     flex-shrink: 0;
   }
 
@@ -520,13 +520,13 @@
     gap: 4px; /* source line 711 gap 8 → 4 (back-btn 옆 컴팩트) */
   }
   .month-nav-btn {
-    width: 28px;  /* source line 25 width:28 verbatim */
-    height: 28px;
-    border-radius: 6px; /* source navBtn radius 7 → 6 (sm-token 일관) */
+    width: 32px;  /* source line 25 width:28 verbatim */
+    height: 32px;
+    border-radius: 7px; /* source navBtn radius 7 → 6 (sm-token 일관) */
     border: 1px solid var(--border-default);
     background: var(--surface-sunken);
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
