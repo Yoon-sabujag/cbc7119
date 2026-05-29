@@ -97,7 +97,7 @@ export default function WorkShiftPage() {
             <ChevronLeft size={15} className="text-text-secondary" />
           </button>
         )}
-        <span className="text-body font-bold text-text-primary flex-1">월간 출근부</span>
+        <span className="text-title font-semibold text-text-primary flex-1">월간 출근부</span>
         <button
           onClick={handleExcel}
           disabled={dlLoading}

@@ -463,7 +463,7 @@ export default function EducationPage() {
         >
           <ChevronLeft size={20} />
         </button>
-        <span className="text-body font-bold text-text-primary flex-1 text-center">
+        <span className="text-title font-semibold text-text-primary flex-1 text-center">
           보수교육
         </span>
         <div className="w-7" />

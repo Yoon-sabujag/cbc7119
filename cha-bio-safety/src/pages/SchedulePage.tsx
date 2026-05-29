@@ -580,7 +580,7 @@ export default function SchedulePage() {
         >
           <ChevronLeft size={15} strokeWidth={2} className="text-text-secondary" />
         </button>
-        <span className="flex-1 text-title font-bold text-text-primary">월간 점검 계획</span>
+        <span className="flex-1 text-title font-semibold text-text-primary">월간 점검 계획</span>
         <button
           onClick={handlePlanDownload}
           disabled={planLoading}

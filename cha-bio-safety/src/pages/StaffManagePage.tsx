@@ -391,7 +391,7 @@ export default function StaffManagePage() {
       {/* 헤더 */}
       {isDesktop ? (
         <div className="desktop-header shrink-0 hidden lg:flex items-center h-14 px-5 border-b border-border-default">
-          <span className="desktop-header-title flex-1 text-body-sm font-bold text-text-primary">
+          <span className="desktop-header-title flex-1 text-title font-semibold text-text-primary">
             직원 관리 <span className="desktop-header-count text-caption text-text-tertiary ml-2">{staffList.length}명</span>
           </span>
           <button onClick={() => setModal({ open: true, mode: 'add' })}

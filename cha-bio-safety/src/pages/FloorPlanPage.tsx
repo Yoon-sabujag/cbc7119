@@ -946,7 +946,7 @@ export default function FloorPlanPage() {
           </button>
         )}
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+          <div className="text-title font-semibold text-text-primary truncate">소방 시설 도면</div>
         </div>
         {canEditMarker && (
           <button

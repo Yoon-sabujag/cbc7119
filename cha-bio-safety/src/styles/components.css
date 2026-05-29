@@ -22,7 +22,7 @@
   /* ── §1. 자체 헤더 (W2/W3) ──────────────────────── */
   .page-header { flex-shrink: 0; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 8px 12px 9px; display: flex; align-items: center; gap: 8px; }
   .back-btn { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .page-title { flex: 1; font-size: 18px; font-weight: 700; color: var(--text-primary); line-height: 1.4; }
+  .page-title { flex: 1; font-size: 18px; font-weight: 600; color: var(--text-primary); line-height: 1.4; }
   .year-pager { display: flex; align-items: center; gap: 2px; }
   .year-pager-slot { width: 24px; display: flex; justify-content: center; }
   .year-nav-btn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border-default); background: var(--surface-sunken); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
