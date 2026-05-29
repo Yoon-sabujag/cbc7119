@@ -272,7 +272,7 @@ export default function RemediationDetailPage() {
         <button
           aria-label="목록으로 돌아가기"
           onClick={() => navigate(-1)}
-          className="absolute left-3 w-9 h-9 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center"
+          className="absolute left-3 w-7 h-7 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center"
         >
           <ChevronLeft size={20} />
         </button>
