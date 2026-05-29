@@ -1106,7 +1106,7 @@ export default function DivPage() {
         <button onClick={() => navigate(-1)} className="w-[32px] h-[32px] rounded-[7px] bg-surface-sunken flex items-center justify-center text-text-secondary cursor-pointer border-0">
           <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <span className="flex-1 text-[13px] font-bold text-text-primary ml-2">DIV 압력 관리</span>
+        <span className="flex-1 text-title font-semibold text-text-primary ml-2">DIV 압력 관리</span>
       </header>
 
       {/* ── 탭 ── */}

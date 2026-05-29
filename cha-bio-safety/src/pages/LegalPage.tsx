@@ -1145,13 +1145,13 @@ export default function LegalPage() {
     <div className="bg-surface-page flex-1 flex flex-col h-full overflow-hidden">
       <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
-      <div className="bg-surface-raised border-b border-border-default h-[48px] flex items-center justify-center relative shrink-0">
+      <div className="bg-surface-raised border-b border-border-default h-12 px-3 flex items-center justify-center relative shrink-0">
         <button
           aria-label="뒤로 가기"
           onClick={() => navigate(-1)}
-          className="text-text-primary absolute left-2 w-[44px] h-[44px] border-0 bg-transparent cursor-pointer flex items-center justify-center"
+          className="text-text-primary absolute left-2 w-7 h-7 rounded-[7px] bg-surface-sunken border-0 cursor-pointer flex items-center justify-center"
         ><ChevronLeft size={20} /></button>
-        <span className="text-body font-bold text-text-primary">소방 점검 관리</span>
+        <span className="text-title font-semibold text-text-primary">소방 점검 관리</span>
       </div>
 
       {/* 필터 */}
