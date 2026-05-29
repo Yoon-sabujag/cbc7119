@@ -602,14 +602,14 @@ export default function ElevatorPage() {
         <header className="flex-shrink-0 h-14 bg-surface-raised border-b border-border-default px-5 flex items-center gap-2.5">
           <span className="flex-1 text-body font-bold text-text-primary">승강기 관리</span>
           {unresolvedCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-caption font-bold text-fire bg-fire-bg border border-fire-bar rounded-pill px-2.5 py-1">
+            <span className="inline-flex items-center gap-1 h-7 text-caption font-bold text-fire bg-fire-bg border border-fire-bar rounded-pill px-2.5">
               <AlertTriangle size={12} />
               미해결 고장 {unresolvedCount}건
             </span>
           )}
           <button
             onClick={() => { setSelectedEv(selectedDesktopEv); setModal('fault_new') }}
-            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-7 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
             style={{ background: 'linear-gradient(135deg,#991b1b,#ef4444)' }}
           >
             <AlertTriangle size={14} />
@@ -617,7 +617,7 @@ export default function ElevatorPage() {
           </button>
           <button
             onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
-            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-7 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
             style={{ background: 'linear-gradient(135deg,#854d0e,#eab308)' }}
           >
             <Wrench size={14} />
