@@ -32,7 +32,7 @@ function BottomSheet({ onClose, title, children }: {
       <div onClick={onClose} className="fixed inset-0 z-[98] bg-black/40" />
       {/* sheet — BottomNav 위쪽 영역만 차지 (InspectionPage / ElevatorPage 표준 Pattern A) */}
       <div
-        className="fixed left-0 right-0 z-[99] bg-surface-raised rounded-t-[16px] border-t border-border-default overflow-y-auto [animation:slideUp_0.28s_ease-out_both]"
+        className="fixed left-0 right-0 z-[99] bg-surface-raised rounded-t-[16px] border-t border-border-default overflow-y-auto overflow-x-hidden [animation:slideUp_0.28s_ease-out_both]"
         style={{
           bottom: NAV_BOTTOM,
           maxHeight: 'calc(100dvh - var(--sat, 0px) - var(--sab, 0px) - 54px)',
@@ -57,7 +57,7 @@ function DesktopModal({ onClose, title, children }: {
       className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-[200] flex items-center justify-center"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-surface-raised rounded-[12px] w-[440px] max-h-[85vh] overflow-y-auto shadow-[0_8px_32px_rgba(0,0,0,0.18)]">
+      <div className="bg-surface-raised rounded-[12px] w-[440px] max-h-[85vh] overflow-y-auto overflow-x-hidden shadow-[0_8px_32px_rgba(0,0,0,0.18)]">
         <div className="text-base font-bold text-text-primary px-6 pt-5 pb-0">{title}</div>
         {children}
       </div>
@@ -69,7 +69,7 @@ function DesktopModal({ onClose, title, children }: {
 const INPUT_STYLE: React.CSSProperties = {
   height: 44, background: 'var(--bg3)', border: '1px solid var(--bd)',
   borderRadius: 8, padding: '0 12px', fontSize: 14, color: 'var(--t1)',
-  width: '100%', boxSizing: 'border-box', outline: 'none',
+  width: '100%', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', outline: 'none',
 }
 const LABEL_STYLE: React.CSSProperties = {
   fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 6, display: 'block',
