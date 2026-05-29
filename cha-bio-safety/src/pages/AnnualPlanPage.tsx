@@ -129,17 +129,17 @@ export default function AnnualPlanPage() {
   // ── 모바일 ──
   return (
     <div className="bg-surface-page w-full h-full flex flex-col overflow-hidden">
-      <header className="bg-surface-raised border-b border-border-default flex items-center shrink-0 pt-2 px-3 pb-[9px] gap-2">
+      <header className="bg-surface-raised border-b border-border-default flex items-center shrink-0 h-12 px-3 gap-2">
         <button
           onClick={() => navigate(-1)}
-          className="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center shrink-0 cursor-pointer"
+          className="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center shrink-0 cursor-pointer"
         >
           <ChevronLeft size={15} className="text-text-secondary" />
         </button>
         <span className="text-body font-bold text-text-primary flex-1">연간 업무 추진 계획</span>
         <button
           onClick={() => setCalibMode(m => !m)}
-          className={`text-caption font-bold leading-none rounded-sm border px-2.5 py-[6px] cursor-pointer ${calibMode ? 'border-accent bg-accent/10 text-accent' : 'bg-surface-sunken border-border-strong text-text-secondary'}`}
+          className={`text-caption font-bold leading-none rounded-sm border px-2.5 h-7 inline-flex items-center cursor-pointer ${calibMode ? 'border-accent bg-accent/10 text-accent' : 'bg-surface-sunken border-border-strong text-text-secondary'}`}
         >
           {calibMode ? '취소' : '위치 조정'}
         </button>

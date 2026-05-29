@@ -87,12 +87,12 @@ export default function WorkShiftPage() {
 
       {/* 헤더 — 데스크톱: 표준 (height 54, padding '0 20px', 뒤로가기 X). 모바일: 기존 */}
       <header
-        className={`bg-surface-raised border-b border-border-default flex items-center shrink-0 ${isDesktop ? 'h-[54px] px-5 gap-2.5' : 'pt-2 px-3 pb-[9px] gap-2'}`}
+        className={`bg-surface-raised border-b border-border-default flex items-center shrink-0 ${isDesktop ? 'h-[54px] px-5 gap-2.5' : 'h-12 px-3 gap-2'}`}
       >
         {!isDesktop && (
           <button
             onClick={() => navigate(-1)}
-            className="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center cursor-pointer"
+            className="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center cursor-pointer"
           >
             <ChevronLeft size={15} className="text-text-secondary" />
           </button>
@@ -101,7 +101,7 @@ export default function WorkShiftPage() {
         <button
           onClick={handleExcel}
           disabled={dlLoading}
-          className={`bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0 h-[34px] px-[14px] ${dlLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0 h-7 px-[14px] ${dlLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
         >
           {dlLoading ? '생성중...' : '엑셀 저장'}
         </button>

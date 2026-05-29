@@ -573,7 +573,7 @@ export default function SchedulePage() {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
-      <header className="flex flex-shrink-0 items-center gap-2 px-3 pt-2 pb-[9px] bg-surface-raised border-b border-border-default">
+      <header className="flex flex-shrink-0 items-center gap-2 px-3 h-12 bg-surface-raised border-b border-border-default">
         <button
           onClick={() => navigate(-1)}
           className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-sm bg-surface-sunken border border-border-default cursor-pointer"
@@ -584,7 +584,7 @@ export default function SchedulePage() {
         <button
           onClick={handlePlanDownload}
           disabled={planLoading}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-body-sm font-bold ${
+          className={`flex items-center gap-1.5 px-3 h-7 rounded-sm text-body-sm font-bold ${
             planLoading
               ? 'bg-surface-sunken text-text-tertiary cursor-default'
               : 'bg-safe-bar text-text-on-accent cursor-pointer'
