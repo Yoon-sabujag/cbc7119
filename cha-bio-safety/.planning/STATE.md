@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-30 - **헤더 통일 H1~H6a 완결 (7 atomic)**. **H6a (00a34bd)** = 소방안전 점검 (InspectionPage 6047줄) 카테고리 헤더 10 곳 `px-4 py-2.5` → `h-12 px-3` 통일 (3 패턴 분리, L4437 모달 row 보존). 본문 5000+ 줄 + 서브 헤더 17 곳 (`px-3.5 py-2`, H6b 별도) 0 byte. **다음: H6b** (서브 헤더 17 곳). 그 외 누적: Phase B 완전 종결 (28+ atomic), 묶음 D production cherry-pick 보류 (20260328 워크트리), CheckpointsPage 폐기 완료, 헤더 통일 누적 페이지: 일일업무일지/점검일지출력/업무수행기록/보수교육/소방점검관리-지적사항/승강기관리/근무표/연간업무추진/일정/DIV 압력 관리/도면/조치 상세/직원 관리/소방안전 점검 = 14 페이지
+Last activity: 2026-05-30 - **🎉 헤더 통일 wave 전체 종결 (H1~H6a, 7 atomic)**. **H6b 폐기 결정 (897c4f8 sketch v4)** — sketch v2 §케이스 4 가 가정한 InspectionPage 서브 헤더 17 곳 `px-3.5 py-2` 가 실제로는 페이지 헤더가 아닌 본문 안 sticky filter section (계단실/구역/층/위치 선택 등 "label + 칩 그룹" 2 단 구조) 임을 grep 으로 발견. 페이지 헤더 통일 범위 밖. 옵션 A (보존) 사용자 컨펌. → H6a (00a34bd) 가 마지막 wave. **헤더 통일 누적 14 페이지**: 일일업무일지/점검일지출력/업무수행기록/보수교육/소방점검관리-지적사항/승강기관리/근무표/연간업무추진/일정/DIV 압력 관리/도면/조치 상세/직원 관리/소방안전 점검. 7 atomic = H1 (.back-btn CSS) + H1.5 (nav-btn hotfix) + H2 (보수교육+지적사항 44→32) + H3 (승강기 데스크톱 48→32) + H4 (3 페이지 모바일 8 곳) + H5 (데스크톱 h-14 통일 + 잔여 7 곳) + H6a (InspectionPage 카테고리 10 곳). 검증: cbc7119-preview 전체 페이지 시각 확인 → 5월 법정점검 영향 검토 후 직원 도메인 cherry-pick 계획. 그 외 누적: Phase B 완전 종결 (28+ atomic), 묶음 D production cherry-pick 보류 (20260328 워크트리), CheckpointsPage 폐기 완료
 
 Progress: [░░░░░░░░░░] 0%
 
