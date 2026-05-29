@@ -3855,7 +3855,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         </div>
         {isExtinguisher && (
           <button onClick={() => navigate('/extinguishers')}
-                  className="h-input px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-active transition-colors">
+                  className="h-7 px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-active transition-colors">
             소화기 관리
           </button>
         )}
