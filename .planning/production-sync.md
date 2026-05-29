@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 도면 마커 cp 자동생성 + 편집 모달 가드
+상태:           안정 (SYNCED) — 260529-gcj registry 실험 rollback 완료, 6d0b69a 시점 동등
 진행 작업:       없음
-기준 production: `6d0b69a` (fix: 소화전/완강기/DIV 편집 모달 배치 버튼 가드)
-마지막 동기화:   2026-05-28
-마지막 배포 URL: https://d4aee5b4.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+기준 production: `62d947c` (revert: 260529-gcj rollback) — 동작 측면 = `6d0b69a` 와 동등
+마지막 동기화:   2026-05-29
+마지막 배포 URL: https://37ba8635.cbc7119.pages.dev (production alias = cbc7119.pages.dev) — rollback 재배포
 ```
 
 **상태 의미**:
@@ -71,7 +71,7 @@
 | 2026-05-28 | submission-ppt PPT 복구 다이얼로그 fix | (production 직접 작업) | `c6bb65d` | https://66773b14.cbc7119.pages.dev | **원인**: 양식 template.pptx 가 8-slide → 2-slide 슬림화 잔존 — presentation.xml.rels 에 rId4~rId9 (slide3~slide8 dangling, slide6~8 미존재). [Content_Types].xml 에도 slide3~8 Override. 우리 코드가 rId101+ 더 얹어 duplicate target → PowerPoint 손상 플래그. **수정**: (1) presentation.xml.rels 의 slide rels 모두 strip 후 actualSlideCount 만큼 신규 rId 재발급. (2) sldIdLst 전체 재구성. (3) Content_Types slide Override strip + 재추가. (4) 복제 슬라이드의 slide2.rels notesSlide rels 제거 (notesSlide1 ↔ slide2 bidirectional 보존). 추가: R2 의 양식 template.pptx 자체를 cleaned version 으로 교체 + template-backup-260528.pptx 백업. |
 | 2026-05-28 | floorplan 소화전/완강기 cp 자동생성 + 8-1F 8호실 SQL 복구 | (production 직접 작업) | `31117bf` | https://4cb87127.cbc7119.pages.dev | **사고**: 도면점검 페이지에서 소화전 마커 추가 시 cp_id NULL 로 orphan 마커 생성 → 일반점검 미노출 + 점검하기 비활성. 사례: FPM-XboG1REDINMI (8-1F 8호실 소화전). **복구 SQL** (admin 컨펌 후): INSERT check_points CP-8-1F-1-SH (QR-CP-8-1F-1-SH, office, 8호실) + UPDATE 마커 cp_id 링크. **재발 방지**: /api/floorplan-markers POST 에서 marker_type ∈ {indoor_hydrant, descending_lifeline} 이고 cp_id 없으면 floor+category 의 location_no 끝 숫자 +1 자동 신규 cp INSERT 후 마커에 링크. CP-{floor}-{N}-SH / -WK + QR-CP-{floor}-{N}-... + location_no {floor}-{N}. DIV (페어링 별도) + 소화기 4종 (자산 분리 흐름) 은 영향 없음. |
 | 2026-05-28 | floorplan 편집 모달 '소화기 배치' 버튼 가드 | (production 직접 작업) | `6d0b69a` | https://d4aee5b4.cbc7119.pages.dev | 도면점검 (소화기·소화전) 페이지의 마커 편집 모달이 `planType === 'extinguisher'` 만 검사해서 소화전/완강기/DIV 마커에서도 "소화기 배치" 버튼이 노출되던 버그. `EXT_ASSET_MARKER_TYPES.has(selected.marker_type ?? '')` 추가 가드 — 소화기 4종 (fire_extinguisher / ext_powder20 / ext_halogen / ext_kitchen_k) 일 때만 배치/분리 액션 섹션 노출. 점검 모드 미배치 모달 (L774) 과 일관성 회복. 5+/2-. |
-| 2026-05-29 | **ROLLBACK** 260529-gcj CheckpointsPage 레지스트리 추출 1차 사용자 요청 취소 | (revert of `ff61eb6` + `e5d5e15` + `69f70b3` + `40643c2` + `e40b6ac`) | revert commit (직후 추가) | (직후 재배포 URL 추가) | 짧게 배포되었던 (https://90cfe007.cbc7119.pages.dev) 방화셔터 registry entry + RegistryDrivenForm + AddCheckPointRouter + initialCategory prop 모두 git revert 로 원복. force-push 미사용 (history 보존, revert commit 추가 방식). 직원 도메인은 6d0b69a 시점 상태로 재배포. `checkpointRegistry.ts` 파일 삭제 / `CheckpointsPage.tsx` 원복 / `STATE.md` & `production-sync.md` 원복 / `.planning/quick/260529-gcj-*` PLAN+SUMMARY 삭제. 사용자 검증 시 무언가 마음에 안 들었던 듯 — 다음 시도 시 미리 시안 보여주는 단계 추가 권장. |
+| 2026-05-29 | **ROLLBACK** 260529-gcj CheckpointsPage 레지스트리 추출 1차 사용자 요청 취소 | (revert of `ff61eb6` + `e5d5e15` + `69f70b3` + `40643c2` + `e40b6ac`) | `62d947c` (revert commit, no force-push) | https://37ba8635.cbc7119.pages.dev | 짧게 배포되었던 (https://90cfe007.cbc7119.pages.dev) 방화셔터 registry entry + RegistryDrivenForm + AddCheckPointRouter + initialCategory prop 모두 git revert 로 원복. force-push 미사용 (history 보존, revert commit 추가 방식). 직원 도메인 = 6d0b69a 시점 동등 상태로 재배포. `checkpointRegistry.ts` 파일 삭제 / `CheckpointsPage.tsx` 원복 (696 lines, 변경 전과 동일) / `STATE.md` & `production-sync.md` 원복 / `.planning/quick/260529-gcj-*` PLAN+SUMMARY 삭제. **교훈**: 사용자가 "비주얼적으로만 보여줄거면 html로 만들어서 브라우저에 띄워주던지" 명시 — 다음 시도 시 PWA 직접 변경 전 sketch HTML 시안 단계 추가 필요 (memory `feedback_design_sketch_first`/`feedback_redesign_sketch_rule_enforcement` 패턴 적용). |
 
 ---
 
