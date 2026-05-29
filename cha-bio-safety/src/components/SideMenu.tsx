@@ -33,7 +33,6 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
     { label: 'CCTV 현황',       path: '/cctv',          badge: 0, soon: false, desktopOnly: true },
     { label: '소방 시설 도면',   path: '/floorplan',     badge: 0, soon: false },
     { label: '소방 점검 관리',   path: '/legal',         badge: 0, soon: false },
-    { label: '소방 시설 추가',  path: '/checkpoints',   badge: 0, soon: false, role: 'admin' },
   ]},
   { section: '문서 관리', items: [
     { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
