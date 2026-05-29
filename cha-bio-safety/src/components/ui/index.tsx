@@ -25,7 +25,7 @@ function HalfCircle({ size, leaveColor, shiftColor, name, half }: { size: number
   const id1 = `hc-a-${size}-${half}`
   const id2 = `hc-b-${size}-${half}`
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0, display: 'block', overflow: 'hidden', borderRadius: '50%' }}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 block overflow-hidden rounded-full">
       {/* 전체 배경: 근무 색 */}
       <circle cx={r} cy={r} r={r} fill={shiftColor} />
       {/* 연차/공가 반쪽: 삼각형 clip */}
@@ -91,11 +91,9 @@ export function DutyChip({ staff, onClick, small }: DutyChipProps) {
   return (
     <div
       onClick={onClick}
+      className={`flex items-center rounded-[22px] cursor-pointer shrink-0 transition-opacity duration-[130ms] ${small ? 'gap-[5px] py-[3px] pr-2 pl-[3px]' : 'gap-1.5 py-1 pr-2.5 pl-1'}`}
       style={{
-        display:'flex', alignItems:'center', gap: small ? 5 : 6,
-        borderRadius:22, padding: small ? '3px 8px 3px 3px' : '4px 10px 4px 4px',
         border:`1px solid ${capsuleBorder}`, background:capsuleBg,
-        cursor:'pointer', flexShrink:0, transition:'opacity .13s',
       }}
       onMouseEnter={e => (e.currentTarget.style.opacity = '.8')}
       onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -110,18 +108,21 @@ export function DutyChip({ staff, onClick, small }: DutyChipProps) {
           half={lt!.includes('_am') ? 'am' : 'pm'}
         />
       ) : (
-        <div style={{
-          width:circSize, height:circSize, borderRadius:'50%', flexShrink:0,
-          background: isFullLeave ? leaveColor : (isDutyWithLeave ? leaveColor : s.circBg),
-          display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize: small ? 11 : 12, fontWeight:700, color:'#fff',
-        }}>
+        <div
+          className={`rounded-full shrink-0 flex items-center justify-center font-bold text-white ${small ? 'w-[28px] h-[28px] text-[11px]' : 'w-[32px] h-[32px] text-[12px]'}`}
+          style={{
+            background: isFullLeave ? leaveColor : (isDutyWithLeave ? leaveColor : s.circBg),
+          }}
+        >
           {staff.name[0]}
         </div>
       )}
-      <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-        <span style={{ fontSize: small ? 11 : 12, fontWeight:700, color:'var(--t1)', whiteSpace:'nowrap' }}>{staff.name}</span>
-        <span style={{ fontSize:9, fontWeight:600, color: (isOnLeave && !isDutyWithLeave) ? leaveColor : s.typeColor, whiteSpace:'nowrap' }}>{chipLabel}</span>
+      <div className="flex flex-col gap-px">
+        <span className={`font-bold text-text-primary whitespace-nowrap ${small ? 'text-[11px]' : 'text-[12px]'}`}>{staff.name}</span>
+        <span
+          className="text-[9px] font-semibold whitespace-nowrap"
+          style={{ color: (isOnLeave && !isDutyWithLeave) ? leaveColor : s.typeColor }}
+        >{chipLabel}</span>
       </div>
     </div>
   )
@@ -134,9 +135,9 @@ interface RoleLabelProps {
 }
 export function RoleLabel({ text, color }: RoleLabelProps) {
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
+    <div className="flex flex-col items-center shrink-0">
       {text.split('').map((ch, i) => (
-        <span key={i} style={{ fontSize:8, fontWeight:700, lineHeight:1.45, color, display:'block' }}>{ch}</span>
+        <span key={i} className="text-[8px] font-bold leading-[1.45] block" style={{ color }}>{ch}</span>
       ))}
     </div>
   )
@@ -177,11 +178,11 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
     const lateDash   = (Math.min(latePct, 100) / 100) * outerCirc
     const allZero    = earlyPct === 0 && latePct === 0
     return (
-      <div style={{ position:'relative', width:size, height:size }}>
+      <div className="relative" style={{ width:size, height:size }}>
         <svg
           width={size} height={size}
           viewBox={`0 0 ${size} ${size}`}
-          style={{ transform:'rotate(-90deg)' }}
+          className="-rotate-90"
         >
           {/* 바깥 ring 트랙 + 월말 arc */}
           <circle cx={cx} cy={cx} r={outerR} fill="none" stroke="var(--bg4)" strokeWidth={ringStroke} />
@@ -206,11 +207,10 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
             />
           )}
         </svg>
-        <div style={{
-          position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-          fontFamily:'JetBrains Mono, monospace', fontSize:10, fontWeight:600,
-          color: allZero ? 'var(--t3)' : 'var(--t2)', whiteSpace:'nowrap',
-        }}>
+        <div
+          className="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-semibold whitespace-nowrap"
+          style={{ color: allZero ? 'var(--t3)' : 'var(--t2)' }}
+        >
           {pct}%
         </div>
       </div>
@@ -221,11 +221,11 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
   const dash = (pct / 100) * circ
   const zero = pct === 0
   return (
-    <div style={{ position:'relative', width:size, height:size }}>
+    <div className="relative" style={{ width:size, height:size }}>
       <svg
         width={size} height={size}
         viewBox={`0 0 ${size} ${size}`}
-        style={{ transform:'rotate(-90deg)' }}
+        className="-rotate-90"
       >
         <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--bg4)" strokeWidth={strokeWidth} />
         <circle
@@ -236,11 +236,10 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
           strokeDasharray={`${dash.toFixed(2)} ${(circ - dash).toFixed(2)}`}
         />
       </svg>
-      <div style={{
-        position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-        fontFamily:'JetBrains Mono, monospace', fontSize:10, fontWeight:600,
-        color: zero ? 'var(--t3)' : color,
-      }}>
+      <div
+        className="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-semibold"
+        style={{ color: zero ? 'var(--t3)' : color }}
+      >
         {pct}%
       </div>
     </div>
@@ -264,7 +263,10 @@ const CAT_STYLE: Record<string, { bg: string; color: string }> = {
 export function StatusBadge({ status }: { status: string }) {
   const s = STATUS_STYLE[status] ?? STATUS_STYLE.pending
   return (
-    <span style={{ fontSize:8, fontWeight:700, padding:'2px 5px', borderRadius:5, background:s.bg, color:s.color, whiteSpace:'nowrap', flexShrink:0 }}>
+    <span
+      className="text-[8px] font-bold py-[2px] px-[5px] rounded-[5px] whitespace-nowrap shrink-0"
+      style={{ background:s.bg, color:s.color }}
+    >
       {s.label}
     </span>
   )
@@ -272,5 +274,5 @@ export function StatusBadge({ status }: { status: string }) {
 
 export function CatBar({ category }: { category: string }) {
   const s = CAT_STYLE[category] ?? CAT_STYLE.task
-  return <div style={{ width:2, borderRadius:2, flexShrink:0, alignSelf:'stretch', minHeight:20, background:s.color }} />
+  return <div className="w-0.5 rounded-[2px] shrink-0 self-stretch min-h-[20px]" style={{ background:s.color }} />
 }

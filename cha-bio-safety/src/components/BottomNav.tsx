@@ -37,20 +37,10 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
 
   return (
     <nav
+      className="fixed bottom-0 left-0 right-0 bg-[rgba(22,27,34,0.97)] border-t border-border-default box-border flex justify-around items-center z-[100]"
       style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
         height: IS_ANDROID ? 'calc(54px + var(--sab, 0px) + 12px)' : 'calc(54px + var(--sab, 0px))',
         paddingBottom: IS_ANDROID ? 'calc(var(--sab, 0px) + 12px)' : 'var(--sab, 0px)',
-        background: 'rgba(22,27,34,0.97)',
-        borderTop: '1px solid var(--bd)',
-        boxSizing: 'border-box',
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        zIndex: 100,
       }}
     >
       {ITEMS.map(item => {
@@ -59,18 +49,9 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
             <button
               key="qr"
               onClick={() => navigate('/inspection/qr')}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                padding: '3px 0', border: 'none', background: 'none', cursor: 'pointer',
-                marginTop: -14,
-              }}
+              className="flex flex-col items-center gap-0.5 py-[3px] px-0 border-none bg-none cursor-pointer -mt-[14px]"
             >
-              <div style={{
-                width: 50, height: 50, borderRadius: 14,
-                background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(37,99,235,0.55)',
-              }}>
+              <div className="w-[50px] h-[50px] rounded-[14px] bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] flex items-center justify-center shadow-[0_4px_16px_rgba(37,99,235,0.55)]">
                 <svg width={22} height={22} fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={2}>
                   <rect x="3" y="3" width="7" height="7" rx="1" strokeLinecap="round"/>
                   <rect x="14" y="3" width="7" height="7" rx="1" strokeLinecap="round"/>
@@ -78,7 +59,7 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
                   <path strokeLinecap="round" strokeLinejoin="round" d="M14 14h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2z"/>
                 </svg>
               </div>
-              <span style={{ fontSize: 9.5, color: 'var(--acl)', fontWeight: 700 }}>QR 스캔</span>
+              <span className="text-[9.5px] text-accent font-bold">QR 스캔</span>
             </button>
           )
         }
@@ -87,29 +68,17 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
           <button
             key={item.key}
             onClick={() => navigate(item.path)}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '3px 0', border: 'none', background: 'none', cursor: 'pointer',
-              color: isActive ? 'var(--acl)' : 'var(--t3)',
-            }}
+            className={`flex flex-col items-center gap-0.5 py-[3px] px-0 border-none bg-none cursor-pointer ${isActive ? 'text-accent' : 'text-text-tertiary'}`}
           >
-            <div style={{ position: 'relative', width: 21, height: 21, color: isActive ? 'var(--acl)' : 'var(--t3)' }}>
+            <div className={`relative w-[21px] h-[21px] ${isActive ? 'text-accent' : 'text-text-tertiary'}`}>
               {item.icon}
               {item.key === 'remediation' && unresolvedCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: 0, right: 0,
-                  background: 'var(--danger)', color: '#fff',
-                  fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono',
-                  padding: '2px 4px', borderRadius: 9,
-                  minWidth: 16, textAlign: 'center',
-                  lineHeight: 1,
-                  transform: 'translate(50%, -50%)',
-                }}>
+                <span className="absolute top-0 right-0 bg-danger-bar text-white text-[11px] font-bold font-mono px-1 py-0.5 rounded-[9px] min-w-[16px] text-center leading-none translate-x-1/2 -translate-y-1/2">
                   {unresolvedCount > 99 ? '99+' : unresolvedCount}
                 </span>
               )}
             </div>
-            <span style={{ fontSize: 9.5, fontWeight: 500, color: isActive ? 'var(--acl)' : 'var(--t3)' }}>
+            <span className={`text-[9.5px] font-medium ${isActive ? 'text-accent' : 'text-text-tertiary'}`}>
               {item.label}
             </span>
           </button>
