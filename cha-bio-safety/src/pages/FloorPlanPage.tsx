@@ -1673,7 +1673,7 @@ export default function FloorPlanPage() {
 
       {/* ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 시) ── */}
       {revisitPopup && (
-        <div className="fixed inset-0 z-[60] bg-[rgba(0,0,0,0.55)] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] bg-[rgba(0,0,0,0.55)] flex items-center justify-center p-4">
           <div className="relative w-[90%] max-w-[320px] min-h-[180px]">
             <InspectionRevisitPopup
               variant={revisitPopup.variant}
@@ -1986,7 +1986,7 @@ export default function FloorPlanPage() {
       {/* ── 인라인 조치 모달 ────────────────────── */}
       {/* ── Phase 24: 소화기 분리 확인 모달 ──────────────── */}
       {unassignConfirm && (
-        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={() => setUnassignConfirm(null)}>
+        <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4" onClick={() => setUnassignConfirm(null)}>
           <div className="w-[90%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5" onClick={e => e.stopPropagation()}>
             <div className="text-body font-bold text-text-primary mb-2">소화기 분리</div>
             <div className="text-caption text-text-secondary leading-relaxed mb-4">
@@ -2011,7 +2011,7 @@ export default function FloorPlanPage() {
 
       {/* ── Phase 24: 미배치 마커 안내 모달 (점검 모드) ──── */}
       {emptyMarkerModal && (
-        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={() => setEmptyMarkerModal(null)}>
+        <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4" onClick={() => setEmptyMarkerModal(null)}>
           <div className="w-[90%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5" onClick={e => e.stopPropagation()}>
             <div className="text-body font-bold text-text-primary mb-2">소화기 미배치</div>
             <div className="text-caption text-text-secondary leading-relaxed mb-4">
@@ -2036,7 +2036,7 @@ export default function FloorPlanPage() {
 
       {/* ── Phase 24: 소화기 배치 확인 모달 (placing 모드) ── */}
       {placingConfirm && isPlacingMode && (
-        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={() => setPlacingConfirm(null)}>
+        <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4" onClick={() => setPlacingConfirm(null)}>
           <div className="w-[90%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5" onClick={e => e.stopPropagation()}>
             <div className="text-body font-bold text-text-primary mb-2">소화기 배치</div>
             <div className="text-caption text-text-secondary leading-relaxed mb-4">

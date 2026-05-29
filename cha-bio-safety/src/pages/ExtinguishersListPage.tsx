@@ -999,7 +999,7 @@ function ConfirmModal({ title, body, primaryLabel, primaryStyle, onConfirm, onCa
 function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-surface-overlay"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-surface-overlay"
       onClick={onClose}
     >
       {children}
