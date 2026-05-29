@@ -80,7 +80,6 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
   }
 
   const isDesktopSheet = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
-  const pad = isDesktopSheet ? '0 24px' : '12px 16px'
 
   const lblStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }
   const inputStyle: React.CSSProperties = {
@@ -102,10 +101,10 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
 
   const formContent = (
     <>
-      <div style={{ padding: pad, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className={`flex flex-col gap-3.5 ${isDesktopSheet ? 'px-6' : 'py-3 px-4'}`}>
         <div>
           <div style={lblStyle}>
-            지적 내용 <span style={{ color: 'var(--danger)' }}>*</span>
+            지적 내용 <span className="text-danger-bar">*</span>
           </div>
           <textarea
             value={description}
@@ -129,34 +128,34 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
 
         <div>
           <div style={lblStyle}>지적 사진 (최대 5장 · 현재 {totalCount}장)</div>
-          <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={photos.handleFiles} />
-          <input ref={photos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
+          <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={photos.handleFiles} />
+          <input ref={photos.albumRef} type="file" accept="image/*" multiple className="hidden" onChange={photos.handleFiles} />
           <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} />
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {existingKeys.map((key) => (
-              <div key={key} style={{ position: 'relative', flexShrink: 0 }}>
-                <img src={'/api/uploads/' + key} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+              <div key={key} className="relative shrink-0">
+                <img src={'/api/uploads/' + key} alt="" className="w-[72px] h-[72px] object-cover rounded-[10px] border border-border-default block" />
                 <button
                   aria-label="사진 제거"
                   onClick={() => removeExisting(key)}
-                  style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger-bar border-0 text-white text-[11px] font-bold cursor-pointer flex items-center justify-center leading-none"
                 >✕</button>
               </div>
             ))}
             {photos.slots.map((slot, i) => (
-              <div key={'new-' + i} style={{ position: 'relative', flexShrink: 0 }}>
-                <img src={slot.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+              <div key={'new-' + i} className="relative shrink-0">
+                <img src={slot.preview} alt="" className="w-[72px] h-[72px] object-cover rounded-[10px] border border-border-default block" />
                 <button
                   aria-label="사진 제거"
                   onClick={() => photos.removeSlot(i)}
-                  style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger-bar border-0 text-white text-[11px] font-bold cursor-pointer flex items-center justify-center leading-none"
                 >✕</button>
-                {slot.uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>업로드 중</div>}
+                {slot.uploading && <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)] rounded-[10px] flex items-center justify-center text-[10px] text-white">업로드 중</div>}
               </div>
             ))}
             {canAddMore && (
-              <button onClick={photos.openPicker} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
-                <span style={{ fontSize: 22 }}>📷</span>사진 첨부
+              <button onClick={photos.openPicker} className="w-[72px] h-[72px] rounded-[10px] bg-surface-sunken border border-dashed border-border-strong text-text-tertiary text-[11px] font-semibold cursor-pointer flex flex-col items-center justify-center gap-1 shrink-0">
+                <span className="text-[22px]">📷</span>사진 첨부
               </button>
             )}
           </div>
@@ -164,7 +163,7 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
 
         {isResolved && (
           <>
-            <div style={{ height: 1, background: 'var(--bd)', margin: '4px 0' }} />
+            <div className="h-px bg-border-default my-1" />
 
             <div>
               <div style={lblStyle}>조치 내용</div>
@@ -179,34 +178,34 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
 
             <div>
               <div style={lblStyle}>조치 사진 (최대 5장 · 현재 {resolutionTotalCount}장)</div>
-              <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
-              <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+              <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={resolutionPhotos.handleFiles} />
+              <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple className="hidden" onChange={resolutionPhotos.handleFiles} />
               <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} />
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+              <div className="flex gap-2 overflow-x-auto pb-1">
                 {existingResolutionKeys.map((key) => (
-                  <div key={key} style={{ position: 'relative', flexShrink: 0 }}>
-                    <img src={'/api/uploads/' + key} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+                  <div key={key} className="relative shrink-0">
+                    <img src={'/api/uploads/' + key} alt="" className="w-[72px] h-[72px] object-cover rounded-[10px] border border-border-default block" />
                     <button
                       aria-label="사진 제거"
                       onClick={() => removeExistingResolution(key)}
-                      style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger-bar border-0 text-white text-[11px] font-bold cursor-pointer flex items-center justify-center leading-none"
                     >✕</button>
                   </div>
                 ))}
                 {resolutionPhotos.slots.map((slot, i) => (
-                  <div key={'newr-' + i} style={{ position: 'relative', flexShrink: 0 }}>
-                    <img src={slot.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+                  <div key={'newr-' + i} className="relative shrink-0">
+                    <img src={slot.preview} alt="" className="w-[72px] h-[72px] object-cover rounded-[10px] border border-border-default block" />
                     <button
                       aria-label="사진 제거"
                       onClick={() => resolutionPhotos.removeSlot(i)}
-                      style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger-bar border-0 text-white text-[11px] font-bold cursor-pointer flex items-center justify-center leading-none"
                     >✕</button>
-                    {slot.uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>업로드 중</div>}
+                    {slot.uploading && <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)] rounded-[10px] flex items-center justify-center text-[10px] text-white">업로드 중</div>}
                   </div>
                 ))}
                 {canAddMoreResolution && (
-                  <button onClick={resolutionPhotos.openPicker} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
-                    <span style={{ fontSize: 22 }}>📷</span>사진 첨부
+                  <button onClick={resolutionPhotos.openPicker} className="w-[72px] h-[72px] rounded-[10px] bg-surface-sunken border border-dashed border-border-strong text-text-tertiary text-[11px] font-semibold cursor-pointer flex flex-col items-center justify-center gap-1 shrink-0">
+                    <span className="text-[22px]">📷</span>사진 첨부
                   </button>
                 )}
               </div>
@@ -215,11 +214,11 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
         )}
       </div>
 
-      <div style={{ padding: isDesktopSheet ? '8px 24px 24px' : '4px 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button onClick={handleSubmit} disabled={isSubmitting} style={{ width: '100%', height: 48, background: 'var(--acl)', borderRadius: 10, border: 'none', color: '#fff', fontWeight: 700, fontSize: 14, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.6 : 1 }}>
+      <div className={`flex flex-col gap-2 ${isDesktopSheet ? 'pt-2 px-6 pb-6' : 'pt-1 px-4 pb-8'}`}>
+        <button onClick={handleSubmit} disabled={isSubmitting} className={`w-full h-12 bg-accent rounded-[10px] border-0 text-white font-bold text-[14px] ${isSubmitting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'}`}>
           {isSubmitting ? '처리 중...' : '저장'}
         </button>
-        <button onClick={onClose} disabled={isSubmitting} style={{ width: '100%', height: 48, background: 'transparent', border: '1px solid var(--bd2)', borderRadius: 10, color: 'var(--t2)', fontSize: 14, cursor: 'pointer' }}>
+        <button onClick={onClose} disabled={isSubmitting} className="w-full h-12 bg-transparent border border-border-strong rounded-[10px] text-text-secondary text-[14px] cursor-pointer">
           취소
         </button>
       </div>
@@ -228,11 +227,11 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
 
   if (isDesktopSheet) {
     return (
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-        <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg2)', borderRadius: 12, width: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
-          <div style={{ padding: '20px 24px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 수정</div>
-            <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--bg3)', border: 'none', color: 'var(--t2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>✕</button>
+      <div onClick={onClose} className="fixed inset-0 bg-[rgba(0,0,0,0.5)] flex items-center justify-center z-50">
+        <div onClick={e => e.stopPropagation()} className="bg-surface-raised rounded-xl w-[520px] max-h-[85vh] overflow-y-auto shadow-[0_8px_32px_rgba(0,0,0,.18)]">
+          <div className="pt-5 px-6 pb-3 flex items-center justify-between">
+            <div className="text-[16px] font-bold text-text-primary">지적사항 수정</div>
+            <button onClick={onClose} className="w-[28px] h-[28px] rounded-[7px] bg-surface-sunken border-0 text-text-secondary cursor-pointer flex items-center justify-center text-[15px]">✕</button>
           </div>
           {formContent}
         </div>
@@ -241,13 +240,13 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
   }
 
   return (
-    <div onClick={onClose} onTouchMove={e => e.stopPropagation()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 50, overscrollBehavior: 'contain' }}>
-      <div onClick={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', animation: 'slideUp 0.28s ease-out both', maxHeight: '90vh', overflowY: 'auto', overscrollBehavior: 'contain' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          <div style={{ width: 32, height: 4, background: 'var(--bd2)', borderRadius: 2 }} />
+    <div onClick={onClose} onTouchMove={e => e.stopPropagation()} className="fixed inset-0 bg-[rgba(0,0,0,0.6)] flex flex-col justify-end z-50 overscroll-contain">
+      <div onClick={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} className="bg-surface-raised rounded-t-[16px] max-h-[90vh] overflow-y-auto overscroll-contain" style={{ animation: 'slideUp 0.28s ease-out both' }}>
+        <div className="flex justify-center pt-3">
+          <div className="w-[32px] h-1 bg-border-strong rounded-[2px]" />
         </div>
-        <div style={{ padding: '12px 16px 0' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 수정</div>
+        <div className="pt-3 px-4">
+          <div className="text-[16px] font-bold text-text-primary">지적사항 수정</div>
         </div>
         {formContent}
       </div>
