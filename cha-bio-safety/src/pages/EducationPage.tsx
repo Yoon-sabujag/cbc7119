@@ -539,24 +539,14 @@ export default function EducationPage() {
       >
         <button
           onClick={() => navigate(-1)}
-          className="text-text-secondary"
-          style={{
-            width: 44,
-            height: 44,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="text-text-secondary w-7 h-7 rounded-[7px] bg-surface-sunken border-0 cursor-pointer flex items-center justify-center"
         >
           <ChevronLeft size={20} />
         </button>
         <span className="text-body font-bold text-text-primary" style={{ flex: 1, textAlign: 'center' }}>
           보수교육
         </span>
-        <div style={{ width: 44 }} />
+        <div className="w-7" />
       </div>
 
       {/* 스크롤 영역 */}
