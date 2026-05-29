@@ -191,9 +191,8 @@ const CHECK_ITEMS_ES = [
 ]
 
 // ── 상수 ──────────────────────────────────────────────────
-const TYPE_ICON:  Record<string,string> = { passenger:'🛗', cargo:'📦', dumbwaiter:'🔲', escalator:'↕️' }
 const TYPE_LABEL: Record<string,string> = { passenger:'인승용', cargo:'화물용', dumbwaiter:'덤웨이터', escalator:'에스컬레이터' }
-// Wave 1 신설 — list 탭 카드 + 그룹 라벨용 컴포넌트 매퍼 (TYPE_ICON 이모지 객체와 병행 사용. 이모지는 다른 탭/모달에서 계속 사용됨)
+// Wave 1 신설 — list 탭 카드 + 그룹 라벨용 컴포넌트 매퍼 (모든 type 아이콘 site 에서 Lucide 통일)
 const TYPE_ICON_COMPONENT: Record<string, React.ComponentType<{ size?: number | string; className?: string; strokeWidth?: number | string }>> = {
   passenger:  ElevatorIcon,
   cargo:      Package,
@@ -670,7 +669,10 @@ export default function ElevatorPage() {
               <>
                 {/* 호기 정보 헤더 */}
                 <div style={{ flexShrink: 0, padding: '16px 24px 12px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ fontSize: 28 }}>{TYPE_ICON[selectedDesktopEv.type]}</div>
+                  {(() => {
+                    const TypeIcon = TYPE_ICON_COMPONENT[selectedDesktopEv.type]
+                    return <TypeIcon size={28} className="text-text-secondary shrink-0" />
+                  })()}
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>{selectedDesktopEv.number}호기</div>
                     <div style={{ fontSize: 12, color: 'var(--t3)' }}>{selectedDesktopEv.location}</div>
