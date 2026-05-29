@@ -2718,7 +2718,7 @@ function CertSummary({ inspection, corrective, onViewCert, elevatorId, inspectio
     (inspectionResult === 'conditional' || inspectionResult === 'fail' || inspection.action_needed?.includes('→합격 전환'))
 
   return (
-    <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:14 }}>
+    <div className="mt-3 flex flex-col gap-3.5">
       {hasOriginal && <CertBlock inspection={inspection} title="검사성적서" onViewCert={onViewCert}
         elevatorId={showFindings ? elevatorId : undefined} inspectionId={showFindings ? inspectionId : undefined}
         inspectionResult={showFindings ? inspectionResult : undefined} navigate={showFindings ? navigate : undefined} />}
@@ -2758,14 +2758,14 @@ function CertBlock({ inspection, title, accent, onViewCert, elevatorId, inspecti
     r === '적합' ? 'var(--safe)' : r === '부적합' ? 'var(--danger)' : 'var(--t3)'
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+    <div className="flex flex-col gap-2.5">
       {/* 섹션 타이틀 + PDF 보기 */}
-      <div style={{ display:'flex', alignItems:'center', gap:8, paddingTop:4 }}>
-        <div style={{ width:3, height:14, background: accent ?? 'var(--acl)', borderRadius:2 }} />
-        <span style={{ fontSize:12, fontWeight:700, color: accent ?? 'var(--t1)' }}>{title}</span>
+      <div className="flex items-center gap-2 pt-1">
+        <div className="w-[3px] h-[14px] rounded-[2px]" style={{ background: accent ?? 'var(--acl)' }} />
+        <span className="text-caption font-bold" style={{ color: accent ?? 'var(--t1)' }}>{title}</span>
         {inspection.certificate_key && onViewCert && (
           <button onClick={(e) => { e.stopPropagation(); onViewCert(inspection.certificate_key!) }}
-            style={{ marginLeft:'auto', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:6, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', color:'var(--safe)', cursor:'pointer' }}>
+            className="ml-auto text-[10px] font-bold px-2 py-[3px] rounded-md bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] text-safe-bar cursor-pointer">
             📄 PDF 보기
           </button>
         )}
@@ -2773,11 +2773,11 @@ function CertBlock({ inspection, title, accent, onViewCert, elevatorId, inspecti
 
       {/* 항목별 검사결과 */}
       {items.length > 0 && (
-        <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
-          <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--t2)' }}>
+        <div className="border border-border-default rounded-md overflow-hidden">
+          <div className="px-2.5 py-1.5 bg-surface-raised border-b border-border-default text-[10.5px] font-bold text-text-secondary">
             항목별 검사결과
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'40px 1fr auto', background:'var(--bg3)' }}>
+          <div className="grid bg-surface-sunken [grid-template-columns:40px_1fr_auto]">
             {items.map((it, idx) => {
               const isLast = idx === items.length - 1 && it.result !== '부적합'
               const cellSt: React.CSSProperties = { padding:'5px 8px', fontSize:11, borderBottom: isLast ? 'none' : '1px solid var(--bd)' }
@@ -2799,11 +2799,11 @@ function CertBlock({ inspection, title, accent, onViewCert, elevatorId, inspecti
 
       {/* 검사실시정보 */}
       {hasInfo && (
-        <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
-          <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--t2)' }}>
+        <div className="border border-border-default rounded-md overflow-hidden">
+          <div className="px-2.5 py-1.5 bg-surface-raised border-b border-border-default text-[10.5px] font-bold text-text-secondary">
             검사실시정보
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'112px minmax(0, 1fr)', background:'var(--bg3)' }}>
+          <div className="grid bg-surface-sunken [grid-template-columns:112px_minmax(0,1fr)]">
             {[
               ['검사실시일', inspection.inspect_date ?? '-'],
               ['검사자', inspection.inspector_name ?? '-'],
@@ -2874,13 +2874,13 @@ function ElevatorInfoCard({ ev, compact }: { ev: Elevator; compact?: boolean }) 
       ...rows.flatMap(([k1, v1, k2, v2]): Array<[string, string]> => [[k1, v1], [k2, v2]]),
     ]
     return (
-      <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden', flexShrink:0 }}>
-        <div style={{ padding:'7px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <div className="border border-border-default rounded-md overflow-hidden shrink-0">
+        <div className="px-2.5 py-[7px] bg-surface-raised border-b border-border-default text-[11px] font-bold text-text-primary flex items-center justify-between">
           <span>승강기 정보</span>
-          <span style={{ fontSize:9, fontWeight:500, color:'var(--t3)' }}>↕ 스크롤</span>
+          <span className="text-[9px] font-medium text-text-tertiary">↕ 스크롤</span>
         </div>
         {/* 자체 스크롤 영역 — 약 6행(운행구간까지) 보이는 높이 */}
-        <div style={{ maxHeight:170, overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', display:'grid', gridTemplateColumns:'112px minmax(0, 1fr)', background:'var(--bg3)' } as React.CSSProperties}>
+        <div className="max-h-[170px] overflow-y-auto grid [grid-template-columns:112px_minmax(0,1fr)] bg-surface-sunken" style={{ WebkitOverflowScrolling:'touch', overscrollBehavior:'contain' } as React.CSSProperties}>
           {flatRows.map(([k, v], idx) => {
             const isLast = idx === flatRows.length - 1
             const lastRowSt = isLast ? { borderBottom:'none' } : null
@@ -2895,11 +2895,11 @@ function ElevatorInfoCard({ ev, compact }: { ev: Elevator; compact?: boolean }) 
   }
   // ── 일반(데스크톱): 4열 (검사성적서 양식 그대로) ──
   return (
-    <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
-      <div style={{ padding:'7px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t1)' }}>
+    <div className="border border-border-default rounded-md overflow-hidden">
+      <div className="px-2.5 py-[7px] bg-surface-raised border-b border-border-default text-[11px] font-bold text-text-primary">
         승강기 정보
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'max-content minmax(0, 1fr) max-content minmax(0, 1fr)', background:'var(--bg3)' }}>
+      <div className="grid bg-surface-sunken [grid-template-columns:max-content_minmax(0,1fr)_max-content_minmax(0,1fr)]">
         <div style={kSt}>건물명</div>
         <div style={{ ...vSt, gridColumn:'2 / -1', borderRight:'none' }}>차바이오컴플렉스</div>
         <div style={kSt}>건물주소</div>
@@ -3420,60 +3420,60 @@ function MinwonFindingsPanel({ elevatorId, year, order, repairs }: { elevatorId:
   const standaloneRepairs = repairs.filter((r: any) => r.sourceType === 'standalone')
 
   return (
-    <div style={{ background:'rgba(245,158,11,.06)', border:'1px solid rgba(245,158,11,.2)', borderRadius:10, padding:'12px 14px', marginTop:4 }}>
-      <div style={{ fontSize:12, fontWeight:700, color:'var(--warn)', marginBottom:8, display:'flex', alignItems:'center', gap:4 }}>
+    <div className="bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.2)] rounded-[10px] px-3.5 py-3 mt-1">
+      <div className="text-caption font-bold text-warning-bar mb-2 flex items-center gap-1">
         <AlertTriangle size={12} />
         지적사항 및 조치
       </div>
 
       {/* 기존 지적사항 목록 */}
       {findings.map((f: any) => (
-        <div key={f.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:8, padding:'8px 12px', marginBottom:6 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-            <span style={{ fontSize:11, fontWeight:700, color:'var(--t1)', flex:1 }}>{f.description}</span>
-            <span style={{ fontSize:9, fontWeight:700, padding:'1px 6px', borderRadius:4, background: f.status === 'resolved' ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)', color: f.status === 'resolved' ? 'var(--safe)' : 'var(--danger)' }}>
+        <div key={f.id} className="bg-surface-raised border border-border-default rounded-md px-3 py-2 mb-1.5">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-[11px] font-bold text-text-primary flex-1">{f.description}</span>
+            <span className={`text-[9px] font-bold px-1.5 py-px rounded ${f.status === 'resolved' ? 'bg-[rgba(34,197,94,0.12)] text-safe-bar' : 'bg-[rgba(239,68,68,0.12)] text-danger-bar'}`}>
               {f.status === 'resolved' ? '조치완료' : '미조치'}
             </span>
-            <button onClick={() => handleDelete(f.id)} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:12, cursor:'pointer', padding:0 }}>✕</button>
+            <button onClick={() => handleDelete(f.id)} className="bg-none border-0 text-text-tertiary text-caption cursor-pointer p-0">✕</button>
           </div>
 
           {f.status === 'resolved' && f.repair_item && (
-            <div style={{ fontSize:10, color:'var(--safe)', marginTop:2 }}>
+            <div className="text-[10px] text-safe-bar mt-0.5">
               조치: {f.repair_date} · {f.repair_item}
             </div>
           )}
 
           {f.status === 'open' && linkingId !== f.id && (
             <button onClick={() => setLinkingId(f.id)}
-              style={{ marginTop:4, padding:'4px 10px', borderRadius:6, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.2)', color:'var(--info)', fontSize:10, fontWeight:600, cursor:'pointer' }}>
+              className="mt-1 px-2.5 py-1 rounded-md bg-[rgba(59,130,246,0.08)] border border-[rgba(59,130,246,0.2)] text-info-bar text-[10px] font-semibold cursor-pointer">
               수리이력에서 조치 연결
             </button>
           )}
 
           {linkingId === f.id && (
-            <div style={{ marginTop:6, background:'var(--bg3)', borderRadius:6, padding:8, maxHeight:150, overflowY:'auto' }}>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:4 }}>수리 이력 선택:</div>
-              {standaloneRepairs.length === 0 && <div style={{ fontSize:10, color:'var(--t3)' }}>수리 이력이 없습니다</div>}
+            <div className="mt-1.5 bg-surface-sunken rounded-md p-2 max-h-[150px] overflow-y-auto">
+              <div className="text-[10px] font-bold text-text-tertiary mb-1">수리 이력 선택:</div>
+              {standaloneRepairs.length === 0 && <div className="text-[10px] text-text-tertiary">수리 이력이 없습니다</div>}
               {standaloneRepairs.map((r: any) => (
                 <div key={r.id} onClick={() => handleLink(f.id, r.sourceId)}
-                  style={{ padding:'5px 8px', borderRadius:5, cursor:'pointer', fontSize:10, color:'var(--t1)', marginBottom:2, background:'var(--bg2)', border:'1px solid var(--bd)' }}>
-                  <span style={{ fontWeight:600 }}>{r.date}</span> · {r.title}
+                  className="px-2 py-1.5 rounded-[5px] cursor-pointer text-[10px] text-text-primary mb-0.5 bg-surface-raised border border-border-default">
+                  <span className="font-semibold">{r.date}</span> · {r.title}
                 </div>
               ))}
               <button onClick={() => setLinkingId(null)}
-                style={{ marginTop:4, padding:'3px 8px', borderRadius:5, background:'none', border:'1px solid var(--bd)', color:'var(--t3)', fontSize:9, cursor:'pointer' }}>취소</button>
+                className="mt-1 px-2 py-[3px] rounded-[5px] bg-none border border-border-default text-text-tertiary text-[9px] cursor-pointer">취소</button>
             </div>
           )}
         </div>
       ))}
 
       {/* 새 지적사항 입력 */}
-      <div style={{ display:'flex', gap:6, marginTop:4 }}>
+      <div className="flex gap-1.5 mt-1">
         <input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="지적사항 입력..."
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          style={{ flex:1, padding:'7px 10px', borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:11, outline:'none' }} />
+          className="flex-1 px-2.5 py-[7px] rounded-md border border-border-default bg-surface-page text-text-primary text-[11px] outline-none" />
         <button onClick={handleAdd} disabled={!newDesc.trim() || saving}
-          style={{ padding:'7px 14px', borderRadius:7, border:'none', background:'var(--warn)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', opacity: !newDesc.trim() || saving ? 0.5 : 1 }}>
+          className={`px-3.5 py-[7px] rounded-md border-0 bg-warning-bar text-white text-[11px] font-bold cursor-pointer ${!newDesc.trim() || saving ? 'opacity-50' : 'opacity-100'}`}>
           {saving ? '...' : '추가'}
         </button>
       </div>
