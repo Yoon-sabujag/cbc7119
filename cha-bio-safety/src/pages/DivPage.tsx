@@ -34,7 +34,6 @@ const STATUS_COLOR = { ok: 'var(--status-safe)', warn: 'var(--status-warning)', 
 
 // DIV 그룹 레이블
 const POS_LABEL: Record<number, string> = { 1: 'DIV #1', 2: 'DIV #2', 3: 'DIV #3' }
-const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
 // ── API ────────────────────────────────────────────────────────
 async function fetchPressure(year?: number) {
@@ -419,13 +418,9 @@ export default function DivPage() {
       <>
         {/* backdrop — Pattern A (BottomNav 아래 z-[98], 화면 dim) */}
         <div onClick={closeDetail} className="fixed inset-0 z-[98] bg-black/50" />
-        {/* sheet — BottomNav 위쪽 영역만 차지 (InspectionPage 표준 Pattern A) */}
+        {/* sheet — /div 는 MOBILE_NO_NAV_PATHS (BottomNav 없음) → bottom:0 + max-h safe-area only */}
         <div
-          className="fixed left-0 right-0 z-[99] bg-surface-raised rounded-t-2xl p-[16px_16px_36px] border-t border-border-default overflow-y-auto overflow-x-hidden"
-          style={{
-            bottom: NAV_BOTTOM,
-            maxHeight: 'calc(100dvh - var(--sat, 0px) - var(--sab, 0px) - 54px)',
-          }}
+          className="fixed left-0 right-0 bottom-0 z-[99] bg-surface-raised rounded-t-2xl p-[16px_16px_36px] border-t border-border-default overflow-y-auto overflow-x-hidden max-h-[calc(100dvh-var(--sat,0px)-var(--sab,0px))]"
           onClick={e => e.stopPropagation()}
         >
           {/* 타이틀 */}

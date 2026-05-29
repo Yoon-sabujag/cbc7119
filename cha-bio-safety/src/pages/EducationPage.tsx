@@ -321,21 +321,15 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
 }
 
 // ── 모바일 바텀시트 ──────────────────────────────────────────
-const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'
-
 function EducationBottomSheet({ item, canEdit, onClose, onSaved }: EditPanelProps & { onClose: () => void }) {
   return (
     <>
-      {/* backdrop — Pattern A (BottomNav 아래 z-[98], 화면 dim) */}
+      {/* backdrop — z-[98], 화면 dim */}
       <div onClick={onClose} className="fixed inset-0 bg-[rgba(0,0,0,0.6)] z-[98]" />
-      {/* sheet — BottomNav 위쪽 영역만 차지 (InspectionPage 표준 Pattern A) */}
+      {/* sheet — /education 는 MOBILE_NO_NAV_PATHS (BottomNav 없음) → bottom:0 + max-h safe-area only */}
       <div
         onClick={e => e.stopPropagation()}
-        className="fixed left-0 right-0 z-[99] bg-surface-raised rounded-t-lg border-t border-border-default overflow-y-auto overflow-x-hidden px-4 pt-4 pb-8 [animation:slideUp_0.28s_ease-out_both]"
-        style={{
-          bottom: NAV_BOTTOM,
-          maxHeight: 'calc(100dvh - var(--sat, 0px) - var(--sab, 0px) - 54px)',
-        }}
+        className="fixed left-0 right-0 bottom-0 z-[99] bg-surface-raised rounded-t-lg border-t border-border-default overflow-y-auto overflow-x-hidden px-4 pt-4 pb-8 max-h-[calc(100dvh-var(--sat,0px)-var(--sab,0px))] [animation:slideUp_0.28s_ease-out_both]"
       >
         <div className="flex justify-center mb-2">
           <div className="bg-border-strong rounded-sm w-8 h-1" />
