@@ -86,7 +86,7 @@ export const onRequestDelete: PagesFunction<Env> = async ({ params, env }) => {
     // 소화기 분기 (isExtCascade) 는 위에서 처리되어 이 분기에 도달하지 않음.
     // 절대 금지: check_records 는 어떤 분기에서도 DELETE 하지 않는다.
     const [recRow, otherMarkerRow] = await Promise.all([
-      env.DB.prepare('SELECT COUNT(*) AS c FROM check_records WHERE check_point_id=?').bind(cpId).first<{ c: number }>(),
+      env.DB.prepare('SELECT COUNT(*) AS c FROM check_records WHERE checkpoint_id=?').bind(cpId).first<{ c: number }>(),
       env.DB.prepare('SELECT COUNT(*) AS c FROM floor_plan_markers WHERE check_point_id=? AND id<>?').bind(cpId, id).first<{ c: number }>(),
     ])
     const recordCount = recRow?.c ?? 0
