@@ -191,7 +191,7 @@ export function FloorB5({ markers = [], onMarkerClick }: Props) {
             key={m.id}
             transform={`translate(${m.x},${m.y})`}
             onClick={() => onMarkerClick?.(m)}
-            style={{ cursor: 'pointer' }}
+            className="cursor-pointer"
           >
             <circle r="14" fill={col} opacity="0.18" />
             <circle r="9"  fill={col} opacity="0.9" />
