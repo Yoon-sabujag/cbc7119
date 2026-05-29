@@ -9,7 +9,8 @@ const DESKTOP_SECTIONS = [
   { label: '점검 현황', paths: ['/dashboard', '/inspection', '/remediation', '/floorplan'] },
   { label: '시설 관리', paths: ['/div', '/extinguishers', '/floorplan', '/legal', '/elevator', '/cctv'] },
   { label: '문서 관리', paths: ['/daily-report', '/worklog', '/schedule', '/workshift', '/annual-plan', '/documents', '/reports', '/qr-print'] },
-  { label: '직원 관리', paths: ['/staff-manage', '/staff-service', '/education'] },
+  { label: '근무·복지', paths: ['/work-list', '/handovers', '/staff-service', '/education'] },
+  { label: '직원 관리', paths: ['/staff-manage'] },
 ]
 
 interface DesktopSidebarProps {

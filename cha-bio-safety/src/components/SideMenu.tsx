@@ -45,8 +45,10 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
     { label: 'QR 코드 출력',  path: '/qr-print',      badge: 0 },
   ]},
   { section: '근무·복지', items: [
-    { label: '연차 및 식사', path: '/staff-service',  badge: 0 },
-    { label: '보수교육',    path: '/education',      badge: 0 },
+    { label: '업무 관련 리스트', path: '/work-list',      badge: 0 },
+    { label: '인수 인계장',      path: '/handovers',      badge: 0 },
+    { label: '연차 및 식사',     path: '/staff-service',  badge: 0 },
+    { label: '보수교육',        path: '/education',      badge: 0 },
   ]},
   { section: '시스템', items: [
     { label: '직원 관리', path: '/staff-manage', badge: 0, role: 'admin' },

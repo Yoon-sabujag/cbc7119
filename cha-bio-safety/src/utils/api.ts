@@ -430,7 +430,6 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
   { type: 'item', path: '/floorplan',      visible: true },
   { type: 'item', path: '/extinguishers',  visible: true },  // Phase 24
   { type: 'item', path: '/legal',          visible: true },
-  { type: 'item', path: '/checkpoints',    visible: true },
   { type: 'divider', id: 'd-docs',     title: '문서 관리' },
   { type: 'item', path: '/daily-report', visible: true },
   { type: 'item', path: '/worklog',      visible: true },
@@ -441,6 +440,8 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
   { type: 'item', path: '/reports',      visible: true },
   { type: 'item', path: '/qr-print',     visible: true },
   { type: 'divider', id: 'd-welfare',  title: '근무·복지' },
+  { type: 'item', path: '/work-list',     visible: true },
+  { type: 'item', path: '/handovers',     visible: true },
   { type: 'item', path: '/staff-service', visible: true },
   { type: 'item', path: '/education',     visible: true },
   { type: 'divider', id: 'd-system',   title: '시스템' },
@@ -450,10 +451,14 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
 // 레거시 Record<path,{visible,order}> → 평면 리스트 (D-16)
 // 1) 알려진 path는 사용자 visible 적용 (order는 무시 — divider 구조 우선)
 // 2) DEFAULT_SIDE_MENU에 없는 신규 path가 있어도 무시 (스키마 정리)
+//
+// 위치 인식 forward-merge (수정 2026-05-30): missing item 을 array 끝에 append 하면
+// 사용자 config 의 마지막 divider 뒤에 잘못 배치됨 (예: '시스템' 섹션 안). 대신 각 missing
+// item 의 DEFAULT_SIDE_MENU 상 순서를 보고, user config 에서 DEFAULT 상 늦게 오는 첫 entry
+// 직전에 삽입한다.
 export function migrateLegacyMenuConfig(
   raw: unknown
 ): MenuConfig {
-  // 이미 신규 스키마 — 누락된 DEFAULT_SIDE_MENU item을 forward-merge (Phase 21 /documents 등)
   if (raw && typeof raw === 'object' && Array.isArray((raw as any).sideMenu)) {
     const existing = (raw as MenuConfig).sideMenu
     const existingPaths = new Set(
@@ -461,11 +466,32 @@ export function migrateLegacyMenuConfig(
         .filter((e): e is Extract<SideMenuEntry, { type: 'item' }> => e.type === 'item')
         .map(e => e.path),
     )
-    const missing: SideMenuEntry[] = DEFAULT_SIDE_MENU.filter(
-      e => e.type === 'item' && !existingPaths.has((e as Extract<SideMenuEntry, { type: 'item' }>).path),
-    )
-    if (missing.length === 0) return raw as MenuConfig
-    return { sideMenu: [...existing, ...missing] }
+    const missingItems = DEFAULT_SIDE_MENU
+      .filter((e): e is Extract<SideMenuEntry, { type: 'item' }> =>
+        e.type === 'item' && !existingPaths.has((e as Extract<SideMenuEntry, { type: 'item' }>).path),
+      )
+    if (missingItems.length === 0) return raw as MenuConfig
+
+    const defaultEntryIdx = (e: SideMenuEntry): number => {
+      if (e.type === 'item') {
+        return DEFAULT_SIDE_MENU.findIndex(d => d.type === 'item' && d.path === e.path)
+      }
+      return DEFAULT_SIDE_MENU.findIndex(d => d.type === 'divider' && d.id === e.id)
+    }
+
+    const result: SideMenuEntry[] = [...existing]
+    for (const item of missingItems) {
+      const itemDefaultIdx = DEFAULT_SIDE_MENU.findIndex(
+        d => d.type === 'item' && d.path === item.path,
+      )
+      let insertAt = result.length
+      for (let i = 0; i < result.length; i++) {
+        const userDefaultIdx = defaultEntryIdx(result[i])
+        if (userDefaultIdx > itemDefaultIdx) { insertAt = i; break }
+      }
+      result.splice(insertAt, 0, item)
+    }
+    return { sideMenu: result }
   }
   // 레거시 또는 빈 객체
   if (!raw || typeof raw !== 'object') {
@@ -616,4 +642,81 @@ export const workLogApi = {
   get:     (ym: string) => api.get<WorkLog | null>(`/work-logs/${ym}`),
   preview: (ym: string) => api.get<WorkLogPreview>(`/work-logs/${ym}/preview`),
   save:    (ym: string, body: WorkLogPayload) => api.put<WorkLog>(`/work-logs/${ym}`, body),
+}
+
+// ── Handover (인수 인계장) ──
+export interface HandoverItem {
+  id: string; staffId: string; staffName: string
+  title: string; body: string
+  status: 'waiting' | 'done'
+  pinned: boolean
+  createdAt: string; updatedAt: string
+  deletedAt?: string | null
+  attachmentCount?: number
+}
+export interface HandoverDetail extends HandoverItem {
+  attachments: { id: string; storageKey: string; filename?: string; contentType?: string; sizeBytes?: number; uploadedBy: string; createdAt: string }[]
+}
+export interface HandoverRevision {
+  id: string; handoverId: string; staffId: string; staffName: string
+  title: string; body: string; status: 'waiting' | 'done'
+  isDeletion: boolean; isRevertFrom?: string | null; createdAt: string
+}
+export const handoverApi = {
+  list:    (params?: { q?: string; status?: string; showDeleted?: boolean }) => {
+    const p = new URLSearchParams()
+    if (params?.q) p.set('q', params.q)
+    if (params?.status) p.set('status', params.status)
+    if (params?.showDeleted) p.set('showDeleted', 'true')
+    return api.get<HandoverItem[]>(`/handovers${p.toString() ? '?' + p : ''}`)
+  },
+  get:    (id: string) => api.get<HandoverDetail>(`/handovers/${id}`),
+  create: (body: { title?: string; body: string; status?: string; pinned?: boolean }) =>
+    api.post<{ id: string }>('/handovers', body),
+  update: (id: string, body: { title?: string; body?: string; status?: string; pinned?: boolean }) =>
+    api.put<void>(`/handovers/${id}`, body),
+  delete: (id: string) => api.delete<void>(`/handovers/${id}`),
+  revisions: (id: string) => api.get<HandoverRevision[]>(`/handovers/${id}/revisions`),
+  revert: (id: string, revisionId: string) => api.post<void>(`/handovers/${id}/revert`, { revisionId }),
+  addAttachment: (id: string, body: { storageKey: string; filename?: string; contentType?: string; sizeBytes?: number }) =>
+    api.post<{ id: string }>(`/handovers/${id}/attachments`, body),
+}
+
+// ── Work List (업무 관련 리스트 — 비밀번호/연락처 탭) ──
+// password 탭 의미 매핑: label=항목명, affiliation=아이디(선택), value=비밀번호, extra=미사용, memo=메모(선택)
+// contact  탭 의미 매핑: label=회사/소속, affiliation=이름, extra=직책/직급(선택), value=전화번호, memo=메모(선택)
+export interface WorkListItem {
+  id: string; type: 'password' | 'contact'
+  label: string; value: string
+  affiliation?: string | null
+  extra?: string | null
+  memo?: string | null
+  createdBy: string; createdByName: string
+  updatedBy?: string | null; updatedByName?: string | null
+  createdAt: string; updatedAt: string
+  deletedAt?: string | null
+}
+export interface WorkListRevision {
+  id: string; itemId: string; staffId: string; staffName: string
+  type: 'password' | 'contact'
+  label: string; value: string
+  affiliation?: string | null
+  extra?: string | null
+  memo?: string | null
+  isDeletion: boolean; isRevertFrom?: string | null; createdAt: string
+}
+export const workListApi = {
+  list: (type: 'password' | 'contact', params?: { q?: string; showDeleted?: boolean }) => {
+    const p = new URLSearchParams({ type })
+    if (params?.q) p.set('q', params.q)
+    if (params?.showDeleted) p.set('showDeleted', 'true')
+    return api.get<WorkListItem[]>(`/work-list?${p}`)
+  },
+  create: (body: { type: 'password' | 'contact'; label: string; value: string; affiliation?: string; extra?: string; memo?: string }) =>
+    api.post<{ id: string }>('/work-list', body),
+  update: (id: string, body: { label?: string; value?: string; affiliation?: string | null; extra?: string | null; memo?: string | null }) =>
+    api.put<void>(`/work-list/${id}`, body),
+  delete: (id: string) => api.delete<void>(`/work-list/${id}`),
+  revisions: (id: string) => api.get<WorkListRevision[]>(`/work-list/${id}/revisions`),
+  revert: (id: string, revisionId: string) => api.post<void>(`/work-list/${id}/revert`, { revisionId }),
 }
