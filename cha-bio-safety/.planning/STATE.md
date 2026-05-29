@@ -148,3 +148,4 @@ Resume file: .planning/ROADMAP.md
 | 2026-05-29 | fast | ElevatorPage L673 desktop 헤더 emoji TYPE_ICON → Lucide 통일 + TYPE_ICON 정의 삭제 (redesign/07-elevator 누락 cleanup) | ✅ |
 | 2026-05-29 | fast | ElevatorPage 데스크톱 좌측 escalator 카드 TypeIcon 누락 fix (h-32→h-36 + shrink-0, 운행 구간 2줄 + 공단 호기 overflow) | ✅ |
 | 2026-05-29 | fast | FloorB5 L194 SVG g style={{cursor:'pointer'}} → className="cursor-pointer" (Wave 16c roadmap missing 보정) | ✅ |
+| 2026-05-29 | fast | 모달 z-index 잠재 버그 7곳 일괄 정리: DivPage + EducationPage BottomSheet Pattern A 재설계 (NAV_BOTTOM + bottom/max-h calc) + ExtinguishersListPage + FloorPlanPage × 4 center modal z-40/z-[60] → z-[200] (BottomNav z:100 위 stacking 정정). InspectionPage/ElevatorPage z-[98]/[90] 은 이미 표준 패턴 (변경 0) | ✅ |
