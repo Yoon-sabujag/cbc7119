@@ -11,9 +11,9 @@
 ```
 상태:           안정 (SYNCED) — 인수 인계장 + 업무 관련 리스트 신규 도입 완료
 진행 작업:       없음
-기준 production: `f4c0bed` (ui: work-list 비밀번호 토글 아이콘 중앙정렬)
+기준 production: `a790e3e` (ui: handover 상단 고정 chip 제거 + 버튼 순서)
 마지막 동기화:   2026-05-30
-마지막 배포 URL: https://29ee05fc.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://91b6945c.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
