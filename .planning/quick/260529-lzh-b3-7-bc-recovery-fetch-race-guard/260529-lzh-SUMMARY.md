@@ -26,9 +26,32 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | prod D1 CP-B3-7-BC 회복 INSERT | (orchestrator 위임 — SQL 박제) | check_records (prod D1) |
+| 1 | prod D1 CP-B3-7-BC 회복 INSERT | (orchestrator 직접 실행, changes=1) | check_records (prod D1) |
 | 2 | FloorPlanPage paired BC fetch race 가드 | `202e3e0` | cha-bio-safety/src/pages/FloorPlanPage.tsx |
-| 3 | 배포 후 사용자 시나리오 검증 | checkpoint | orchestrator deploy + 사용자 |
+| 3 | 배포 후 사용자 시나리오 검증 | 배포 https://872d6981.cbc7119.pages.dev, 검증 대기 | — |
+
+## Orchestrator 실행 결과 (Task 1 + Deploy)
+
+### Task 1 — prod D1 INSERT 실제 실행 결과
+
+- **Step A (중복 가드)**: 0 rows → 안전 INSERT 진행
+- **Step B (INSERT)**: changes=1, rows_written=7. 새 record id `8RbM9X2kYatSgHEtZX4ay` 정상 입력.
+- **Step C1 (INSERT 확인)**: 1 row 매칭 — id=`8RbM9X2kYatSgHEtZX4ay`, session_id=`nyD6soJiiNYaOE4cZeMHw`, checkpoint_id=`CP-B3-7-BC`, staff_id=`2022051052`, result=`normal`, status=`open`, checked_at=`2026-05-29 13:49:09`, created_at=`2026-05-29 16:04:44` (orchestrator INSERT 시점).
+- **Step C2 (5월 비상콘센트 미완료 cp)**: **0 rows ✓** — Task 1 핵심 목표 달성.
+- **Step C3 (check_records 총 건수)**: 3762 (baseline 3759 + 우리 INSERT 1 + 작업 사이 사용자가 PWA 에서 한 신규 점검 2건. 손실 0, 의도된 INSERT 정확히 1건).
+
+### Deploy
+
+```bash
+cd cha-bio-safety && npm run build  # ✓ built in 197ms (rebuild cached)
+npx wrangler pages deploy dist --project-name=cbc7119 --branch=production --commit-message="260529-lzh CP-B3-7-BC recovery + paired BC fetch race guard"
+```
+
+→ **Deployment URL: https://872d6981.cbc7119.pages.dev** (production alias = cbc7119.pages.dev)
+
+### production-sync.md
+
+`작업중 (IN_PROGRESS)` → `안정 (SYNCED)`. 기준 production = `276065d`. 표 entry 추가 완료.
 
 ## Task 1 — prod D1 회복 INSERT (orchestrator 위임)
 
