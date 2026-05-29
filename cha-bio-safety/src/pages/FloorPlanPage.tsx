@@ -364,6 +364,7 @@ export default function FloorPlanPage() {
   const [inspectBcResult, setInspectBcResult] = useState<'normal' | 'caution' | 'bad'>('normal')
   const [inspectBcMemo, setInspectBcMemo] = useState('')
   const [pairedBC, setPairedBC] = useState<any | null>(null)
+  const [pairedBcLoading, setPairedBcLoading] = useState(false)
   const [resolveModal, setResolveModal] = useState(false)
   const [resolveMemo, setResolveMemo] = useState('')
   const [resolveActionPick, setResolveActionPick] = useState<'본체 교체' | '예비전원 교체' | '직접 입력'>('본체 교체')
@@ -414,22 +415,26 @@ export default function FloorPlanPage() {
     let cancelled = false
     if (!inspectModal || !selected || planType !== 'extinguisher' || selected.marker_type !== 'indoor_hydrant' || !selected.check_point_id) {
       setPairedBC(null)
+      setPairedBcLoading(false)
       return
     }
+    setPairedBcLoading(true)
     inspectionApi.getCheckpoints(selected.floor).then((all: any[]) => {
       if (cancelled) return
       const sh = all.find(cp => cp.id === selected.check_point_id)
-      if (!sh || !sh.locationNo) { setPairedBC(null); return }
+      if (!sh || !sh.locationNo) { setPairedBC(null); setPairedBcLoading(false); return }
       const bc = all.find(cp => cp.category === '비상콘센트' && cp.locationNo === sh.locationNo)
       setPairedBC(bc ?? null)
-    }).catch(() => { if (!cancelled) setPairedBC(null) })
-    return () => { cancelled = true }
+      setPairedBcLoading(false)
+    }).catch(() => { if (!cancelled) { setPairedBC(null); setPairedBcLoading(false) } })
+    return () => { cancelled = true; setPairedBcLoading(false) }
   }, [inspectModal, selected?.id, planType, selected?.marker_type, selected?.check_point_id, selected?.floor])
 
   // 모달이 닫히면 BC state 초기화
   useEffect(() => {
     if (!inspectModal) {
       setPairedBC(null)
+      setPairedBcLoading(false)
       setInspectBcResult('normal')
       setInspectBcMemo('')
       inspectBcPhoto.reset()
@@ -1921,7 +1926,7 @@ export default function FloorPlanPage() {
                 취소
               </button>
               <button
-                disabled={inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked}
+                disabled={inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked || (planType === 'extinguisher' && selected?.marker_type === 'indoor_hydrant' && !!selected?.check_point_id && pairedBcLoading)}
                 onClick={async () => {
                   setInspectSubmitting(true)
                   try {
@@ -1986,7 +1991,7 @@ export default function FloorPlanPage() {
                 }}
                 className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer disabled:opacity-50 disabled:bg-border-default disabled:text-text-disabled disabled:cursor-default"
               >
-                {(inspectPhoto.uploading || inspectBcPhoto.uploading) ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '저장'}
+                {(inspectPhoto.uploading || inspectBcPhoto.uploading) ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : (planType === 'extinguisher' && selected?.marker_type === 'indoor_hydrant' && !!selected?.check_point_id && pairedBcLoading) ? '비상콘센트 확인 중...' : '저장'}
               </button>
             </div>
           </div>
