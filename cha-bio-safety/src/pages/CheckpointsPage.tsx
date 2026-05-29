@@ -7,7 +7,6 @@ import { checkPointApi, floorPlanMarkerApi, extinguisherApi } from '../utils/api
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import type { CheckPointFull, CheckPointUpdatePayload, BuildingZone } from '../types'
 import { Plus, ChevronDown } from 'lucide-react'
-import { CATEGORY_REGISTRY, type CategoryRegistryEntry } from '../utils/checkpointRegistry'
 
 // ── 상수 ────────────────────────────────────────────────────
 // 카테고리는 DB에서 동적으로 가져옴 (하드코딩 폴백)
@@ -68,176 +67,6 @@ const LABEL_STYLE: React.CSSProperties = {
   fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 6, display: 'block',
 }
 
-// ── Registry-Driven Form (방화셔터 등 카테고리별 데이터-주도 폼) ──
-function RegistryDrivenForm({ entry, onClose }: {
-  entry: CategoryRegistryEntry; onClose: () => void
-}) {
-  const qc = useQueryClient()
-  const [zone, setZone] = useState<string>('')
-  const [floor, setFloor] = useState<string>('')
-  const [location, setLocation] = useState<string>('')
-  const [description, setDescription] = useState<string>('')
-
-  // 같은 카테고리의 기존 cp 들 로드 → next seq 계산
-  const { data: existing } = useQuery({
-    queryKey: ['check-points', entry.category],
-    queryFn: () => checkPointApi.list(entry.category),
-    enabled: !!floor,
-    staleTime: 30_000,
-  })
-
-  const nextSeq: number | null = (() => {
-    if (!floor || !existing) return null
-    const locationNos = existing
-      .filter(c => c.floor === floor)
-      .map(c => c.locationNo ?? '')
-      .filter(Boolean)
-    return entry.nextSeqStrategy(locationNos)
-  })()
-
-  const previewId  = floor && nextSeq !== null ? entry.idPattern(floor, nextSeq) : ''
-  const previewLoc = floor && nextSeq !== null ? entry.locationNoPattern(floor, nextSeq) : ''
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      if (!floor || nextSeq === null) throw new Error('floor/seq 미설정')
-      const id = entry.idPattern(floor, nextSeq)
-      const qrCode = entry.qrPattern(id)
-      const locationNo = entry.locationNoPattern(floor, nextSeq)
-      return checkPointApi.create({
-        id, qrCode, floor, zone: zone as BuildingZone,
-        location: location.trim(),
-        category: entry.category,
-        description: description.trim() || undefined,
-        locationNo,
-      })
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['check-points'] })
-      qc.invalidateQueries({ queryKey: ['check-point-categories'] })
-      toast.success('개소가 추가되었습니다')
-      onClose()
-    },
-    onError: () => toast.error('저장에 실패했습니다. 입력값을 확인해 주세요'),
-  })
-
-  const canSave = location.trim() !== '' && zone !== '' && floor !== '' && nextSeq !== null
-  const isBusy = createMutation.isPending
-
-  return (
-    <>
-      <div className="form-body" style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div>
-          <label style={LABEL_STYLE}>카테고리</label>
-          <div style={{ ...INPUT_STYLE, display: 'flex', alignItems: 'center', background: 'var(--bg2)' }}>
-            {entry.category}
-          </div>
-        </div>
-        <div>
-          <label style={LABEL_STYLE}>구역 <span style={{ color: 'var(--status-danger)' }}>*</span></label>
-          <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
-            {entry.zones.map(z => (
-              <button key={z}
-                onClick={() => { setZone(prev => prev === z ? '' : z); setFloor('') }}
-                style={{ flex: 1, height: 36, border: 'none', cursor: 'pointer',
-                  background: zone === z ? 'var(--accent)' : 'var(--surface-active)',
-                  color: zone === z ? '#fff' : 'var(--text-tertiary)' }}>
-                <span className="text-caption font-bold">{ZONE_LABEL[z] ?? z}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        {zone && (
-          <div>
-            <label style={LABEL_STYLE}>층 <span style={{ color: 'var(--status-danger)' }}>*</span></label>
-            <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }}
-              value={floor} onChange={e => setFloor(e.target.value)}>
-              <option value="">층 선택</option>
-              {(entry.floorsByZone[zone] ?? []).map(f => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div>
-          <label style={LABEL_STYLE}>개소명 <span style={{ color: 'var(--status-danger)' }}>*</span></label>
-          <input style={INPUT_STYLE} value={location}
-            onChange={e => setLocation(e.target.value)}
-            placeholder={entry.locationPlaceholder} />
-        </div>
-        <div>
-          <label style={LABEL_STYLE}>설명</label>
-          <input style={INPUT_STYLE} value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="메모 (선택)" />
-        </div>
-        {previewId && (
-          <div style={{ fontSize: 12, color: 'var(--t2)', padding: '8px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-            <div>ID: <strong style={{ color: 'var(--t1)' }}>{previewId}</strong></div>
-            <div>위치번호: <strong style={{ color: 'var(--t1)' }}>{previewLoc}</strong></div>
-          </div>
-        )}
-      </div>
-      <div className="action-row" style={{ padding: 16, display: 'flex', gap: 8 }}>
-        <button onClick={onClose}
-          style={{ flex: 1, height: 44, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
-          <span className="text-body-sm font-bold">취소</span>
-        </button>
-        <button onClick={() => canSave && !isBusy && createMutation.mutate()}
-          disabled={!canSave || isBusy}
-          style={{ flex: 1, height: 44, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8,
-            cursor: canSave && !isBusy ? 'pointer' : 'not-allowed',
-            opacity: canSave && !isBusy ? 1 : 0.4 }}>
-          <span className="text-body-sm font-bold">저장</span>
-        </button>
-      </div>
-    </>
-  )
-}
-
-// ── Add CheckPoint Router (registry vs legacy 분기) ─────
-function AddCheckPointRouter({ onClose }: { onClose: () => void }) {
-  const [category, setCategory] = useState<string>('')
-  const isRegistry = !!category && !!CATEGORY_REGISTRY[category]
-
-  if (isRegistry) {
-    return (
-      <>
-        <div style={{ padding: '16px 16px 0' }}>
-          <label style={LABEL_STYLE}>카테고리 <span style={{ color: 'var(--status-danger)' }}>*</span></label>
-          <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }}
-            value={category} onChange={e => setCategory(e.target.value)}>
-            <option value="">카테고리 선택</option>
-            {CATEGORIES_FALLBACK.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <RegistryDrivenForm entry={CATEGORY_REGISTRY[category]} onClose={onClose} />
-      </>
-    )
-  }
-
-  // 비-registry: 초기에는 카테고리 select 만 보여주고,
-  // 사용자가 카테고리를 고르면 CheckPointModalContent 로 위임.
-  if (!category) {
-    return (
-      <div style={{ padding: '16px 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div>
-          <label style={LABEL_STYLE}>카테고리 <span style={{ color: 'var(--status-danger)' }}>*</span></label>
-          <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }}
-            value={category} onChange={e => setCategory(e.target.value)}>
-            <option value="">카테고리 선택</option>
-            {CATEGORIES_FALLBACK.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--t2)' }}>카테고리를 먼저 선택하세요.</div>
-      </div>
-    )
-  }
-
-  // 카테고리 선택됨 && registry 없음 → 기존 모달 폼에 initialCategory 전달
-  return <CheckPointModalContent mode="add" cp={undefined} onClose={onClose} initialCategory={category} />
-}
-
 // ── CheckPoint Modal Content ────────────────────────────
 interface CpFormState {
   location: string; category: string; zone: string; floor: string;
@@ -264,13 +93,13 @@ interface ExtState {
 const EMPTY_EXT: ExtState = { type: '', manufacturer: '', manufactured_at: '', approval_no: '', prefix_code: '', seal_no: '', serial_no: '' }
 
 function CheckPointModalContent({
-  mode, cp, onClose, initialCategory,
-}: { mode: 'add' | 'edit'; cp?: CheckPointFull; onClose: () => void; initialCategory?: string }) {
+  mode, cp, onClose,
+}: { mode: 'add' | 'edit'; cp?: CheckPointFull; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<CpFormState>(
     mode === 'edit' && cp
       ? { location: cp.location, category: cp.category, zone: cp.zone, floor: cp.floor, description: cp.description ?? '', locationNo: cp.locationNo ?? '' }
-      : { ...EMPTY_CP_FORM, category: initialCategory ?? '' }
+      : EMPTY_CP_FORM
   )
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
   const [extForm, setExtForm] = useState<ExtState>(EMPTY_EXT)
@@ -859,9 +688,7 @@ export default function CheckpointsPage() {
       {/* 모달 */}
       {modal.open && (
         <ModalWrapper onClose={() => setModal({ open: false, mode: 'add' })} title={modal.mode === 'add' ? '개소 추가' : '개소 수정'}>
-          {modal.mode === 'add'
-            ? <AddCheckPointRouter onClose={() => setModal({ open: false, mode: 'add' })} />
-            : <CheckPointModalContent mode={modal.mode} cp={modal.target} onClose={() => setModal({ open: false, mode: 'add' })} />}
+          <CheckPointModalContent mode={modal.mode} cp={modal.target} onClose={() => setModal({ open: false, mode: 'add' })} />
         </ModalWrapper>
       )}
     </div>
