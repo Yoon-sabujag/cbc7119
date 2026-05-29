@@ -212,7 +212,7 @@ function HandoverCard({ h, isMine, editing, onStartEdit, onCancelEdit, onShowHis
           <button
             onClick={() => updateMutation.mutate({ pinned: !h.pinned })}
             disabled={h.status === 'done' && !h.pinned}
-            style={{ ...CHIP(h.pinned), opacity: (h.status === 'done' && !h.pinned) ? 0.4 : 1, cursor: (h.status === 'done' && !h.pinned) ? 'not-allowed' : 'pointer' }}>
+            style={{ ...CHIP(h.pinned, h.pinned ? '#d97706' : undefined), opacity: (h.status === 'done' && !h.pinned) ? 0.4 : 1, cursor: (h.status === 'done' && !h.pinned) ? 'not-allowed' : 'pointer' }}>
             <Pin size={12} /> 고정
           </button>
           <button onClick={onShowHistory} style={CHIP(false)}>
