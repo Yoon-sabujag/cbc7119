@@ -9,22 +9,30 @@ import type { StaffFull, StaffUpdatePayload, Role } from '../types'
 import { UserPlus } from 'lucide-react'
 
 // ── BottomSheet ──────────────────────────────────────────
+const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'
+
 function BottomSheet({ onClose, title, children }: {
   onClose: () => void; title: string; children: React.ReactNode
 }) {
   return (
-    <div
-      className="fixed inset-0 bg-[rgba(0,0,0,0.6)] z-[200] flex flex-col justify-end"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="bg-surface-raised rounded-t-[16px] [animation:slideUp_0.28s_ease-out_both] max-h-[90vh] overflow-y-auto">
+    <>
+      {/* backdrop — BottomNav 아래로 깔리되 화면 dim */}
+      <div onClick={onClose} className="fixed inset-0 z-[98] bg-black/40" />
+      {/* sheet — BottomNav 위쪽 영역만 차지 (InspectionPage / ElevatorPage 표준 Pattern A) */}
+      <div
+        className="fixed left-0 right-0 z-[99] bg-surface-raised rounded-t-[16px] border-t border-border-default overflow-y-auto [animation:slideUp_0.28s_ease-out_both]"
+        style={{
+          bottom: NAV_BOTTOM,
+          maxHeight: 'calc(100dvh - var(--sat, 0px) - var(--sab, 0px) - 54px)',
+        }}
+      >
         <div className="flex justify-center pt-3">
           <div className="w-[32px] h-[4px] rounded-full bg-border-strong" />
         </div>
         <div className="text-body font-bold text-text-primary pt-3 px-4 pb-0">{title}</div>
         {children}
       </div>
-    </div>
+    </>
   )
 }
 

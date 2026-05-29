@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch — modal BottomSheet Pattern A fix
+  작성: 2026-05-29
+  범위: StaffManagePage + CheckpointsPage 의 BottomSheet 컴포넌트 fix
+        현재 (Pattern B / z-[200] hack) → InspectionPage 표준 Pattern A 로 재설계
+  out of scope: 데스크톱 모달 (DesktopModal — 데스크톱은 BottomNav 없어 z-[200] 그대로 유지),
+                다른 페이지 모달 (별도 fix wave),
+                form 자체 디자인 (input/button 등은 손대지 않음)
+
+  메모리 룰 적용:
+    - feedback_design_sketch_first.md: sketch HTML 먼저 → 컨펌 → 인라인 적용
+    - feedback_design_changes_ask_first.md: 레이아웃 구조 변경은 상의 후
+    - feedback_redesign_sketch_rule_enforcement.md: 토큰 verbatim, status 색 negative rule
+    - feedback_tailwind_w8_h8_is_48px.md: spacing override 인지 (본 sketch 미해당)
+
+  참조 패턴 (src/pages/InspectionPage.tsx L4421-4569, ElevatorPage.tsx L1868-1885):
+    backdrop:  fixed inset-0 z-[98] bg-black/40
+    sheet:     fixed left-0 right-0 z-[99] bg-surface-raised rounded-t-[16px] border-t border-border-default
+               style: { bottom: NAV_BOTTOM, maxHeight: 'calc(100dvh - var(--sat) - var(--sab) - 54px)',
+                        transform: 'translateY(0)' or 'translateY(100%)',
+                        transition: 'transform 0.28s ease-out' }
+    NAV_BOTTOM: 'calc(54px + env(safe-area-inset-bottom, 20px))'
+
+  핵심 차이 (Pattern B → A):
+    1. backdrop 의 flex/justify-end 제거 — sheet 가 더 이상 viewport bottom 까지 차지하지 않음
+    2. sheet 가 fixed left-0 right-0 + bottom: NAV_BOTTOM — BottomNav 위쪽 영역만 차지
+    3. sheet 의 maxHeight 가 calc(100dvh - 54px - safe-area) — BottomNav 영역 제외
+    4. BottomNav 가 모달 띄운 상태에서도 backdrop 위로 살짝 보이는 (dimmed) 표준 UX
+    5. z-index: backdrop z-[98], sheet z-[99] — BottomNav z:100 보다 낮지만, sheet 가 BottomNav
+       영역 밖에 있으므로 시각 충돌 0
+-->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Modal BottomSheet Pattern A fix — Before/After</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --border-default:  #2c333d;
+    --border-strong:   #3a4250;
+    --text-primary:    #f3f6f9;
+    --text-secondary:  #b8c1cb;
+    --text-tertiary:   #6e7681;
+    --accent:          #3b82f6;
+    --danger-bar:      #ef4444;
+    --warning-bar:     #f59e0b;
+    --safe-bar:        #10b981;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #050810;
+    color: var(--text-primary);
+    font-family: -apple-system, 'Noto Sans KR', sans-serif;
+  }
+
+  .page-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  .page-title {
+    font-size: 22px; font-weight: 700; margin: 0 0 8px;
+  }
+  .page-desc {
+    font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+    margin: 0 0 28px;
+  }
+  .page-desc code {
+    background: var(--surface-raised); padding: 1px 6px; border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  }
+
+  .compare-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .compare-row { grid-template-columns: 1fr; gap: 28px; }
+  }
+
+  .case-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .case-tag {
+    font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px;
+    letter-spacing: 0.4px;
+  }
+  .case-tag.before { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+  .case-tag.after  { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,.3); }
+  .case-title {
+    font-size: 15px; font-weight: 700;
+  }
+
+  /* 모바일 mock viewport */
+  .phone-frame {
+    width: 375px;
+    height: 700px;
+    margin: 0 auto;
+    border: 8px solid #0d1117;
+    border-radius: 36px;
+    overflow: hidden;
+    position: relative;
+    background: var(--surface-page);
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+  @media (max-width: 420px) {
+    .phone-frame { width: 100%; max-width: 360px; }
+  }
+
+  /* 페이지 콘텐츠 (모달 뒤에 깔리는 직원 리스트 mock) */
+  .bg-content {
+    position: absolute; inset: 0;
+    padding: 14px 16px 84px;
+    display: flex; flex-direction: column; gap: 8px;
+    overflow: hidden;
+  }
+  .bg-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 4px; font-size: 13px; font-weight: 700;
+  }
+  .bg-card {
+    background: var(--surface-sunken); border-radius: 12px;
+    padding: 12px 14px; min-height: 50px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .bg-dot { width: 8px; height: 8px; background: var(--safe-bar); border-radius: 50%; flex-shrink: 0; }
+  .bg-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .bg-action { font-size: 11px; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+  /* BottomNav */
+  .bottom-nav {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 54px;
+    background: rgba(22,27,34,0.97);
+    border-top: 1px solid var(--border-default);
+    display: flex; justify-content: space-around; align-items: center;
+    z-index: 100;
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 9px; color: var(--text-tertiary); flex: 1;
+  }
+  .nav-item.active { color: var(--accent); }
+  .nav-icon {
+    width: 22px; height: 22px; border: 1.5px solid currentColor;
+    border-radius: 4px;
+  }
+  .nav-item.active .nav-icon { background: rgba(59,130,246,.18); }
+
+  /* ───────────────── BEFORE (Pattern B / 현재 z-[200] hack) ───────────────── */
+  .modal-before-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .modal-before-sheet {
+    background: var(--surface-raised);
+    border-radius: 16px 16px 0 0;
+    max-height: 90vh;  /* viewport 의 90%, BottomNav 영역까지 침범 */
+    overflow-y: auto;
+    /* z-[200] 으로 BottomNav (z:100) 위로 완전히 덮음 */
+  }
+
+  /* ───────────────── AFTER (Pattern A / InspectionPage 표준) ───────────────── */
+  .modal-after-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 98;  /* BottomNav 보다 아래 */
+  }
+  .modal-after-sheet {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 54px;  /* NAV_BOTTOM — BottomNav 위쪽으로 띄움 */
+    z-index: 99;
+    background: var(--surface-raised);
+    border-radius: 16px 16px 0 0;
+    border-top: 1px solid var(--border-default);
+    max-height: calc(100% - 54px);  /* calc(100dvh - var(--sat) - var(--sab) - 54px) */
+    display: flex; flex-direction: column;
+    animation: slideUp 0.28s ease-out both;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  /* 모달 내부 공통 */
+  .sheet-handle-wrap {
+    display: flex; justify-content: center; padding-top: 12px;
+    flex-shrink: 0;
+  }
+  .sheet-handle {
+    width: 32px; height: 4px; background: var(--border-strong); border-radius: 2px;
+  }
+  .sheet-title {
+    font-size: 15px; font-weight: 700; color: var(--text-primary);
+    padding: 12px 16px 0;
+    flex-shrink: 0;
+  }
+  /* AFTER 만: 본문 영역이 flex-1 overflow-y-auto */
+  .modal-after-sheet .sheet-body { flex: 1; overflow-y: auto; }
+  /* BEFORE 의 sheet 자체가 overflow-y-auto 라 body 는 단순 wrapper */
+  .modal-before-sheet .sheet-body { /* nothing */ }
+
+  .form-body {
+    padding: 16px 16px 0;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .field { display: flex; flex-direction: column; }
+  .field-label {
+    font-size: 12px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .field-label .req { color: var(--danger-bar); }
+  .field-input {
+    height: 44px; background: var(--surface-sunken);
+    border: 1px solid var(--border-default); border-radius: 8px;
+    padding: 0 12px; font-size: 14px; color: var(--text-primary);
+    box-sizing: border-box; outline: none; width: 100%;
+  }
+  .field-input.placeholder { color: var(--text-tertiary); }
+  .field-input.disabled { opacity: 0.5; cursor: not-allowed; }
+  .role-toggle {
+    display: flex; gap: 0; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border-default);
+  }
+  .role-toggle button {
+    flex: 1; height: 40px; border: 0; cursor: pointer;
+    font-size: 13px; font-weight: 600;
+  }
+  .role-toggle .on { background: var(--accent); color: #fff; }
+  .role-toggle .off { background: var(--surface-active); color: var(--text-tertiary); }
+
+  .action-row {
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn-row { display: flex; gap: 8px; }
+  .btn {
+    flex: 1; height: 44px; border: 0; border-radius: 8px; cursor: pointer;
+    font-size: 14px; font-weight: 600;
+  }
+  .btn-cancel { background: var(--surface-active); color: var(--text-secondary); }
+  .btn-save { background: var(--accent); color: #fff; font-weight: 700; }
+  .btn-deactivate {
+    height: 40px;
+    background: rgba(239,68,68,.08); color: var(--danger-bar);
+  }
+
+  /* ─────────── 가려진 영역 강조 (BEFORE only) ─────────── */
+  .clipping-warn {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 54px;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(239,68,68,.18),
+      rgba(239,68,68,.18) 8px,
+      rgba(239,68,68,.08) 8px,
+      rgba(239,68,68,.08) 16px
+    );
+    border-top: 2px dashed rgba(239,68,68,.6);
+    z-index: 201;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fca5a5;
+    letter-spacing: 0.3px;
+    pointer-events: none;
+  }
+
+  /* annotation */
+  .annot-list {
+    margin: 16px 4px 0;
+    padding: 14px 16px;
+    background: var(--surface-raised);
+    border-radius: 8px;
+    border: 1px solid var(--border-default);
+    font-size: 12px; line-height: 1.7; color: var(--text-secondary);
+  }
+  .annot-list .lbl {
+    font-weight: 700; color: var(--text-primary);
+  }
+  .annot-list code {
+    background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+
+  /* 코드 diff 표시 */
+  .code-block {
+    margin-top: 32px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block .add { color: #6ee7b7; }
+  .code-block .del { color: #fca5a5; }
+  .code-block .com { color: var(--text-tertiary); }
+
+  .section-title {
+    font-size: 16px; font-weight: 700; margin: 40px 0 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-default);
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <h1 class="page-title">Modal BottomSheet — Pattern A fix 시안</h1>
+  <p class="page-desc">
+    <strong>StaffManagePage + CheckpointsPage</strong> 의 BottomSheet 를 <code>InspectionPage</code> /
+    <code>ElevatorPage</code> 표준 패턴 (Pattern A) 으로 재설계.
+    <br>현재 <code>z-[200]</code> hack 은 모달이 BottomNav 를 완전히 덮어버리는데, 코드베이스 표준은
+    BottomNav 가 보인 상태로 모달이 그 위쪽 영역만 차지하는 것.
+  </p>
+
+  <h2 class="section-title">좌우 비교 — 직원 추가 모달 (긴 form, 스크롤 필요)</h2>
+
+  <div class="compare-row">
+
+    <!-- BEFORE -->
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE</span>
+        <span class="case-title">Pattern B + z-[200] (현재 fix 적용 상태)</span>
+      </div>
+
+      <div class="phone-frame">
+        <!-- 페이지 배경 (BottomNav 위로 sheet 가 덮음 → 거의 안 보임) -->
+        <div class="bg-content">
+          <div class="bg-header"><span>직원 관리 <span style="color:var(--text-tertiary)">4명</span></span></div>
+          <div class="bg-card"><div class="bg-dot"></div><div class="bg-name">윤종엽</div><div class="bg-action">수정 ▸</div></div>
+          <div class="bg-card"><div class="bg-dot"></div><div class="bg-name">홍길동</div><div class="bg-action">수정 ▸</div></div>
+        </div>
+
+        <!-- BottomNav (z:100, sheet z:200 아래로 깔림) -->
+        <div class="bottom-nav">
+          <div class="nav-item active"><div class="nav-icon"></div>대시보드</div>
+          <div class="nav-item"><div class="nav-icon"></div>점검</div>
+          <div class="nav-item"><div class="nav-icon"></div>QR</div>
+          <div class="nav-item"><div class="nav-icon"></div>승강기</div>
+          <div class="nav-item"><div class="nav-icon"></div>관리</div>
+        </div>
+
+        <!-- Modal backdrop + sheet (z:200) -->
+        <div class="modal-before-backdrop">
+          <div class="modal-before-sheet">
+            <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+            <div class="sheet-title">직원 추가</div>
+            <div class="sheet-body">
+              <div class="form-body">
+                <div class="field"><label class="field-label">이름 <span class="req">*</span></label><input class="field-input placeholder" value="홍길동" /></div>
+                <div class="field"><label class="field-label">사번 <span class="req">*</span></label><input class="field-input placeholder" value="0000000000" /></div>
+                <div class="field"><label class="field-label">연락처</label><input class="field-input placeholder" value="010-0000-0000" /></div>
+                <div class="field"><label class="field-label">이메일</label><input class="field-input placeholder" value="email@example.com" /></div>
+                <div class="field"><label class="field-label">입사일</label><input class="field-input disabled" value="2024-01-01" /></div>
+                <div class="field"><label class="field-label">생년월일</label><input class="field-input" value="1990-01-01" /></div>
+                <div class="field"><label class="field-label">직책</label><input class="field-input placeholder" value="소방안전관리자" /></div>
+                <div class="field"><label class="field-label">역할 <span class="req">*</span></label>
+                  <div class="role-toggle"><button class="on">관리자</button><button class="off">보조</button></div>
+                </div>
+              </div>
+              <div class="action-row">
+                <div class="btn-row"><button class="btn btn-cancel">취소</button><button class="btn btn-save">추가</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annot-list">
+        <div class="lbl">현 상태 (방금 z-[200] fix 적용)</div>
+        모달이 BottomNav 를 <strong style="color:#fca5a5">완전히 덮음</strong>. 모달 닫을 때까지 BottomNav 안 보임.<br>
+        <code>max-h-[90vh]</code> + <code>overflow-y-auto</code> 로 모달 내부 스크롤은 동작 (사용자 회귀 해결됨).<br>
+        그러나 사용자 인지: <em>"모달이 BottomNav 완전 덮는 경우가 흔치 않다"</em> — 코드베이스 표준 (InspectionPage) 과 불일치.
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER</span>
+        <span class="case-title">Pattern A (InspectionPage / ElevatorPage 표준)</span>
+      </div>
+
+      <div class="phone-frame">
+        <!-- 페이지 배경 -->
+        <div class="bg-content">
+          <div class="bg-header"><span>직원 관리 <span style="color:var(--text-tertiary)">4명</span></span></div>
+          <div class="bg-card"><div class="bg-dot"></div><div class="bg-name">윤종엽</div><div class="bg-action">수정 ▸</div></div>
+          <div class="bg-card"><div class="bg-dot"></div><div class="bg-name">홍길동</div><div class="bg-action">수정 ▸</div></div>
+        </div>
+
+        <!-- Modal backdrop (z:98, BottomNav 아래) — 화면 전체 dim -->
+        <div class="modal-after-backdrop"></div>
+
+        <!-- Modal sheet (z:99, BottomNav 위쪽 영역만 차지) -->
+        <div class="modal-after-sheet">
+          <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+          <div class="sheet-title">직원 추가</div>
+          <div class="sheet-body">
+            <div class="form-body">
+              <div class="field"><label class="field-label">이름 <span class="req">*</span></label><input class="field-input placeholder" value="홍길동" /></div>
+              <div class="field"><label class="field-label">사번 <span class="req">*</span></label><input class="field-input placeholder" value="0000000000" /></div>
+              <div class="field"><label class="field-label">연락처</label><input class="field-input placeholder" value="010-0000-0000" /></div>
+              <div class="field"><label class="field-label">이메일</label><input class="field-input placeholder" value="email@example.com" /></div>
+              <div class="field"><label class="field-label">입사일</label><input class="field-input disabled" value="2024-01-01" /></div>
+              <div class="field"><label class="field-label">생년월일</label><input class="field-input" value="1990-01-01" /></div>
+              <div class="field"><label class="field-label">직책</label><input class="field-input placeholder" value="소방안전관리자" /></div>
+              <div class="field"><label class="field-label">역할 <span class="req">*</span></label>
+                <div class="role-toggle"><button class="on">관리자</button><button class="off">보조</button></div>
+              </div>
+            </div>
+            <div class="action-row">
+              <div class="btn-row"><button class="btn btn-cancel">취소</button><button class="btn btn-save">추가</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BottomNav (계속 보임 — backdrop bg-black/40 으로 살짝 dimmed) -->
+        <div class="bottom-nav">
+          <div class="nav-item active"><div class="nav-icon"></div>대시보드</div>
+          <div class="nav-item"><div class="nav-icon"></div>점검</div>
+          <div class="nav-item"><div class="nav-icon"></div>QR</div>
+          <div class="nav-item"><div class="nav-icon"></div>승강기</div>
+          <div class="nav-item"><div class="nav-icon"></div>관리</div>
+        </div>
+      </div>
+
+      <div class="annot-list">
+        <div class="lbl">Pattern A (제안)</div>
+        BottomNav 가 <strong style="color:#6ee7b7">계속 보임</strong> (backdrop bg-black/40 으로 살짝 dim).<br>
+        sheet 가 <code>bottom: NAV_BOTTOM</code> + <code>max-h: calc(100dvh - 54px - safe-area)</code> 로 BottomNav 위쪽 영역만 차지.<br>
+        sheet 자체에 <code>overflow-y-auto</code> (또는 본문 wrapper) — 긴 form 모두 스크롤 접근 가능.<br>
+        InspectionPage L4421-4440 / ElevatorPage L1868-1885 와 동일 패턴 → <strong>코드베이스 표준 일관성</strong>.
+      </div>
+    </div>
+
+  </div>
+
+  <h2 class="section-title">코드 diff (StaffManagePage L14-29 BottomSheet)</h2>
+
+  <div class="code-block"><span class="com">// 1) NAV_BOTTOM 상수 추가 (파일 상단)</span>
+<span class="add">+ const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'</span>
+
+<span class="com">// 2) BottomSheet 컴포넌트 재설계</span>
+function BottomSheet({ onClose, title, children }: {
+  onClose: () =&gt; void; title: string; children: React.ReactNode
+}) {
+  return (
+<span class="del">-   &lt;div</span>
+<span class="del">-     className="fixed inset-0 bg-[rgba(0,0,0,0.6)] z-[200] flex flex-col justify-end"</span>
+<span class="del">-     onClick={e =&gt; { if (e.target === e.currentTarget) onClose() }}</span>
+<span class="del">-   &gt;</span>
+<span class="del">-     &lt;div className="bg-surface-raised rounded-t-[16px] [animation:slideUp_0.28s_ease-out_both] max-h-[90vh] overflow-y-auto"&gt;</span>
+<span class="del">-       &lt;div className="flex justify-center pt-3"&gt;</span>
+<span class="del">-         &lt;div className="w-[32px] h-[4px] rounded-full bg-border-strong" /&gt;</span>
+<span class="del">-       &lt;/div&gt;</span>
+<span class="del">-       &lt;div className="text-body font-bold text-text-primary pt-3 px-4 pb-0"&gt;{title}&lt;/div&gt;</span>
+<span class="del">-       {children}</span>
+<span class="del">-     &lt;/div&gt;</span>
+<span class="del">-   &lt;/div&gt;</span>
+<span class="add">+   &lt;&gt;</span>
+<span class="add">+     {/* backdrop — BottomNav 아래로 깔리지만 visually 화면 전체 dim */}</span>
+<span class="add">+     &lt;div onClick={onClose} className="fixed inset-0 z-[98] bg-black/40" /&gt;</span>
+<span class="add">+     {/* sheet — BottomNav 위쪽 영역만 차지, slide-up keyframe */}</span>
+<span class="add">+     &lt;div</span>
+<span class="add">+       className="fixed left-0 right-0 z-[99] bg-surface-raised rounded-t-[16px] border-t border-border-default overflow-y-auto [animation:slideUp_0.28s_ease-out_both]"</span>
+<span class="add">+       style={{</span>
+<span class="add">+         bottom: NAV_BOTTOM,</span>
+<span class="add">+         maxHeight: 'calc(100dvh - var(--sat, 0px) - var(--sab, 0px) - 54px)',</span>
+<span class="add">+       }}</span>
+<span class="add">+     &gt;</span>
+<span class="add">+       &lt;div className="flex justify-center pt-3"&gt;</span>
+<span class="add">+         &lt;div className="w-[32px] h-[4px] rounded-full bg-border-strong" /&gt;</span>
+<span class="add">+       &lt;/div&gt;</span>
+<span class="add">+       &lt;div className="text-body font-bold text-text-primary pt-3 px-4 pb-0"&gt;{title}&lt;/div&gt;</span>
+<span class="add">+       {children}</span>
+<span class="add">+     &lt;/div&gt;</span>
+<span class="add">+   &lt;/&gt;</span>
+  )
+}
+
+<span class="com">// 3) DesktopModal 은 손대지 않음 (데스크톱은 BottomNav 없음 — z-[200] 그대로 유지)</span>
+<span class="com">// 4) 같은 패턴을 CheckpointsPage L26-41 의 BottomSheet 에도 동일 적용</span></div>
+
+  <h2 class="section-title">변경 요약</h2>
+
+  <div class="annot-list">
+    <span class="lbl">파일 2개</span> · src/pages/StaffManagePage.tsx · src/pages/CheckpointsPage.tsx<br>
+    <span class="lbl">변경 영역</span> · BottomSheet 컴포넌트 함수 (각 페이지 1개씩) — 총 ~13줄 / ~9줄 = ~22줄 단순 교체<br>
+    <span class="lbl">추가 상수</span> · 각 페이지 상단 <code>const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'</code><br>
+    <span class="lbl">DesktopModal</span> · 손대지 않음 — z-[200] 유지 (데스크톱은 BottomNav 없음, 데스크톱 hover 검증 OK)<br>
+    <span class="lbl">방금 적용한 z-[200] fix</span> · BottomSheet 부분은 자연스럽게 revert (z-[98]/[99] + Pattern A 로). DesktopModal 의 z-[200] 만 유지<br>
+    <span class="lbl">시각 변화</span> · 모바일 모달 = BottomNav 보이는 표준 패턴으로 / 모달 내부 콘텐츠는 시각 동일<br>
+    <span class="lbl">패턴 reference</span> · InspectionPage L4421-4440 (조치 결과 BottomSheet) · ElevatorPage L1868-1885 (EvDetailModal)<br>
+    <span class="lbl">애니메이션</span> · 기존 keyframe <code>[animation:slideUp_0.28s_ease-out_both]</code> 그대로 사용 (InspectionPage 는 inline transform style 로 했지만, 본 wave 는 일관성보다 변경 폭 최소화 우선)<br>
+    <span class="lbl">검증 후 atomic</span> · single commit <code>fix(modal-pattern-a): StaffManage + Checkpoints BottomSheet → InspectionPage 표준 패턴</code>
+  </div>
+
+</div>
+</body>
+</html>
