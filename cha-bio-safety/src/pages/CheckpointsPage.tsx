@@ -514,8 +514,8 @@ export default function CheckpointsPage() {
 
       {/* 헤더 */}
       {isDesktop ? (
-        <div className="desktop-header hidden lg:flex items-center gap-3 px-6 py-3 border-b border-border-default" style={{ flexShrink: 0 }}>
-          <div className="cat-select-wrap" style={{ position: 'relative', width: 220 }}>
+        <div className="desktop-header shrink-0 hidden lg:flex items-center gap-3 px-6 py-3 border-b border-border-default">
+          <div className="cat-select-wrap relative w-[220px]">
             <select
               className="hdr-select"
               value={selectedCategory}
@@ -525,59 +525,54 @@ export default function CheckpointsPage() {
               <option value="">전체 (카테고리 선택)</option>
               {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <div className="chevron-icon" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <div className="chevron-icon absolute right-[10px] top-1/2 -translate-y-1/2 pointer-events-none">
               <ChevronDown size={16} color="var(--text-secondary)" />
             </div>
           </div>
-          <select className="filter-select" value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}
-            style={{ height: 36, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', cursor: 'pointer', appearance: 'none' as any }}>
+          <select className="filter-select h-9 px-2.5 py-0 rounded-[8px] border border-border-default bg-surface-sunken text-text-primary cursor-pointer appearance-none" value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}>
             <option value="">전체 구역</option>
             <option value="office">사무동</option>
             <option value="research">연구동</option>
             <option value="basement">지하</option>
           </select>
-          <select className="filter-select" value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
-            style={{ height: 36, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', cursor: 'pointer', appearance: 'none' as any }}>
+          <select className="filter-select h-9 px-2.5 py-0 rounded-[8px] border border-border-default bg-surface-sunken text-text-primary cursor-pointer appearance-none" value={filterFloor} onChange={e => setFilterFloor(e.target.value)}>
             <option value="">전체 층</option>
             {availableFloors.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
-          <span className="count-label text-caption" style={{ flex: 1, color: 'var(--text-tertiary)' }}>
+          <span className="count-label text-caption flex-1 text-text-tertiary">
             {selectedCategory && !isLoading ? `${cpList.length}개 개소` : ''}
           </span>
-          <button className="add-btn flex items-center gap-2 px-3 py-2 rounded-lg bg-accent text-white text-label font-bold"
-            onClick={() => setModal({ open: true, mode: 'add' })}
-            style={{ height: 36, border: 'none', cursor: 'pointer' }}>
+          <button className="add-btn flex items-center gap-2 px-3 py-2 rounded-lg bg-accent text-white text-label font-bold h-9 border-0 cursor-pointer"
+            onClick={() => setModal({ open: true, mode: 'add' })}>
             <Plus size={16} color="#fff" />
             개소 추가
           </button>
         </div>
       ) : (
-        <div className="mobile-header flex flex-col lg:hidden px-4 py-3 gap-2" style={{ flexShrink: 0 }}>
-          <div className="mob-cat-wrap" style={{ position: 'relative' }}>
+        <div className="mobile-header shrink-0 flex flex-col lg:hidden px-4 py-3 gap-2">
+          <div className="mob-cat-wrap relative">
             <select className="mob-cat-select" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
               style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer', paddingRight: 36 }}>
               <option value="">전체 (카테고리 선택)</option>
               {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <div className="chevron-icon" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <div className="chevron-icon absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <ChevronDown size={16} color="var(--text-secondary)" />
             </div>
           </div>
           {selectedCategory && (
-            <div className="mob-filter-row" style={{ display: 'flex', gap: 6 }}>
-              <select className="mob-filter-select text-caption" value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}
-                style={{ flex: 1, height: 36, padding: '0 8px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+            <div className="mob-filter-row flex gap-1.5">
+              <select className="mob-filter-select text-caption flex-1 h-9 px-2 py-0 rounded-[8px] border border-border-default bg-surface-sunken text-text-primary cursor-pointer" value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}>
                 <option value="">전체 구역</option>
                 <option value="office">사무동</option>
                 <option value="research">연구동</option>
                 <option value="basement">지하</option>
               </select>
-              <select className="mob-filter-select text-caption" value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
-                style={{ flex: 1, height: 36, padding: '0 8px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+              <select className="mob-filter-select text-caption flex-1 h-9 px-2 py-0 rounded-[8px] border border-border-default bg-surface-sunken text-text-primary cursor-pointer" value={filterFloor} onChange={e => setFilterFloor(e.target.value)}>
                 <option value="">전체 층</option>
                 {availableFloors.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
-              <span className="mob-count text-caption leading-none" style={{ color: 'var(--text-tertiary)', alignSelf: 'center', whiteSpace: 'nowrap' }}>{cpList.length}개</span>
+              <span className="mob-count text-caption leading-none text-text-tertiary self-center whitespace-nowrap">{cpList.length}개</span>
             </div>
           )}
         </div>
@@ -605,50 +600,48 @@ export default function CheckpointsPage() {
 
         {/* 데스크톱: 테이블 */}
         {isDesktop && selectedCategory !== '' && !isLoading && !isError && (
-          <div className="desktop-content data-table" style={{ padding: '0 24px 24px' }}>
+          <div className="desktop-content data-table px-6 pb-6">
             <div className="desktop-table-wrap">
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b-2 border-border-default text-left">
-                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>개소명</th>
-                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>카테고리</th>
-                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>구역</th>
-                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>층</th>
-                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>위치번호</th>
-                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>상태</th>
-                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)', width: 60 }}>액션</th>
+                    <th className="text-caption font-bold py-2.5 px-2 text-text-secondary">개소명</th>
+                    <th className="text-caption font-bold py-2.5 px-2 text-text-secondary">카테고리</th>
+                    <th className="text-caption font-bold py-2.5 px-2 text-text-secondary">구역</th>
+                    <th className="text-caption font-bold py-2.5 px-2 text-text-secondary">층</th>
+                    <th className="text-caption font-bold py-2.5 px-2 text-text-secondary">위치번호</th>
+                    <th className="text-caption font-bold py-2.5 px-2 text-text-secondary">상태</th>
+                    <th className="text-caption font-bold py-2.5 px-2 text-text-secondary w-[60px]">액션</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cpList.length === 0 && (
-                    <tr><td colSpan={7} className="text-body-sm" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-tertiary)' }}>해당 카테고리에 개소가 없습니다</td></tr>
+                    <tr><td colSpan={7} className="text-body-sm text-center py-10 px-4 text-text-tertiary">해당 카테고리에 개소가 없습니다</td></tr>
                   )}
                   {cpList.map(cp => (
                     <tr key={cp.id}
                       onClick={() => setModal({ open: true, mode: 'edit', target: cp })}
-                      className="border-b border-border-default"
-                      style={{ cursor: 'pointer', opacity: cp.isActive === 0 ? 0.45 : 1, transition: 'background 0.1s' }}
+                      className={`border-b border-border-default cursor-pointer transition-[background] duration-100 ${cp.isActive === 0 ? 'opacity-45' : 'opacity-100'}`}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-sunken)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
-                      <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--text-primary)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp.location}</td>
-                      <td className="category-badge" style={{ padding: '10px 8px' }}>
-                        <span className="text-caption leading-none" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(59,130,246,.13)', color: 'var(--accent)' }}>
+                      <td className="py-2.5 px-2 font-semibold text-text-primary max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">{cp.location}</td>
+                      <td className="category-badge py-2.5 px-2">
+                        <span className="text-caption leading-none py-0.5 px-1.5 rounded-[4px] bg-[rgba(59,130,246,.13)] text-accent">
                           {cp.category}
                         </span>
                       </td>
-                      <td style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>{ZONE_LABEL[cp.zone] ?? cp.zone}</td>
-                      <td style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>{cp.floor}</td>
-                      <td className="locationno-cell text-caption font-mono" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>{cp.locationNo || '-'}</td>
-                      <td className="status-cell" style={{ padding: '10px 8px' }}>
-                        <span className="text-caption leading-none"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: cp.isActive !== 0 ? 'var(--status-safe-bar)' : 'var(--text-tertiary)' }}>
-                          <span className="status-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: cp.isActive !== 0 ? 'var(--status-safe-bar)' : 'var(--text-tertiary)' }} />
+                      <td className="py-2.5 px-2 text-text-secondary">{ZONE_LABEL[cp.zone] ?? cp.zone}</td>
+                      <td className="py-2.5 px-2 text-text-secondary">{cp.floor}</td>
+                      <td className="locationno-cell text-caption font-mono py-2.5 px-2 text-text-secondary">{cp.locationNo || '-'}</td>
+                      <td className="status-cell py-2.5 px-2">
+                        <span className={`text-caption leading-none inline-flex items-center gap-1 ${cp.isActive !== 0 ? 'text-safe-bar' : 'text-text-tertiary'}`}>
+                          <span className={`status-dot w-[6px] h-[6px] rounded-full ${cp.isActive !== 0 ? 'bg-safe-bar' : 'bg-text-tertiary'}`} />
                           {cp.isActive !== 0 ? '활성' : '비활성'}
                         </span>
                       </td>
-                      <td className="action-cell" style={{ padding: '10px 8px' }}>
-                        <span className="text-caption font-bold" style={{ color: 'var(--accent)' }}>수정</span>
+                      <td className="action-cell py-2.5 px-2">
+                        <span className="text-caption font-bold text-accent">수정</span>
                       </td>
                     </tr>
                   ))}
