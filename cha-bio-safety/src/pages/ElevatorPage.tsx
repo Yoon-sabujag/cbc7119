@@ -664,70 +664,75 @@ export default function ElevatorPage() {
           </div>
 
           {/* ── 우측: 호기별 이력 ── */}
-          <div style={{ flex: 1, minWidth: 0, overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="flex-1 min-w-0 overflow-y-hidden flex flex-col">
             {selectedDesktopEv ? (
               <>
                 {/* 호기 정보 헤더 */}
-                <div style={{ flexShrink: 0, padding: '16px 24px 12px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="flex-shrink-0 pt-4 px-6 pb-3 border-b border-border-default flex items-center gap-3">
                   {(() => {
                     const TypeIcon = TYPE_ICON_COMPONENT[selectedDesktopEv.type]
                     return <TypeIcon size={28} className="text-text-secondary shrink-0" />
                   })()}
                   <div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>{selectedDesktopEv.number}호기</div>
-                    <div style={{ fontSize: 12, color: 'var(--t3)' }}>{selectedDesktopEv.location}</div>
+                    <div className="text-[18px] font-bold text-text-primary">{selectedDesktopEv.number}호기</div>
+                    <div className="text-[12px] text-text-tertiary">{selectedDesktopEv.location}</div>
                   </div>
-                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: (STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).color, background: (STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).bg, padding: '4px 10px', borderRadius: 20 }}>
+                  <span className="ml-auto text-[11px] font-bold px-2.5 py-1 rounded-[20px]" style={{ color: (STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).color, background: (STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).bg }}>
                     {(STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).label}
                   </span>
                 </div>
 
                 {/* 승강기 정보 (검사성적서 상단 양식) */}
-                <div style={{ flexShrink: 0, padding: '12px 24px', borderBottom: '1px solid var(--bd)' }}>
+                <div className="flex-shrink-0 px-6 py-3 border-b border-border-default">
                   <ElevatorInfoCard ev={selectedDesktopEv} />
                 </div>
 
                 {/* 탭 버튼 */}
-                <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: '10px 24px 0', borderBottom: '1px solid var(--bd)' }}>
+                <div className="flex-shrink-0 flex gap-1 px-6 pt-2.5 border-b border-border-default">
                   {RIGHT_TABS.map(t => (
                     <button key={t.key} onClick={() => setDesktopRightTab(t.key)}
-                      style={{
-                        padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer',
-                        fontSize: 12, fontWeight: 700,
-                        color: desktopRightTab === t.key ? 'var(--acl)' : 'var(--t3)',
-                        borderBottom: desktopRightTab === t.key ? '2px solid var(--acl)' : '2px solid transparent',
-                        marginBottom: -1,
-                      }}>
-                      {t.label} {t.count > 0 && <span style={{ fontSize:10, opacity:0.7 }}>({t.count})</span>}
+                      className={
+                        'py-2 px-3.5 border-none bg-none cursor-pointer text-[12px] font-bold mb-[-1px] ' +
+                        (desktopRightTab === t.key
+                          ? 'text-accent border-b-2 border-accent'
+                          : 'text-text-tertiary border-b-2 border-transparent')
+                      }>
+                      {t.label} {t.count > 0 && <span className="text-[10px] opacity-70">({t.count})</span>}
                     </button>
                   ))}
                 </div>
 
                 {/* 탭 콘텐츠 */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+                <div className="flex-1 overflow-y-auto px-6 py-4">
 
                   {desktopRightTab === 'fault' && (
                     evFaults.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>고장 이력이 없습니다</div>
+                      <div className="text-center py-10 text-text-tertiary text-[13px]">고장 이력이 없습니다</div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div className="flex flex-col gap-2">
                         {evFaults.map(f => {
                           const pure = f.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
                           const floorMatch = f.symptoms.match(/^\[([^\]]+)\]/)
                           return (
-                            <div key={f.id} style={{ background:'var(--bg2)', border: `1px solid ${f.is_resolved ? 'var(--bd)' : 'rgba(239,68,68,.3)'}`, borderRadius: 10, padding: '10px 14px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{pure}</span>
-                                {floorMatch && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--info)', background: 'rgba(14,165,233,.12)', padding: '2px 6px', borderRadius: 6 }}>{floorMatch[1]}</span>}
-                                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: f.is_resolved ? 'var(--safe)' : 'var(--danger)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <div key={f.id} className={
+                              'bg-surface-raised border rounded-[10px] py-2.5 px-3.5 ' +
+                              (f.is_resolved ? 'border-border-default' : 'border-[rgba(239,68,68,.3)]')
+                            }>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[12px] font-bold text-text-primary">{pure}</span>
+                                {floorMatch && <span className="text-[10px] font-bold text-info-bar bg-[rgba(14,165,233,.12)] px-1.5 py-0.5 rounded-[6px]">{floorMatch[1]}</span>}
+                                <span className={
+                                  'ml-auto text-[10px] font-bold inline-flex items-center gap-[3px] ' +
+                                  (f.is_resolved ? 'text-safe-bar' : 'text-danger-bar')
+                                }>
                                   {f.is_resolved ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
                                   {f.is_resolved ? '수리완료' : '미해결'}
                                 </span>
                               </div>
-                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtKstDateTime(f.fault_at)} · {f.reporter_name}</div>
+                              <div className="text-[10px] text-text-tertiary">{fmtKstDateTime(f.fault_at)} · {f.reporter_name}</div>
                               {!f.is_resolved && (
                                 <button onClick={() => { setSelectedFault(f); setModal('fault_resolve') }}
-                                  style={{ marginTop: 6, padding: '5px 10px', borderRadius: 7, border: '1px solid var(--safe)', background: 'rgba(34,197,94,.1)', color: 'var(--safe)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                  className="mt-1.5 py-1 px-2.5 rounded-[7px] border border-safe-bar bg-[rgba(34,197,94,.1)] text-safe-bar text-[11px] font-bold cursor-pointer">
                                   수리 입력
                                 </button>
                               )}
@@ -740,9 +745,9 @@ export default function ElevatorPage() {
 
                   {desktopRightTab === 'repair' && (
                     evRepairs.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>수리 이력이 없습니다</div>
+                      <div className="text-center py-10 text-text-tertiary text-[13px]">수리 이력이 없습니다</div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div className="flex flex-col gap-2">
                         {evRepairs.map((r: any) => {
                           const isExp = expandedAnnual === `repair-${r.id}`
                           const hasPhotos = r.partsArrivalPhotos || r.damagedPartsPhotos || r.duringRepairPhotos || r.completedPhotos
@@ -752,35 +757,37 @@ export default function ElevatorPage() {
                             const keys = csv.split(',').filter(Boolean)
                             if (!keys.length) return null
                             return (
-                              <div style={{ marginTop:6 }}>
-                                <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:3 }}>{label} ({keys.length})</div>
-                                <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
-                                  {keys.map((k: string) => <img key={k} src={`/api/uploads/${k}`} style={{ width:64, height:64, objectFit:'cover', borderRadius:6, border:'1px solid var(--bd)' }} />)}
+                              <div className="mt-1.5">
+                                <div className="text-[10px] font-bold text-text-tertiary mb-[3px]">{label} ({keys.length})</div>
+                                <div className="flex gap-1 flex-wrap">
+                                  {keys.map((k: string) => <img key={k} src={`/api/uploads/${k}`} className="w-16 h-16 object-cover rounded-md border border-border-default" />)}
                                 </div>
                               </div>
                             )
                           }
                           return (
-                          <div key={r.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, overflow:'hidden' }}>
-                            <div onClick={() => hasDetail && setExpandedAnnual(isExp ? null : `repair-${r.id}`)} style={{ padding: '10px 14px', display:'flex', gap:12, cursor: hasDetail ? 'pointer' : 'default' }}>
-                              <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{r.title}</span>
-                                  {r.sourceType === 'fault' && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--warn)', background: 'rgba(245,158,11,.12)', padding: '1px 6px', borderRadius: 4 }}>고장수리</span>}
-                                  {r.isInspectionAction && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--info)', background: 'rgba(59,130,246,.12)', padding: '1px 6px', borderRadius: 4 }}>검사조치</span>}
+                          <div key={r.id} className="bg-surface-raised border border-border-default rounded-[10px] overflow-hidden">
+                            <div onClick={() => hasDetail && setExpandedAnnual(isExp ? null : `repair-${r.id}`)} className={
+                              'py-2.5 px-3.5 flex gap-3 ' + (hasDetail ? 'cursor-pointer' : 'cursor-default')
+                            }>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[12px] font-bold text-text-primary">{r.title}</span>
+                                  {r.sourceType === 'fault' && <span className="text-[9px] font-bold text-warning-bar bg-[rgba(245,158,11,.12)] py-px px-1.5 rounded-[4px]">고장수리</span>}
+                                  {r.isInspectionAction && <span className="text-[9px] font-bold text-info-bar bg-[rgba(59,130,246,.12)] py-px px-1.5 rounded-[4px]">검사조치</span>}
                                 </div>
-                                <div style={{ fontSize: 10, color: 'var(--t3)' }}>
+                                <div className="text-[10px] text-text-tertiary">
                                   {r.hallFloor && `${r.hallFloor} `}
                                   {r.target && `${REPAIR_TARGET_LABEL[r.target] ?? r.target} `}
                                   {r.company && `· ${r.company}`}
                                 </div>
                               </div>
-                              <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-                                <span style={{ fontSize: 10, color: 'var(--t3)' }}>{r.date}</span>
+                              <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                                <span className="text-[10px] text-text-tertiary">{r.date}</span>
                                 {r.sourceType === 'standalone' && (
-                                  <div style={{ display:'flex', gap:4 }}>
+                                  <div className="flex gap-1">
                                     <button onClick={(e) => { e.stopPropagation(); setEditRepairData(r) }}
-                                      style={{ padding:'3px 8px', borderRadius:5, background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', color:'var(--info)', fontSize:9, fontWeight:600, cursor:'pointer' }}>수정</button>
+                                      className="py-px px-2 rounded-[5px] bg-[rgba(59,130,246,0.08)] border border-[rgba(59,130,246,0.2)] text-info-bar text-[9px] font-semibold cursor-pointer">수정</button>
                                     <button onClick={async (e) => {
                                       e.stopPropagation()
                                       if (!confirm('삭제하시겠습니까?')) return
@@ -790,15 +797,15 @@ export default function ElevatorPage() {
                                         toast.success('삭제 완료')
                                       } catch { toast.error('삭제 실패') }
                                     }}
-                                      style={{ padding:'3px 8px', borderRadius:5, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'var(--danger)', fontSize:9, fontWeight:600, cursor:'pointer' }}>삭제</button>
+                                      className="py-px px-2 rounded-[5px] bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] text-danger-bar text-[9px] font-semibold cursor-pointer">삭제</button>
                                   </div>
                                 )}
                               </div>
                             </div>
                             {isExp && (
-                              <div style={{ padding:'0 14px 12px', borderTop:'1px solid var(--bd)' }}>
+                              <div className="pb-3 px-3.5 border-t border-border-default">
                                 {r.detail && r.detail !== r.title && (
-                                  <div style={{ paddingTop:10, fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{r.detail}</div>
+                                  <div className="pt-2.5 text-[12px] text-text-secondary leading-[1.5] whitespace-pre-wrap">{r.detail}</div>
                                 )}
                                 {renderPhotoRow('부품 입고', r.partsArrivalPhotos)}
                                 {renderPhotoRow('파손 부품', r.damagedPartsPhotos)}
