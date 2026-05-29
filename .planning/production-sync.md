@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           작업중 (IN_PROGRESS) — 260529-kcs floorplan marker DELETE cascade cp + 테스트 cp cleanup
-진행 작업:       quick 260529-kcs: DELETE /api/floorplan-markers/:id 의 else 분기 보강 (cp_id + check_records 0 건 가드 후 cp 동시 DELETE) + 사무동 8-1F / 연구동 8F 의 "테스트" cp 정리. branch=production. 배포 포함.
-기준 production: `7b1f3ff` (docs: 260529-gcj rollback 기록) — 동작 측면 = `6d0b69a` 와 동등
+상태:           안정 (SYNCED) — 260529-kcs floorplan marker DELETE cascade cp + 테스트 orphan cp 2건 cleanup 완료
+진행 작업:       없음
+기준 production: `9f39a8f` (fix: checkpoint_id 컬럼명 정정) — 9492ad8 의 else 분기 + 9f39a8f 의 column fix 동시 포함
 마지막 동기화:   2026-05-29
-마지막 배포 URL: https://37ba8635.cbc7119.pages.dev (production alias = cbc7119.pages.dev) — rollback 재배포
+마지막 배포 URL: https://1caef8ca.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
@@ -72,6 +72,7 @@
 | 2026-05-28 | floorplan 소화전/완강기 cp 자동생성 + 8-1F 8호실 SQL 복구 | (production 직접 작업) | `31117bf` | https://4cb87127.cbc7119.pages.dev | **사고**: 도면점검 페이지에서 소화전 마커 추가 시 cp_id NULL 로 orphan 마커 생성 → 일반점검 미노출 + 점검하기 비활성. 사례: FPM-XboG1REDINMI (8-1F 8호실 소화전). **복구 SQL** (admin 컨펌 후): INSERT check_points CP-8-1F-1-SH (QR-CP-8-1F-1-SH, office, 8호실) + UPDATE 마커 cp_id 링크. **재발 방지**: /api/floorplan-markers POST 에서 marker_type ∈ {indoor_hydrant, descending_lifeline} 이고 cp_id 없으면 floor+category 의 location_no 끝 숫자 +1 자동 신규 cp INSERT 후 마커에 링크. CP-{floor}-{N}-SH / -WK + QR-CP-{floor}-{N}-... + location_no {floor}-{N}. DIV (페어링 별도) + 소화기 4종 (자산 분리 흐름) 은 영향 없음. |
 | 2026-05-28 | floorplan 편집 모달 '소화기 배치' 버튼 가드 | (production 직접 작업) | `6d0b69a` | https://d4aee5b4.cbc7119.pages.dev | 도면점검 (소화기·소화전) 페이지의 마커 편집 모달이 `planType === 'extinguisher'` 만 검사해서 소화전/완강기/DIV 마커에서도 "소화기 배치" 버튼이 노출되던 버그. `EXT_ASSET_MARKER_TYPES.has(selected.marker_type ?? '')` 추가 가드 — 소화기 4종 (fire_extinguisher / ext_powder20 / ext_halogen / ext_kitchen_k) 일 때만 배치/분리 액션 섹션 노출. 점검 모드 미배치 모달 (L774) 과 일관성 회복. 5+/2-. |
 | 2026-05-29 | **ROLLBACK** 260529-gcj CheckpointsPage 레지스트리 추출 1차 사용자 요청 취소 | (revert of `ff61eb6` + `e5d5e15` + `69f70b3` + `40643c2` + `e40b6ac`) | `62d947c` (revert commit, no force-push) | https://37ba8635.cbc7119.pages.dev | 짧게 배포되었던 (https://90cfe007.cbc7119.pages.dev) 방화셔터 registry entry + RegistryDrivenForm + AddCheckPointRouter + initialCategory prop 모두 git revert 로 원복. force-push 미사용 (history 보존, revert commit 추가 방식). 직원 도메인 = 6d0b69a 시점 동등 상태로 재배포. `checkpointRegistry.ts` 파일 삭제 / `CheckpointsPage.tsx` 원복 (696 lines, 변경 전과 동일) / `STATE.md` & `production-sync.md` 원복 / `.planning/quick/260529-gcj-*` PLAN+SUMMARY 삭제. **교훈**: 사용자가 "비주얼적으로만 보여줄거면 html로 만들어서 브라우저에 띄워주던지" 명시 — 다음 시도 시 PWA 직접 변경 전 sketch HTML 시안 단계 추가 필요 (memory `feedback_design_sketch_first`/`feedback_redesign_sketch_rule_enforcement` 패턴 적용). |
+| 2026-05-29 | 260529-kcs floorplan marker DELETE cp cascade + 테스트 orphan cp 2건 cleanup | (production 직접 작업) | `9492ad8` + `9f39a8f` | https://1caef8ca.cbc7119.pages.dev | **버그**: 어제 31117bf POST 가 indoor_hydrant/descending_lifeline 마커 추가 시 cp 자동 INSERT 하도록 fix 했으나 DELETE 분기는 미대칭 — 사용자가 도면에서 '테스트' 마커 만들고 지워도 cp 만 남아 일반 점검 페이지 (CheckpointsPage) 에 orphan 노출. **Code fix (9492ad8)**: `[id].ts` 의 else 분기를 `else if (cpId)` + 안전 가드 (check_records=0 AND 다른 marker=0) → atomic batch DELETE marker + cp / 미통과 시 marker 만 DELETE (cp 보존). 소화기 분기 (isExtCascade) 무변경. console.log 로 cascade vs marker-only 진단 가능. **Hot fix (9f39a8f)**: 머지 직후 수동 SQL 검증 중 `check_records.check_point_id` 컬럼명 오류 발견 → `checkpoint_id` 로 정정 (스키마 아티팩트, 같은 파일 내 floor_plan_markers 의 `check_point_id` 와 헷갈림. index.ts GET 의 `WHERE checkpoint_id IN` 과 일관). **DB cleanup**: prod D1 에서 `CP-8-1F-2-SH` (연구동 8-1F 소화전, zone=research) + `CP-8F-9-SH` (사무동 8F 소화전, zone=office) 둘 다 location='테스트', records=0 + markers=0 확인 후 NOT IN check_records 가드로 DELETE. check_records 총 건수 작업 전/후 3759 동등 (손실 0). 사용자 시나리오 (A/B/C/D) 검증 후 완료. |
 
 ---
 

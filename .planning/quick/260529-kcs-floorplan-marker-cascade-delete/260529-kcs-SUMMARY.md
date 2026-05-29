@@ -36,11 +36,109 @@ DELETE /api/floorplan-markers/:id 의 else 분기에 cp_id 링크 마커용 casc
 
 ## Tasks Executed
 
-| Task | Status                  | Commit    | Notes                                                                                                                                            |
-| ---- | ----------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1    | **Deferred to orchestrator** | (no git)  | wrangler d1 execute --remote 명령이 require-production-branch.sh hook 에 의해 차단됨 (worktree branch ≠ production). Ready-to-run SQL 박제. |
-| 2    | Completed               | `9492ad8` | else 분기 cp cascade 가드 추가. 6 grep + tsc PASS. 1 file 38+/3-.                                                                                |
-| 3    | Checkpoint pending      | n/a       | `checkpoint:human-verify` — orchestrator deploy 후 사용자 시나리오 A/B/C/D 검증.                                                                  |
+| Task | Status                  | Commit               | Notes                                                                                                                                            |
+| ---- | ----------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Completed (orchestrator) | (DB only, no git)   | `CP-8-1F-2-SH` (연구동 8-1F 소화전, zone=research) + `CP-8F-9-SH` (사무동 8F 소화전, zone=office) 둘 다 records=0/markers=0 검증 후 DELETE. baseline 3759 → post 3759 (손실 0). |
+| 2    | Completed               | `9492ad8` + `9f39a8f` | else 분기 cp cascade 가드 + 컬럼명 hot fix (check_records 는 `checkpoint_id` — `check_point_id` 아님). 6 grep + tsc PASS. |
+| 3    | Awaiting human verify   | n/a                  | 배포 URL https://1caef8ca.cbc7119.pages.dev — 사용자 시나리오 A/B/C/D 확인 후 PASS.                                                                  |
+
+---
+
+## Orchestrator Execution Results — Task 1 (DB cleanup) + Deploy
+
+### Schema 보정
+
+Plan/Executor 가 추정한 컬럼명 2건이 실제 스키마와 불일치 — 실행 시 보정:
+- `check_points.location_name` → **`location`** (PRAGMA 검증)
+- `check_records.check_point_id` → **`checkpoint_id`** (PRAGMA 검증) — 같은 [id].ts 안의 `floor_plan_markers.check_point_id` 와 헷갈리는 스키마 아티팩트. 머지된 9492ad8 의 가드 SQL 도 같은 오류 → hot fix `9f39a8f` (1 line) 로 정정 후 배포.
+
+### Step 0 — Baseline
+
+```
+baseline check_records total: 3759
+```
+
+### Step A — Identify candidate cp (실제 결과)
+
+```bash
+# corrected column: location (not location_name)
+SELECT id, location_no, location, category, zone, floor, is_active
+FROM check_points
+WHERE (location LIKE '%테스트%' OR location_no LIKE '%테스트%')
+ORDER BY floor, category, location_no;
+```
+
+결과 (2 rows):
+```json
+[
+  { "id": "CP-8-1F-2-SH", "location_no": "8-1F-2", "location": "테스트", "category": "소화전", "zone": "research", "floor": "8-1F", "is_active": 1 },
+  { "id": "CP-8F-9-SH",   "location_no": "8F-9",   "location": "테스트", "category": "소화전", "zone": "office",   "floor": "8F",   "is_active": 1 }
+]
+```
+
+→ 사용자 정정 후 매핑: `CP-8-1F-2-SH` = **연구동 8-1층** (zone=research, floor=8-1F) / `CP-8F-9-SH` = **사무동 8층** (zone=office, floor=8F). 둘 다 소화전 카테고리. 정확히 사용자 묘사와 일치.
+
+### Step B — Safety verification
+
+```bash
+# B1: check_records count (corrected column: checkpoint_id)
+SELECT checkpoint_id, COUNT(*) AS records_count FROM check_records
+WHERE checkpoint_id IN ('CP-8-1F-2-SH','CP-8F-9-SH') GROUP BY checkpoint_id;
+→ 0 rows  (둘 다 점검 기록 없음)
+
+# B2: marker count
+SELECT check_point_id, COUNT(*) AS marker_count FROM floor_plan_markers
+WHERE check_point_id IN ('CP-8-1F-2-SH','CP-8F-9-SH') GROUP BY check_point_id;
+→ 0 rows  (마커는 사용자가 이미 도면에서 삭제. 정확히 orphan 시나리오)
+```
+
+→ 두 가드 모두 통과. 안전 DELETE 진행.
+
+### Step C — DELETE per cp (NOT IN check_records guard)
+
+```bash
+# C1: CP-8-1F-2-SH (연구동 8-1층)
+DELETE FROM floor_plan_markers WHERE check_point_id = 'CP-8-1F-2-SH';  -- changes=0 (이미 비어있음)
+DELETE FROM check_points WHERE id = 'CP-8-1F-2-SH'
+  AND id NOT IN (SELECT checkpoint_id FROM check_records WHERE checkpoint_id IS NOT NULL);  -- changes=1 ✓
+
+# C2: CP-8F-9-SH (사무동 8층)
+DELETE FROM floor_plan_markers WHERE check_point_id = 'CP-8F-9-SH';  -- changes=0
+DELETE FROM check_points WHERE id = 'CP-8F-9-SH'
+  AND id NOT IN (SELECT checkpoint_id FROM check_records WHERE checkpoint_id IS NOT NULL);  -- changes=1 ✓
+```
+
+### Step D — Post-check
+
+```bash
+# D1: '테스트' cp re-search
+→ 0 rows  ✓ 모두 정리
+
+# D2: check_records total
+→ 3759  (baseline 동등, 손실 0)  ✓
+```
+
+### Code Hot-fix (commit `9f39a8f`)
+
+머지 직후 수동 Step B 실행 중 컬럼명 오류 발견:
+```
+ERROR: no such column: check_point_id at offset 7
+```
+→ `[id].ts:89` 의 `WHERE check_point_id=?` 를 `WHERE checkpoint_id=?` 로 수정 (check_records 테이블만. floor_plan_markers/extinguishers 의 `check_point_id` 는 동일 파일 내 정확). 1 line. tsc PASS. 배포 전 발견 — runtime 영향 0.
+
+### Deploy
+
+```bash
+cd cha-bio-safety
+npm run build  # ✓ built in 14.03s, 87 modules transformed
+npx wrangler pages deploy dist --project-name=cbc7119 --branch=production --commit-message="260529-kcs floorplan marker DELETE cascade cp + test cp cleanup"
+```
+
+→ **Deployment complete: https://1caef8ca.cbc7119.pages.dev** (production alias = cbc7119.pages.dev)
+
+### production-sync.md
+
+`작업중 (IN_PROGRESS)` → `안정 (SYNCED)`. 기준 production = `9f39a8f`. 새 entry 추가 완료.
 
 ---
 
