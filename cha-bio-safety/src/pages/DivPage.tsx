@@ -954,7 +954,7 @@ export default function DivPage() {
     return (
       <div className="h-full flex flex-col overflow-hidden bg-surface-page">
         {/* 헤더 — 데스크톱 표준 (sketch 07a) */}
-        <header className="flex-shrink-0 h-[54px] bg-surface-raised border-b border-border-default px-5 flex items-center gap-2.5">
+        <header className="flex-shrink-0 h-14 bg-surface-raised border-b border-border-default px-5 flex items-center gap-2.5">
           <span className="flex-1 text-[16px] font-bold text-text-primary">DIV 압력 관리</span>
         </header>
 

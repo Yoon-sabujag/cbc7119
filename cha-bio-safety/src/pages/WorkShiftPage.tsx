@@ -87,7 +87,7 @@ export default function WorkShiftPage() {
 
       {/* 헤더 — 데스크톱: 표준 (height 54, padding '0 20px', 뒤로가기 X). 모바일: 기존 */}
       <header
-        className={`bg-surface-raised border-b border-border-default flex items-center shrink-0 ${isDesktop ? 'h-[54px] px-5 gap-2.5' : 'h-12 px-3 gap-2'}`}
+        className={`bg-surface-raised border-b border-border-default flex items-center shrink-0 ${isDesktop ? 'h-14 px-5 gap-2.5' : 'h-12 px-3 gap-2'}`}
       >
         {!isDesktop && (
           <button

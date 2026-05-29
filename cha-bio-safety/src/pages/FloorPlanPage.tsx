@@ -955,8 +955,8 @@ export default function FloorPlanPage() {
       {/* 데스크톱: h-[54px] px-5, 뒤로가기 제거 (사이드바 nav). 모바일: px-4 py-2.5 + 뒤로가기 */}
       <header
         className={isDesktop
-          ? "flex items-center gap-2.5 h-[54px] px-5 bg-surface-page border-b border-border-default flex-shrink-0"
-          : "flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0"}
+          ? "flex items-center gap-2.5 h-14 px-5 bg-surface-page border-b border-border-default flex-shrink-0"
+          : "flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0"}
       >
         {!isDesktop && (
           <button
