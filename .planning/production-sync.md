@@ -11,9 +11,9 @@
 ```
 상태:           안정 (SYNCED) — 인수 인계장 + 업무 관련 리스트 신규 도입 완료
 진행 작업:       없음
-기준 production: `a790e3e` (ui: handover 상단 고정 chip 제거 + 버튼 순서)
+기준 production: `efbe411` (ui: 고정 버튼 활성 주황색)
 마지막 동기화:   2026-05-30
-마지막 배포 URL: https://91b6945c.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://932f8b46.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
