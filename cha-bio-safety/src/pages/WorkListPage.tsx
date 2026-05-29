@@ -75,7 +75,7 @@ export default function WorkListPage() {
           {tab === 'password' && (
             <button onClick={() => setRevealAll(v => !v)}
               title={revealAll ? '비밀번호 가리기' : '비밀번호 보기'}
-              style={{ height: 36, width: 36, borderRadius: 8, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+              style={{ height: 36, width: 36, borderRadius: 8, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
               {revealAll ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           )}
