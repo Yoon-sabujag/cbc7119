@@ -159,3 +159,4 @@ Resume file: .planning/ROADMAP.md
 | 2026-05-29 | fast | DivPage + EducationPage 모달 회귀 fix — /div + /education 은 MOBILE_NO_NAV_PATHS (BottomNav 없음) 인데 직전 Pattern A 적용으로 sheet 가 NAV_BOTTOM=54px 위로 띄어 허공. bottom:0 + max-h calc(100dvh-safe-area) 로 viewport bottom 까지. NAV_BOTTOM 상수 dead code 제거. | ✅ |
 | 2026-05-29 | chore | CheckpointsPage `/checkpoints` 페이지 폐기 (사용자 결정) — App.tsx 라우트/import/타이틀 + SideMenu + DesktopSidebar + api.ts 메뉴 visibility + CheckpointsPage.tsx 파일 삭제 (7곳). API 엔드포인트는 보존 (QRPrint/QRScan 사용). Wave 13a/13b 작업은 진입점 폐기로 사실상 의미 없어짐 (history 보존). PWA 82→81. | ✅ |
 | 2026-05-30 | fast | InspectionPage L3858 "소화기 관리" 버튼 h-input(44/40)→h-7(32) — 헤더 통일 룰 hotfix (H6a 후속, 같은 헤더 안 컨테이너 h-12 짝맞춤). 다른 4곳 h-input은 form input/별도 컨텍스트 보존 | ✅ |
+| 2026-05-30 | fast | InspectionPage L3858 "소화기 관리" GlobalHeader 햄버거 일관 (rounded-sm→rounded-[7px] + border 제거) — cc453ab 후속 | ✅ |
