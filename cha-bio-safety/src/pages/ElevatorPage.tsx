@@ -566,13 +566,13 @@ export default function ElevatorPage() {
           key={ev.id}
           onClick={() => setDetailEv(ev)}
           className={
-            'relative w-full h-32 box-border overflow-hidden rounded-md border-2 cursor-pointer ' +
+            'relative w-full h-36 box-border overflow-hidden rounded-md border-2 cursor-pointer ' +
             'flex flex-col items-center gap-1 px-1.5 py-2.5 transition-colors duration-150 ' +
             "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] " +
             bgClass + ' ' + borderClass + ' ' + barClass + ' ' + dimmedClass
           }
         >
-          <TypeIcon size={22} className="text-text-secondary" />
+          <TypeIcon size={22} className="text-text-secondary shrink-0" />
           <div className="text-label font-bold text-text-primary">{ev.number}호기</div>
           <div className="text-caption text-text-tertiary text-center leading-snug break-keep max-w-full">
             {ev.location}
