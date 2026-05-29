@@ -1088,9 +1088,9 @@
    * OQ #3 LOCKED: 뒤로가기 width:34px height:34px 명시 (memory feedback_tailwind_w8_h8_is_48px)
    */
   .qr-print-page { height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-page); }
-  .qr-print-page-header { padding: 8px 12px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-  .qr-print-page-back-btn { width: 34px; height: 34px; border-radius: 8px; background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .qr-print-page-title { font-size: 15px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+  .qr-print-page-header { height: 48px; padding: 0 12px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .qr-print-page-back-btn { width: 32px; height: 32px; border-radius: 7px; background: var(--surface-sunken); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .qr-print-page-title { font-size: 18px; font-weight: 600; color: var(--text-primary); line-height: 1.4; }
   .qr-print-page-info-wrap { padding: 10px 14px 4px; flex-shrink: 0; }
   .qr-print-page-info-box { background: var(--status-info-bg); border: 1px solid var(--status-info-bar); border-radius: 10px; padding: 10px 13px; font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
   .qr-print-page-list { flex: 1; overflow-y: auto; padding: 10px 14px 20px; }
