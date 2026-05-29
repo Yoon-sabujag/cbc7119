@@ -40,7 +40,6 @@ const AnnualPlanPage            = lazy(() => import('./pages/AnnualPlanPage'))
 const DocumentsPage             = lazy(() => import('./pages/DocumentsPage'))
 const WorkLogPage               = lazy(() => import('./pages/WorkLogPage'))
 const StaffManagePage           = lazy(() => import('./pages/StaffManagePage'))
-const CheckpointsPage           = lazy(() => import('./pages/CheckpointsPage'))
 const ExtinguishersListPage     = lazy(() => import('./pages/ExtinguishersListPage'))
 const CctvInfoPage              = lazy(() => import('./pages/CctvInfoPage'))
 
@@ -94,7 +93,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/meal': '식사 관리',
   '/education': '보수교육',
   '/staff-manage': '직원 관리',
-  '/checkpoints': '소방 시설 추가',
   '/legal': '소방 점검 관리',
   '/annual-plan': '연간 업무 추진 계획',
   '/documents': '소방계획서/훈련자료',
@@ -284,7 +282,6 @@ function Layout() {
               <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
 
               <Route path="/staff-manage"  element={<Auth><StaffManagePage /></Auth>} />
-              <Route path="/checkpoints"   element={<Auth><CheckpointsPage /></Auth>} />
               <Route path="/education"      element={<Auth><EducationPage /></Auth>} />
               <Route path="/legal"                      element={<Auth><LegalPage /></Auth>} />
               <Route path="/legal/:id"                  element={<Auth><LegalFindingsPage /></Auth>} />

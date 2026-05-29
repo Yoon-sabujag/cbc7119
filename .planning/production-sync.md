@@ -9,8 +9,8 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 260529-lzh CP-B3-7-BC 회복 INSERT + FloorPlanPage paired BC fetch race 가드 완료
-진행 작업:       없음
+상태:           작업중 (IN_PROGRESS) — CheckpointsPage 완전 제거 (cbc7119-data staging 검증 후 적용)
+진행 작업:       소방 시설 추가 페이지 폐기. App.tsx 라우트 + lazy import + page title / SideMenu / DesktopSidebar 메뉴 / CheckpointsPage.tsx 파일 모두 제거. 신규 인프라: cbc7119-data Pages project (staging 영구화).
 기준 production: `276065d` (merge: 260529-lzh worktree 코드 fix + SUMMARY)
 마지막 동기화:   2026-05-29
 마지막 배포 URL: https://872d6981.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
