@@ -139,3 +139,4 @@ Resume file: .planning/ROADMAP.md
 | 2026-05-29 | fast | StaffManage + Checkpoints 모달 input 가로 overflow + 좌우 스크롤 차단 fix (INPUT_STYLE minWidth:0 + sheet overflow-x-hidden) | ✅ |
 | 2026-05-29 | fast | 생년월일 input native widget 제거 (appearance-none [-webkit-appearance:none]) — EducationPage 이수일 input 표준 패턴 따라감 | ✅ |
 | 2026-05-29 | fast | ElevatorPage L673 desktop 헤더 emoji TYPE_ICON → Lucide 통일 + TYPE_ICON 정의 삭제 (redesign/07-elevator 누락 cleanup) | ✅ |
+| 2026-05-29 | fast | ElevatorPage 데스크톱 좌측 escalator 카드 TypeIcon 누락 fix (h-32→h-36 + shrink-0, 운행 구간 2줄 + 공단 호기 overflow) | ✅ |
