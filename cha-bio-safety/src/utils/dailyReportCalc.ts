@@ -1,6 +1,7 @@
 import { getMonthlySchedule, DOW_KO } from './shiftCalc'
 import { isHoliday as _isHolidayKr } from '@hyunbinseo/holidays-kr'
 import { DIV_POINT_LABEL } from '../constants/divPoints'
+import { formatFloorLabel } from './formatFloorLabel'
 
 // ── 공휴일 판정 ────────────────────────────────────────────
 // @hyunbinseo/holidays-kr — v3.2026.2 covers 2025-2026
@@ -385,7 +386,6 @@ function buildTasks(
   }
 
   // 오늘 조치 완료된 점검 항목 (불량/주의)
-  const ZONE_KO: Record<string,string> = { office: '사무동', research: '연구동', common: '공용', basement: '지하' }
   // 유도등 타입 라벨 (RemediationDetailPage 와 동일 매핑)
   const GL_TYPE_LABEL: Record<string,string> = {
     ceiling_exit: '천장피난구',
@@ -396,20 +396,17 @@ function buildTasks(
     audience_passage: '객석통로',
   }
   for (const r of (remediations ?? [])) {
-    const floor = r.floor ?? ''
     const cat = r.category ?? ''
     const loc = r.location ?? ''
     const markerLabel = r.marker_label ?? ''
     const locationDetail = r.location_detail ?? ''
-    const zoneKo = ZONE_KO[r.zone ?? ''] ?? ''
     const reso = r.resolution_memo ?? ''
+    const floorLabel = formatFloorLabel(r.floor, r.zone)
     // 유도등: location_detail > marker_label > loc 우선순위, 타입 라벨을 카테고리 앞에 붙임
     const isGL = cat === '유도등'
-    const spot = locationDetail || markerLabel || loc
+    const spot = isGL ? (locationDetail || markerLabel || loc) : loc
     const glType = isGL ? (GL_TYPE_LABEL[r.guide_light_type ?? ''] ?? '') : ''
-    const place = isGL
-      ? [zoneKo, floor, spot].filter(Boolean).join(' ')
-      : [floor, loc].filter(Boolean).join(' ')
+    const place = [floorLabel, spot].filter(Boolean).join(' ')
     const catWithType = isGL && glType ? `${glType} ${cat}` : cat
     const parts = [place, catWithType, reso].filter(Boolean).join(' ')
     tasks.push({ number: num++, content: parts })

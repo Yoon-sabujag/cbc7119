@@ -765,8 +765,13 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
   })()
 
   // 라벨 (DB submissionLabel || prefill)
-  const labelFor = (f: LegalFinding): string =>
-    f.submissionLabel ?? `${f.location ?? ''} ${f.description}`.trim()
+  // prefill 시 location 텍스트가 'B1' ~ 'B5' 로 시작하면 'B1F' ~ 'B5F' 로 자동 변환 (지하층 룰 통일).
+  // 지상층 패턴은 zone 정보 부재로 자동 변환 X — 사용자가 finding 만들 때 '연구동/사무동 3F' 형태로 자유 입력.
+  const labelFor = (f: LegalFinding): string => {
+    if (f.submissionLabel != null) return f.submissionLabel
+    const loc = (f.location ?? '').replace(/^(B[1-5])(?![0-9F])/, '$1F')
+    return `${loc} ${f.description}`.trim()
+  }
 
   // 본문 슬라이드 = 지적 2건씩
   const pages: Array<{ left: LegalFinding | null; right: LegalFinding | null }> = []
