@@ -187,7 +187,6 @@ function HandoverCard({ h, isMine, editing, onStartEdit, onCancelEdit, onShowHis
   return (
     <div style={CARD(isDeleted)}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        {h.pinned && <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(245,158,11,.15)', color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Pin size={10} /> 고정</span>}
         {h.status === 'done'
           ? <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(34,197,94,.15)', color: '#16a34a' }}>✓ 완료</span>
           : <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(59,130,246,.15)', color: 'var(--accent)' }}>대기</span>}
@@ -209,11 +208,6 @@ function HandoverCard({ h, isMine, editing, onStartEdit, onCancelEdit, onShowHis
 
       {!isDeleted && (
         <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => updateMutation.mutate({ status: h.status === 'done' ? 'waiting' : 'done' })}
-            style={CHIP(h.status === 'done')}>
-            <Check size={12} /> 완료
-          </button>
           {/* 고정은 대기 글에만 의미 — 완료 상태에서는 비활성 */}
           <button
             onClick={() => updateMutation.mutate({ pinned: !h.pinned })}
@@ -223,6 +217,11 @@ function HandoverCard({ h, isMine, editing, onStartEdit, onCancelEdit, onShowHis
           </button>
           <button onClick={onShowHistory} style={CHIP(false)}>
             <History size={12} /> 이력
+          </button>
+          <button
+            onClick={() => updateMutation.mutate({ status: h.status === 'done' ? 'waiting' : 'done' })}
+            style={CHIP(h.status === 'done')}>
+            <Check size={12} /> 완료
           </button>
           {isMine && (
             <>
