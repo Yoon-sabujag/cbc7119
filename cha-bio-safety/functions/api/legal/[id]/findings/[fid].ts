@@ -27,6 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         lf.created_at,
         lf.submission_selected,
         lf.submission_label,
+        lf.submission_order,
         s.name  AS created_by_name,
         s2.name AS resolved_by_name
       FROM legal_findings lf
@@ -40,6 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       resolved_at: string | null; resolved_by: string | null;
       created_by: string; created_at: string;
       submission_selected: number; submission_label: string | null;
+      submission_order: number;
       created_by_name: string | null; resolved_by_name: string | null
     }>()
 
@@ -68,6 +70,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         createdAt: row.created_at,
         submissionSelected: Number(row.submission_selected ?? 0) === 1,
         submissionLabel: row.submission_label ?? null,
+        submissionOrder: Number(row.submission_order ?? 0),
       },
     })
   } catch (e) {

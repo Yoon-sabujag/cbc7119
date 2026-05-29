@@ -29,7 +29,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
       SELECT id, location, description, submission_label, photo_keys, resolution_photo_keys
       FROM legal_findings
       WHERE schedule_item_id = ? AND submission_selected = 1
-      ORDER BY created_at
+      ORDER BY CASE WHEN submission_order > 0 THEN submission_order ELSE 999999 END, created_at
     `).bind(scheduleItemId).all<{
       id: string; location: string | null; description: string;
       submission_label: string | null;
@@ -141,45 +141,76 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params }) => {
     }
 
     // 추가 페이지 (3건+) = slide3, slide4, ... 복제 + 각자 라벨 패치
+    // slide2.xml.rels 의 notesSlide Relationship 은 slide2 전용 — 복제 슬라이드 (slide3+) 가 그대로 들고 가면
+    // notesSlide1 의 rels 는 slide2 만 가리키므로 bidirectional 불일치 → PPT 손상 다이얼로그.
+    // notesSlide 는 optional 이므로 복제 시 제거.
+    const slide2RelsForDup = slide2RelsXml.replace(
+      /<Relationship\s+Id="[^"]+"\s+Type="[^"]+\/notesSlide"\s+Target="[^"]+"\s*\/>/g,
+      '',
+    )
     if (pages.length > 1) {
       for (let i = 1; i < pages.length; i++) {
         const slideIdx = i + 2 // slide3, slide4...
         let s = patchSlideLabels(slide2OrigXml, pages[i])
         if (!pages[i].right) s = removeRightPics(s)
         files[`ppt/slides/slide${slideIdx}.xml`] = strToU8(s)
-        // 각 슬라이드의 rels = slide2 와 동일 (image rels 는 6번 단계에서 페이지별 교체)
-        files[`ppt/slides/_rels/slide${slideIdx}.xml.rels`] = strToU8(slide2RelsXml)
+        // 각 슬라이드의 rels = slide2 (notesSlide 제외) — image rels 는 6번 단계에서 페이지별 교체
+        files[`ppt/slides/_rels/slide${slideIdx}.xml.rels`] = strToU8(slide2RelsForDup)
       }
+    }
 
-      // presentation.xml: sldIdLst 에 slide3+ 추가
-      let presXml = strFromU8(files['ppt/presentation.xml'])
-      const newSldIds: string[] = []
-      for (let i = 1; i < pages.length; i++) {
-        const slideIdx = i + 2
-        const sldId = 1000 + slideIdx // 양식 ID 와 충돌 회피 (큰 값)
-        const rId = `rId${100 + i}` // 양식 rId1~3 와 충돌 회피
-        newSldIds.push(`<p:sldId id="${sldId}" r:id="${rId}"/>`)
-      }
-      presXml = presXml.replace(/<\/p:sldIdLst>/, newSldIds.join('') + '</p:sldIdLst>')
-      files['ppt/presentation.xml'] = strToU8(presXml)
+    // ── 5b. 슬라이드 관련 메타데이터 재구성 ────────────────────────────
+    // 사고 사례 (260528): 양식 template.pptx 의 presentation.xml.rels 와 [Content_Types].xml 에
+    // slide3~slide8 의 잔존 entry 가 남아있어 (원래 8-slide 양식을 2-slide 로 슬림화한 흔적),
+    // 우리 코드가 그 위에 추가 entry 를 더 얹어 중복 rels + 미존재 slide 파일 참조 발생 → PPT 열 때 "복구해야 함".
+    // → 슬라이드 관련 entry 를 actualSlideCount 기준으로 재구성 (slide rels + sldIdLst + Content_Types Override).
+    const actualSlideCount = 1 /* cover */ + pages.length
+    const SLIDE_REL_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide'
+    const SLIDE_CT = 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml'
 
-      // presentation.xml.rels: slide3+ entry 추가
+    // 5b-1. presentation.xml.rels — slide 타입 entry 모두 제거 후 actualSlideCount 만큼 재추가
+    {
       let presRelsXml = strFromU8(files['ppt/_rels/presentation.xml.rels'])
+      // slide 타입 Relationship 제거 (slideMaster/theme/viewProps 등은 보존)
+      presRelsXml = presRelsXml.replace(
+        /<Relationship\s+Id="[^"]+"\s+Type="[^"]+\/slide"\s+Target="[^"]+"\s*\/>/g,
+        '',
+      )
+      // 사용 중인 비-slide rId 의 최댓값 찾기 (충돌 회피)
+      const ridMatches = [...presRelsXml.matchAll(/Id="rId(\d+)"/g)]
+      let maxRid = ridMatches.reduce((m, x) => Math.max(m, Number(x[1])), 0)
+      // slide1..slideN 의 rId 매핑 (slide1 = rId{maxRid+1}, ...)
+      const slideRids: string[] = []
       const newRels: string[] = []
-      for (let i = 1; i < pages.length; i++) {
-        const slideIdx = i + 2
-        const rId = `rId${100 + i}`
-        newRels.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${slideIdx}.xml"/>`)
+      for (let i = 0; i < actualSlideCount; i++) {
+        maxRid++
+        const rid = `rId${maxRid}`
+        slideRids.push(rid)
+        newRels.push(`<Relationship Id="${rid}" Type="${SLIDE_REL_TYPE}" Target="slides/slide${i + 1}.xml"/>`)
       }
       presRelsXml = presRelsXml.replace(/<\/Relationships>/, newRels.join('') + '</Relationships>')
       files['ppt/_rels/presentation.xml.rels'] = strToU8(presRelsXml)
 
-      // [Content_Types].xml: slide3+ Override 추가
+      // 5b-2. presentation.xml sldIdLst 도 새 rId 기준으로 재구성
+      let presXml = strFromU8(files['ppt/presentation.xml'])
+      const sldIds = slideRids
+        .map((rid, idx) => `<p:sldId id="${256 + idx}" r:id="${rid}"/>`)
+        .join('')
+      presXml = presXml.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/, `<p:sldIdLst>${sldIds}</p:sldIdLst>`)
+      files['ppt/presentation.xml'] = strToU8(presXml)
+    }
+
+    // 5b-3. [Content_Types].xml — /ppt/slides/slideN.xml Override 모두 제거 후 actualSlideCount 만큼 재추가
+    // 양식 잔존: slide3~slide8 Override 가 그대로 있어 우리 코드가 더 얹으면 중복.
+    {
       let ctXml = strFromU8(files['[Content_Types].xml'])
+      ctXml = ctXml.replace(
+        /<Override\s+PartName="\/ppt\/slides\/slide\d+\.xml"[^>]*\/>/g,
+        '',
+      )
       const newOverrides: string[] = []
-      for (let i = 1; i < pages.length; i++) {
-        const slideIdx = i + 2
-        newOverrides.push(`<Override PartName="/ppt/slides/slide${slideIdx}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`)
+      for (let i = 0; i < actualSlideCount; i++) {
+        newOverrides.push(`<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="${SLIDE_CT}"/>`)
       }
       ctXml = ctXml.replace(/<\/Types>/, newOverrides.join('') + '</Types>')
       files['[Content_Types].xml'] = strToU8(ctXml)
