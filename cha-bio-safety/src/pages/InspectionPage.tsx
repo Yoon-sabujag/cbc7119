@@ -361,7 +361,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <StairsIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-body font-bold text-text-primary leading-tight truncate">
@@ -610,7 +610,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <Video size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-body font-bold text-text-primary truncate">CCTV 점검</div>
@@ -833,7 +833,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <SmokeVentIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1">
           <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
@@ -1540,7 +1540,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
       className="fixed left-0 right-0 z-[99] flex flex-col overflow-hidden bg-surface-page top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]"
     >
       {/* 헤더 */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <BarChart3 size={18} className="text-text-secondary" />
         <span className="text-body font-bold text-text-primary">DIV 점검</span>
         {currentPt && totalSteps && (
@@ -2038,7 +2038,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       className={`fixed left-0 right-0 flex flex-col overflow-hidden bg-surface-page top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))] ${mode === 'from-div' ? 'z-[120]' : 'z-[99]'}`}
     >
       {/* 헤더 */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <Wind size={18} className="text-text-secondary" />
         <span className="text-body font-bold text-text-primary">컴프레셔 점검</span>
         {mode !== 'from-div' && currentPt && totalSteps && (
@@ -2362,7 +2362,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
     >
 
       {/* 헤더 */}
-      <div className="flex items-center px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
+      <div className="flex items-center h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Zap size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
@@ -2614,7 +2614,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
     >
 
       {/* 헤더 */}
-      <div className="flex items-center px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
+      <div className="flex items-center h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Car size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-body font-bold text-text-primary truncate">
@@ -3001,7 +3001,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <Shield className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
         <div className="flex-1">
           <div className="text-body font-bold text-text-primary truncate">
@@ -3843,7 +3843,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     >
 
       {/* ── 헤더 ── */}
-      <div className="shrink-0 bg-surface-page border-b border-border-default px-4 py-2.5 flex items-center gap-2.5">
+      <div className="shrink-0 bg-surface-page border-b border-border-default h-12 px-3 flex items-center gap-2.5">
         {HeaderIcon && <HeaderIcon size={22} className="text-text-secondary shrink-0" />}
         <div className="flex-1 min-w-0">
           <div className="text-body font-bold text-text-primary truncate">
@@ -5363,7 +5363,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]">
       {/* 헤더 */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <Bell size={18} className="text-text-secondary flex-shrink-0" />
         <span className="text-body font-bold text-text-primary">화재수신반 기록</span>
       </div>
