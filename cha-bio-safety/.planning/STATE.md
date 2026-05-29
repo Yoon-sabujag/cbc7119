@@ -134,3 +134,4 @@ Last session: 2026-04-26T13:55:00Z
 Stopped at: 260426-vk9 지하층 floor 형식 + 소화기 zone 매핑 fix 완료 (사용자 PWA 검증 대기, CP-FE-0449 정리 포함)
 Resume file: .planning/ROADMAP.md
 | 2026-05-04 | fast | InspectionPage 헤더 '리스트' → '소화기 관리' 변경 | ✅ |
+| 2026-05-29 | fast | StaffManage + Checkpoints 모달 z-[50] → z-[200] (BottomNav z:100 위로 — 모바일 모달 접근 불가 fix, 기존 버그) | ✅ |
