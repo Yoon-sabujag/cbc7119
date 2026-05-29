@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch v3 — Wave H1.5 (nav-btn hotfix)
+  작성: 2026-05-30
+
+  v2 누락 사고 박제: .back-btn 만 32 통일하고 같은 헤더 안 우측 nav 3 종 28 그대로 둠.
+  → 좌:32 / 우:28 어색.
+
+  v3 목적: nav-btn 3 종 28→32 통일 + radius 일관성 정리 + 화살표 font-size 옵션 비교.
+
+  대상 components.css 정의:
+    - L28  .year-nav-btn  28×28 r:7 — 점검일지출력 (Reports)
+    - L95  .date-nav-btn  28×28 r:6 — 일일업무일지 (DailyReport)
+    - L522 .month-nav-btn 28×28 r:6 — 업무수행기록 (WorkLog)
+    - L120 .date-nav-spacer 28×28  — DailyReport 정렬용
+
+  영향 페이지 .tsx 사용:
+    - ReportsPage L289/295  year-nav-btn × 2 (‹ ›)
+    - DailyReportPage L349/355 date-nav-btn × 2
+    - WorkLogPage L598/620 month-nav-btn × 2
+    → .tsx 모두 무수정 (Wave H1 패턴)
+-->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wave H1.5 — nav-btn 28→32 hotfix 시안</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --border-default:  #2c333d;
+    --border-strong:   #3a4250;
+    --text-primary:    #f3f6f9;
+    --text-secondary:  #b8c1cb;
+    --text-tertiary:   #6e7681;
+    --accent:          #3b82f6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #050810; color: var(--text-primary); font-family: -apple-system, 'Noto Sans KR', sans-serif; }
+  .page-wrap { max-width: 1300px; margin: 0 auto; padding: 24px 20px 60px; }
+  .page-title { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+  .page-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 28px; }
+  .page-desc code { background: var(--surface-raised); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .section-title { font-size: 16px; font-weight: 700; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-default); }
+
+  /* 시안 rule box */
+  .rule-box {
+    background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.35);
+    border-radius: 12px; padding: 18px 22px; margin: 14px 0 22px;
+  }
+  .rule-box .rule-h { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.4px; margin: 0 0 8px; }
+  .rule-box .rule-line { font-size: 14px; line-height: 1.7; color: var(--text-primary); }
+  .rule-box .rule-line strong { color: #93c5fd; }
+  .rule-box code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* 현황 표 */
+  .dist-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+  .dist-table th, .dist-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-default); text-align: left; }
+  .dist-table th { font-size: 11px; color: var(--text-tertiary); font-weight: 700; letter-spacing: 0.3px; background: var(--surface-raised); }
+  .dist-table td.ok { color: #6ee7b7; }
+  .dist-table td.bad { color: #fca5a5; }
+  .dist-table td.warn { color: #fcd34d; }
+  .dist-table code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  /* 비교 row */
+  .compare-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    align-items: start; margin-bottom: 36px;
+  }
+  @media (max-width: 1100px) { .compare-row { grid-template-columns: 1fr; } }
+
+  .case-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .case-tag { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; letter-spacing: 0.4px; }
+  .case-tag.before { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+  .case-tag.after  { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,.3); }
+  .case-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .case-detail { font-size: 11px; color: var(--text-tertiary); margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+
+  /* phone frame */
+  .phone-frame {
+    width: 100%; max-width: 375px; margin: 0 auto;
+    border: 6px solid #0d1117; border-radius: 28px; overflow: hidden;
+    background: var(--surface-page); box-shadow: 0 6px 24px rgba(0,0,0,.4);
+  }
+
+  /* page-header 컨테이너 (현재 components.css L23 정의 그대로) */
+  .page-header {
+    flex-shrink: 0;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-default);
+    padding: 8px 12px 9px;       /* L23 verbatim — Wave H4 까지 그대로 */
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* 백버튼 — Wave H1 완결 (32×32 r:7) */
+  .back-btn {
+    width: 32px; height: 32px; border-radius: 7px;
+    flex-shrink: 0;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .back-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  .page-title {
+    flex: 1; font-size: 18px; font-weight: 700;
+    color: var(--text-primary); line-height: 1.4;
+    min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ── BEFORE (현재 28×28) ───────────────────────────── */
+  .year-pager-now { display: flex; align-items: center; gap: 2px; }
+  .year-pager-slot-now { width: 24px; display: flex; justify-content: center; }
+  .year-nav-btn-28 {
+    width: 28px; height: 28px; border-radius: 7px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .year-label {
+    min-width: 56px; text-align: center;
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+    line-height: 1; white-space: nowrap; padding: 0 4px;
+  }
+  .date-nav-now { display: flex; align-items: center; gap: 4px; }
+  .date-nav-btn-28 {
+    width: 28px; height: 28px; border-radius: 6px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .date-display {
+    min-width: 96px; text-align: center;
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+    line-height: 1; white-space: nowrap; padding: 0 4px;
+  }
+  .date-nav-spacer-28 { width: 28px; height: 28px; flex-shrink: 0; }
+  .month-nav-now { display: flex; align-items: center; gap: 4px; }
+  .month-nav-btn-28 {
+    width: 28px; height: 28px; border-radius: 6px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .month-display {
+    min-width: 90px; text-align: center;
+    font-size: 16px; font-weight: 700; color: var(--text-primary);
+    line-height: 1; white-space: nowrap; padding: 4px 6px;
+    background: none; border: none; cursor: pointer;
+  }
+
+  /* ── AFTER (32×32 통일) ───────────────────────────── */
+  .year-nav-btn-32, .date-nav-btn-32, .month-nav-btn-32 {
+    width: 32px; height: 32px; border-radius: 7px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .date-nav-spacer-32 { width: 32px; height: 32px; flex-shrink: 0; }
+  .year-pager-slot-32 { width: 32px; display: flex; justify-content: center; }
+
+  /* font-size 옵션 */
+  .fs-16 { font-size: 16px; }
+  .fs-18 { font-size: 18px; }
+  .fs-20 { font-size: 20px; }
+
+  /* annot */
+  .annot {
+    margin: 12px 0; padding: 12px 14px;
+    background: var(--surface-raised); border-radius: 8px;
+    border: 1px solid var(--border-default);
+    font-size: 12px; line-height: 1.7; color: var(--text-secondary);
+  }
+  .annot.warn { border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.05); }
+  .annot.good { border-color: rgba(16,185,129,.4); background: rgba(16,185,129,.05); }
+  .annot .lbl { font-weight: 700; color: var(--text-primary); }
+  .annot code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  /* 옵션 비교 grid (font-size 16/18/20) */
+  .opt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 16px 0 24px; }
+  @media (max-width: 900px) { .opt-grid { grid-template-columns: 1fr; } }
+  .opt-card { background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 10px; padding: 14px 16px; }
+  .opt-card.recommended { border-color: rgba(16,185,129,.5); background: rgba(16,185,129,.04); }
+  .opt-card h4 { margin: 0 0 4px; font-size: 12px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.3px; }
+  .opt-card .desc { font-size: 11px; color: var(--text-tertiary); margin-bottom: 12px; line-height: 1.5; }
+  .opt-card .demo { background: var(--surface-page); border-radius: 6px; padding: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px dashed var(--border-default); }
+  .opt-card .recommended-tag { display: inline-block; margin-left: 6px; font-size: 10px; background: rgba(16,185,129,.2); color: #6ee7b7; padding: 1px 6px; border-radius: 3px; font-weight: 700; }
+
+  /* 격차 시각 라인 */
+  .gap-line { position: relative; height: 32px; background: rgba(239,68,68,.08); border: 1px dashed rgba(239,68,68,.3); border-radius: 4px; margin: 6px 0; }
+  .gap-line span { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; color: #fca5a5; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <h1 class="page-title">Wave H1.5 — nav-btn 28→32 hotfix 시안</h1>
+  <p class="page-desc">
+    v2 누락 사고 박제: Wave H1 (<code>57bab51</code>) 으로 <code>.back-btn</code> 만 32 로 통일하고
+    같은 헤더 안 우측 <code>.year-nav-btn</code> / <code>.date-nav-btn</code> / <code>.month-nav-btn</code> 3 종은
+    28 그대로 둠 → 좌:32 / 우:28 어색.<br>
+    v3 = 같은 components.css 단일 파일 안에서 4 곳 (3 nav-btn + 1 spacer) 통일.
+  </p>
+
+  <!-- ─── 단일 룰 ─── -->
+  <div class="rule-box">
+    <div class="rule-h">⊕ Wave H1.5 룰</div>
+    <div class="rule-line">
+      <code>.year-nav-btn</code> / <code>.date-nav-btn</code> / <code>.month-nav-btn</code> 모두
+      <strong>28×28 → 32×32</strong>.<br>
+      radius 도 <code>.date-nav-btn</code> / <code>.month-nav-btn</code> <strong>6 → 7</strong>
+      (.back-btn / .year-nav-btn 와 일관).<br>
+      <code>.date-nav-spacer</code> 도 <strong>28 → 32</strong> (시각 정렬용).<br>
+      <span style="color:var(--text-tertiary);font-size:12px">→ .tsx 무수정. components.css 단일 파일 4 곳 수정 = 3 페이지 자동 일괄.</span>
+    </div>
+  </div>
+
+  <!-- ─── 현황 표 ─── -->
+  <h2 class="section-title">변경 대상 — 4 곳</h2>
+
+  <table class="dist-table">
+    <thead><tr><th>class (components.css)</th><th>현재</th><th>AFTER</th><th>사용 페이지 (.tsx)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>.year-nav-btn</code> L28</td>
+        <td>28×28 r:7</td>
+        <td class="ok">32×32 r:7</td>
+        <td><strong>점검일지출력</strong> (ReportsPage L289/295, ‹ › 2개)</td>
+      </tr>
+      <tr>
+        <td><code>.date-nav-btn</code> L95</td>
+        <td>28×28 r:6</td>
+        <td class="ok">32×32 r:7</td>
+        <td><strong>일일업무일지</strong> (DailyReportPage L349/355, ‹ › 2개)</td>
+      </tr>
+      <tr>
+        <td><code>.month-nav-btn</code> L522</td>
+        <td>28×28 r:6</td>
+        <td class="ok">32×32 r:7</td>
+        <td><strong>업무수행기록</strong> (WorkLogPage L598/620, ‹ › 2개)</td>
+      </tr>
+      <tr>
+        <td><code>.date-nav-spacer</code> L120</td>
+        <td>28×28</td>
+        <td class="ok">32×32</td>
+        <td>일일업무일지 (정렬용 invisible)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ───────────────────────────────────────────────────── -->
+  <!-- ① 일일업무일지 (DailyReport) — .date-nav-btn          -->
+  <!-- ───────────────────────────────────────────────────── -->
+  <h2 class="section-title">① 일일업무일지 (DailyReport) — 헤더 우측 날짜 nav</h2>
+
+  <div class="compare-row">
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE (Wave H1 후 현재)</span>
+        <span class="case-detail">back 32 / nav 28 (좌우 4px 격차)</span>
+      </div>
+      <div class="phone-frame">
+        <div class="page-header">
+          <button class="back-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="page-title">일일업무일지</span>
+          <div class="date-nav-now">
+            <button class="date-nav-btn-28">‹</button>
+            <span class="date-display">2026-05-30</span>
+            <button class="date-nav-btn-28">›</button>
+            <span class="date-nav-spacer-28"></span>
+          </div>
+        </div>
+        <div style="padding:16px;color:var(--text-tertiary);font-size:12px">일지 컨텐츠…</div>
+      </div>
+    </div>
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER (H1.5)</span>
+        <span class="case-detail">back 32 / nav 32 (좌우 동일)</span>
+      </div>
+      <div class="phone-frame">
+        <div class="page-header">
+          <button class="back-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="page-title">일일업무일지</span>
+          <div class="date-nav-now">
+            <button class="date-nav-btn-32 fs-18">‹</button>
+            <span class="date-display">2026-05-30</span>
+            <button class="date-nav-btn-32 fs-18">›</button>
+            <span class="date-nav-spacer-32"></span>
+          </div>
+        </div>
+        <div style="padding:16px;color:var(--text-tertiary);font-size:12px">일지 컨텐츠…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────────────────────────────────────────────────── -->
+  <!-- ② 점검일지출력 (Reports) — .year-nav-btn               -->
+  <!-- ───────────────────────────────────────────────────── -->
+  <h2 class="section-title">② 점검일지출력 (Reports) — 헤더 우측 년도 nav</h2>
+
+  <div class="compare-row">
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE</span>
+        <span class="case-detail">back 32 / nav 28</span>
+      </div>
+      <div class="phone-frame">
+        <div class="page-header">
+          <button class="back-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="page-title">점검일지출력</span>
+          <div class="year-pager-now">
+            <div class="year-pager-slot-now">
+              <button class="year-nav-btn-28">‹</button>
+            </div>
+            <span class="year-label">2026</span>
+            <div class="year-pager-slot-now">
+              <button class="year-nav-btn-28">›</button>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px;color:var(--text-tertiary);font-size:12px">점검일지 목록…</div>
+      </div>
+    </div>
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER</span>
+        <span class="case-detail">back 32 / nav 32</span>
+      </div>
+      <div class="phone-frame">
+        <div class="page-header">
+          <button class="back-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="page-title">점검일지출력</span>
+          <div class="year-pager-now">
+            <div class="year-pager-slot-32">
+              <button class="year-nav-btn-32 fs-18">‹</button>
+            </div>
+            <span class="year-label">2026</span>
+            <div class="year-pager-slot-32">
+              <button class="year-nav-btn-32 fs-18">›</button>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px;color:var(--text-tertiary);font-size:12px">점검일지 목록…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────────────────────────────────────────────────── -->
+  <!-- ③ 업무수행기록 (WorkLog) — .month-nav-btn              -->
+  <!-- ───────────────────────────────────────────────────── -->
+  <h2 class="section-title">③ 업무수행기록 (WorkLog) — 헤더 우측 월 nav</h2>
+
+  <div class="compare-row">
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE</span>
+        <span class="case-detail">back 32 / nav 28</span>
+      </div>
+      <div class="phone-frame">
+        <div class="page-header">
+          <button class="back-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="page-title">업무수행기록</span>
+          <div class="month-nav-now">
+            <button class="month-nav-btn-28">‹</button>
+            <span class="month-display">2026년 5월</span>
+            <button class="month-nav-btn-28">›</button>
+          </div>
+        </div>
+        <div style="padding:16px;color:var(--text-tertiary);font-size:12px">업무수행기록…</div>
+      </div>
+    </div>
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER</span>
+        <span class="case-detail">back 32 / nav 32</span>
+      </div>
+      <div class="phone-frame">
+        <div class="page-header">
+          <button class="back-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="page-title">업무수행기록</span>
+          <div class="month-nav-now">
+            <button class="month-nav-btn-32 fs-18">‹</button>
+            <span class="month-display">2026년 5월</span>
+            <button class="month-nav-btn-32 fs-18">›</button>
+          </div>
+        </div>
+        <div style="padding:16px;color:var(--text-tertiary);font-size:12px">업무수행기록…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────────────────────────────────────────────────── -->
+  <!-- ④ ‹ › 화살표 font-size 옵션 비교                       -->
+  <!-- ───────────────────────────────────────────────────── -->
+  <h2 class="section-title">④ ‹ › 화살표 font-size 옵션 (32 컨테이너 적정성)</h2>
+
+  <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">
+    현재 28 컨테이너에 font-size 16 — fit 함. 32 컨테이너로 늘릴 때 화살표 크기를 어떻게 할지.
+  </p>
+
+  <div class="opt-grid">
+    <div class="opt-card">
+      <h4>옵션 A — font-size 16 그대로</h4>
+      <div class="desc">코드 변경 최소. 32 컨테이너 안에서 살짝 비어 보일 수 있음.</div>
+      <div class="demo">
+        <button class="date-nav-btn-32 fs-16">‹</button>
+        <span class="date-display">2026-05-30</span>
+        <button class="date-nav-btn-32 fs-16">›</button>
+      </div>
+    </div>
+    <div class="opt-card recommended">
+      <h4>옵션 B — font-size 18 <span class="recommended-tag">권장</span></h4>
+      <div class="desc">32 컨테이너에 시각적 균형. 화살표 살짝 키워 노안 친화.</div>
+      <div class="demo">
+        <button class="date-nav-btn-32 fs-18">‹</button>
+        <span class="date-display">2026-05-30</span>
+        <button class="date-nav-btn-32 fs-18">›</button>
+      </div>
+    </div>
+    <div class="opt-card">
+      <h4>옵션 C — font-size 20</h4>
+      <div class="desc">최대 노안 친화. 다만 ‹ › 글리프 두꺼워 다소 무거움.</div>
+      <div class="demo">
+        <button class="date-nav-btn-32 fs-20">‹</button>
+        <span class="date-display">2026-05-30</span>
+        <button class="date-nav-btn-32 fs-20">›</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annot good">
+    <span class="lbl">권장: 옵션 B (font-size 18)</span><br>
+    28→32 컨테이너 격상 = +4px (14% 증가). 화살표도 16→18 (+2px, 12% 증가) 으로 비례. 노안 친화 + 시각 균형.<br>
+    <strong>대안</strong>: 사용자가 옵션 A (font 그대로) 또는 옵션 C (font 20) 선호 시 변경 가능.
+  </div>
+
+  <!-- ───────────────────────────────────────────────────── -->
+  <!-- ⑤ CSS diff 미리보기                                    -->
+  <!-- ───────────────────────────────────────────────────── -->
+  <h2 class="section-title">⑤ CSS 변경 미리보기 (옵션 B 가정)</h2>
+
+  <pre style="background:var(--surface-raised);border:1px solid var(--border-default);border-radius:8px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;color:var(--text-primary);overflow-x:auto;">
+<span style="color:#fca5a5">- .year-nav-btn { width: 28px; height: 28px; border-radius: 7px; ... font-size: 16px; ... }</span>
+<span style="color:#6ee7b7">+ .year-nav-btn { width: 32px; height: 32px; border-radius: 7px; ... font-size: 18px; ... }</span>
+
+<span style="color:#fca5a5">- .date-nav-btn { width: 28px; height: 28px; border-radius: 6px; ... font-size: 16px; ... }</span>
+<span style="color:#6ee7b7">+ .date-nav-btn { width: 32px; height: 32px; border-radius: 7px; ... font-size: 18px; ... }</span>
+
+<span style="color:#fca5a5">- .date-nav-spacer { width: 28px; height: 28px; flex-shrink: 0; }</span>
+<span style="color:#6ee7b7">+ .date-nav-spacer { width: 32px; height: 32px; flex-shrink: 0; }</span>
+
+<span style="color:#fca5a5">- .month-nav-btn { width: 28px; height: 28px; border-radius: 6px; ... font-size: 16px; ... }</span>
+<span style="color:#6ee7b7">+ .month-nav-btn { width: 32px; height: 32px; border-radius: 7px; ... font-size: 18px; ... }</span>
+  </pre>
+
+  <p style="font-size:12px;color:var(--text-tertiary);margin-top:6px">
+    합 4 정의 ×  3 prop 평균 = ~12 prop 변경. 그 외 (border / background / color / font-weight / cursor / display / align / justify / line-height / .year-pager-slot 등) 한 byte 변경 0.
+  </p>
+
+  <!-- ───────────────────────────────────────────────────── -->
+  <!-- ⑥ 결정 사항                                            -->
+  <!-- ───────────────────────────────────────────────────── -->
+  <h2 class="section-title">⑥ 결정 사항 (사용자 컨펌 필요)</h2>
+
+  <div class="annot warn">
+    <span class="lbl">진행 전 확인</span><br>
+    1. <strong>사이즈 28→32 OK?</strong> (좌측 back 32 와 짝맞춤)<br>
+    2. <strong>radius: date/month 6→7 통일 OK?</strong> (year 7 / back 7 와 일관)<br>
+    3. <strong>‹ › font-size 옵션</strong>: A(16 그대로) / <strong>B(18, 권장)</strong> / C(20)?<br>
+    4. <strong>.date-nav-spacer 32 통일 OK?</strong> (시각 정렬용 — 변경 안 하면 미세하게 어긋남)<br>
+    5. <strong>year-pager-slot</strong>: 현재 24px (nav-btn 28 보다 작아 overflow). 그대로 24 유지 vs 32 로 늘림? 추천: 그대로 24 유지 (시각 변화 거의 없음).
+  </div>
+
+  <div class="annot good">
+    <span class="lbl">실행 시</span><br>
+    - components.css 단일 파일 4 정의 ~12 prop 변경<br>
+    - 영향 .tsx 6 사용 (Reports 2 + DailyReport 2 + WorkLog 2) — 모두 무수정<br>
+    - npm run build PASS 확인<br>
+    - atomic commit (메시지: <code>feat(redesign/32-header-unification-h1.5): nav-btn 28→32 (year/date/month) + radius 통일 + ‹ › fs 18</code>)<br>
+    - main push → cbc7119-preview 자동 배포 → 사용자 시각 확인
+  </div>
+
+</div>
+</body>
+</html>
