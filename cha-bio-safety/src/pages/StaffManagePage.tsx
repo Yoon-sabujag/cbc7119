@@ -390,19 +390,18 @@ export default function StaffManagePage() {
 
       {/* 헤더 */}
       {isDesktop ? (
-        <div className="desktop-header hidden lg:flex items-center px-6 py-3 border-b border-border-default" style={{ flexShrink: 0 }}>
+        <div className="desktop-header shrink-0 hidden lg:flex items-center px-6 py-3 border-b border-border-default">
           <span className="desktop-header-title flex-1 text-body-sm font-bold text-text-primary">
             직원 관리 <span className="desktop-header-count text-caption text-text-tertiary ml-2">{staffList.length}명</span>
           </span>
           <button onClick={() => setModal({ open: true, mode: 'add' })}
-            className="desktop-add-btn flex items-center gap-2 h-10 px-3 rounded-sm bg-accent text-white text-label font-bold"
-            style={{ border: 'none', cursor: 'pointer' }}>
+            className="desktop-add-btn flex items-center gap-2 h-10 px-3 rounded-sm bg-accent text-white text-label font-bold border-0 cursor-pointer">
             <UserPlus size={16} color="#fff" />
             직원 추가
           </button>
         </div>
       ) : (
-        <div className="mobile-header flex lg:hidden items-center px-4 py-2" style={{ flexShrink: 0 }}>
+        <div className="mobile-header shrink-0 flex lg:hidden items-center px-4 py-2">
           <span className="mobile-header-count flex-1 text-caption text-text-tertiary">{staffList.length}명</span>
         </div>
       )}
@@ -424,52 +423,46 @@ export default function StaffManagePage() {
 
         {/* 데스크톱: 테이블 */}
         {isDesktop && !isLoading && !isError && (
-          <div className="desktop-content" style={{ padding: '0 24px 24px' }}>
-            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="desktop-content px-6 pb-6">
+            <table className="data-table w-full border-collapse">
               <thead>
                 <tr className="border-b-2 border-border-default text-left table-wrap">
-                  <th className="text-caption font-bold text-text-secondary" style={{ padding: '10px 8px' }}>이름</th>
-                  <th className="text-caption font-bold text-text-secondary" style={{ padding: '10px 8px' }}>사번</th>
-                  <th className="text-caption font-bold text-text-secondary" style={{ padding: '10px 8px' }}>직책</th>
-                  <th className="text-caption font-bold text-text-secondary" style={{ padding: '10px 8px' }}>역할</th>
-                  <th className="text-caption font-bold text-text-secondary" style={{ padding: '10px 8px' }}>연락처</th>
-                  <th className="text-caption font-bold text-text-secondary" style={{ padding: '10px 8px' }}>상태</th>
-                  <th className="text-caption font-bold text-text-secondary" style={{ padding: '10px 8px', width: 60 }}>액션</th>
+                  <th className="text-caption font-bold text-text-secondary py-2.5 px-2">이름</th>
+                  <th className="text-caption font-bold text-text-secondary py-2.5 px-2">사번</th>
+                  <th className="text-caption font-bold text-text-secondary py-2.5 px-2">직책</th>
+                  <th className="text-caption font-bold text-text-secondary py-2.5 px-2">역할</th>
+                  <th className="text-caption font-bold text-text-secondary py-2.5 px-2">연락처</th>
+                  <th className="text-caption font-bold text-text-secondary py-2.5 px-2">상태</th>
+                  <th className="text-caption font-bold text-text-secondary py-2.5 px-2 w-[60px]">액션</th>
                 </tr>
               </thead>
               <tbody>
                 {staffList.length === 0 && (
-                  <tr><td colSpan={7} className="state-empty text-center text-body-sm text-text-tertiary" style={{ padding: '40px 16px' }}>등록된 직원이 없습니다</td></tr>
+                  <tr><td colSpan={7} className="state-empty text-center text-body-sm text-text-tertiary py-10 px-4">등록된 직원이 없습니다</td></tr>
                 )}
                 {staffList.map(s => (
                   <tr key={s.id}
                     onClick={() => setModal({ open: true, mode: 'edit', target: s })}
-                    className={s.active === 0 ? 'row-inactive' : ''}
-                    style={{ borderBottom: '1px solid var(--bd)', cursor: 'pointer', opacity: s.active === 0 ? 0.5 : 1, transition: 'background 0.1s' }}
+                    className={`border-b border-border-default cursor-pointer transition-[background] duration-100 ${s.active === 0 ? 'row-inactive opacity-50' : 'opacity-100'}`}
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg3)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <td className="name-cell text-text-primary" style={{ padding: '10px 8px', fontWeight: 600 }}>{s.name}</td>
-                    <td className="id-cell text-caption font-mono text-text-secondary" style={{ padding: '10px 8px' }}>{s.id}</td>
-                    <td className="title-cell text-text-secondary" style={{ padding: '10px 8px' }}>{s.title || '-'}</td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <span className={`role-badge ${s.role === 'admin' ? 'admin' : 'assistant'} text-caption leading-none px-1.5 py-0.5 rounded`} style={{
-                        background: s.role === 'admin' ? 'rgba(59,130,246,.13)' : 'rgba(110,118,129,.15)',
-                        color: s.role === 'admin' ? 'var(--acl)' : 'var(--t2)',
-                      }}>
+                    <td className="name-cell text-text-primary py-2.5 px-2 font-semibold">{s.name}</td>
+                    <td className="id-cell text-caption font-mono text-text-secondary py-2.5 px-2">{s.id}</td>
+                    <td className="title-cell text-text-secondary py-2.5 px-2">{s.title || '-'}</td>
+                    <td className="py-2.5 px-2">
+                      <span className={`role-badge ${s.role === 'admin' ? 'admin bg-[rgba(59,130,246,.13)] text-accent' : 'assistant bg-[rgba(110,118,129,.15)] text-text-secondary'} text-caption leading-none px-1.5 py-0.5 rounded`}>
                         {s.role === 'admin' ? '관리자' : '보조자'}
                       </span>
                     </td>
-                    <td className="phone-cell text-caption text-text-secondary" style={{ padding: '10px 8px' }}>{s.phone || '-'}</td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <span className={`status-cell ${s.active !== 0 ? 'status-active' : 'status-inactive'} text-caption leading-none inline-flex items-center gap-1`} style={{
-                        color: s.active !== 0 ? 'var(--safe)' : 'var(--t3)',
-                      }}>
-                        <span className="status-dot w-[6px] h-[6px] rounded-full" style={{ background: s.active !== 0 ? 'var(--safe)' : 'var(--t3)' }} />
+                    <td className="phone-cell text-caption text-text-secondary py-2.5 px-2">{s.phone || '-'}</td>
+                    <td className="py-2.5 px-2">
+                      <span className={`status-cell ${s.active !== 0 ? 'status-active text-safe-bar' : 'status-inactive text-text-tertiary'} text-caption leading-none inline-flex items-center gap-1`}>
+                        <span className={`status-dot w-[6px] h-[6px] rounded-full ${s.active !== 0 ? 'bg-safe-bar' : 'bg-text-tertiary'}`} />
                         {s.active !== 0 ? '활성' : '비활성'}
                       </span>
                     </td>
-                    <td className="action-cell" style={{ padding: '10px 8px' }}>
+                    <td className="action-cell py-2.5 px-2">
                       <span className="text-caption font-bold text-accent">수정</span>
                     </td>
                   </tr>
