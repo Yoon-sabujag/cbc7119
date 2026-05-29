@@ -9,9 +9,9 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — CheckpointsPage 폐기, cbc7119-data staging 영구화
-진행 작업:       없음
-기준 production: `866de44` (remove: 소방 시설 추가 페이지 폐기 + production-sync 갱신)
+상태:           작업중 (IN_PROGRESS) — 260529-vwc 일지/Excel/제출용 탭 층 양식 통일 (formatFloorLabel 헬퍼)
+진행 작업:       quick 260529-vwc: (1) formatFloorLabel.ts 헬퍼 신규 — 지상 `연구동 3F` / 지하 `B3F` 룰. (2) dailyReportCalc 조치완료 항목 floor 표시 통일. (3) generateExcel PS_LABELS 18 라벨 새 양식. (4) LegalPage 제출용 탭 textarea prefill 지하층 자동 변환. branch=production. 배포 포함.
+기준 production: `9191688` (docs: CheckpointsPage 폐기 + cbc7119-data staging entry)
 마지막 동기화:   2026-05-29
 마지막 배포 URL: https://7cd4145b.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
