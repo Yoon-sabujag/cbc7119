@@ -459,14 +459,14 @@ export default function EducationPage() {
       <div className="bg-surface-raised border-b border-border-default h-12 flex items-center shrink-0">
         <button
           onClick={() => navigate(-1)}
-          className="text-text-secondary w-11 h-11 bg-transparent border-0 cursor-pointer flex items-center justify-center"
+          className="text-text-secondary w-7 h-7 rounded-[7px] bg-surface-sunken border-0 cursor-pointer flex items-center justify-center"
         >
           <ChevronLeft size={20} />
         </button>
         <span className="text-body font-bold text-text-primary flex-1 text-center">
           보수교육
         </span>
-        <div className="w-11" />
+        <div className="w-7" />
       </div>
 
       {/* 스크롤 영역 */}
