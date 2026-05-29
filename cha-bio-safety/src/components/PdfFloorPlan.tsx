@@ -109,22 +109,15 @@ export default function PdfFloorPlan({ url, scale = 1, onReady }: PdfFloorPlanPr
   return (
     <div
       ref={containerRef}
-      style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
+      className="absolute inset-0 flex items-center justify-center"
     >
       <canvas
         ref={canvasRef}
-        style={{ display: 'block', pointerEvents: 'none', userSelect: 'none' }}
+        className="block pointer-events-none select-none"
         draggable={false}
       />
       {loading && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--t3)', fontSize: 13, fontWeight: 600,
-        }}>
+        <div className="absolute inset-0 flex items-center justify-center text-text-tertiary text-label font-semibold">
           도면 로딩 중...
         </div>
       )}

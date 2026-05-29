@@ -34,8 +34,8 @@ function StrokeSvg({ size = 20, color, strokeWidth = 2, style, className, childr
       height={size}
       stroke={color ?? 'currentColor'}
       strokeWidth={strokeWidth}
-      style={{ flexShrink: 0, ...style }}
-      className={className}
+      className={`shrink-0${className ? ` ${className}` : ''}`}
+      style={style}
       {...baseStrokeProps}
       {...rest}
     >
@@ -54,8 +54,8 @@ export function StairsIcon({ size = 20, color, style, className, ...rest }: Icon
       viewBox="0 0 24 24"
       fill="none"
       stroke="none"
-      style={{ flexShrink: 0, ...style }}
-      className={className}
+      className={`shrink-0${className ? ` ${className}` : ''}`}
+      style={style}
       {...rest}
     >
       <rect x={1} y={16} width={10} height={6} rx={1} fill={fill} />

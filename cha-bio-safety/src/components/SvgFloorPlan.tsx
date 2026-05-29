@@ -105,11 +105,7 @@ export default function SvgFloorPlan({ url, scale, onReady }: SvgFloorPlanProps)
   return (
     <div
       ref={containerRef}
-      style={{
-        width: '100%', height: '100%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        position: 'relative',
-      }}
+      className="w-full h-full flex items-center justify-center relative"
     >
       <object
         ref={objectRef}
@@ -117,20 +113,12 @@ export default function SvgFloorPlan({ url, scale, onReady }: SvgFloorPlanProps)
         data={url}
         type="image/svg+xml"
         onLoad={handleLoad}
-        style={{
-          display: 'block',
-          pointerEvents: 'none',
-          userSelect: 'none',
-        }}
+        className="block pointer-events-none select-none"
       >
         도면 로딩 실패
       </object>
       {loading && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--t3)', fontSize: 13, fontWeight: 600,
-        }}>
+        <div className="absolute inset-0 flex items-center justify-center text-text-tertiary text-label font-semibold">
           도면 로딩 중...
         </div>
       )}

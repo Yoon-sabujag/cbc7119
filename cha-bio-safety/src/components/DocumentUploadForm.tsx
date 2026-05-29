@@ -221,7 +221,7 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
           accept=".pdf,.xlsx,.docx,.pptx,.hwp,.zip"
           onChange={handleFileChange}
           disabled={isUploading}
-          style={{ display: 'none' }}
+          className="hidden"
         />
         <button
           type="button"

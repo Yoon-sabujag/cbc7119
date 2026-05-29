@@ -140,7 +140,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
         <input
           type="password" placeholder="새 비밀번호 확인" value={confirm} onChange={e => setConfirm(e.target.value)}
           className={`h-10 w-full box-border bg-surface-sunken border rounded-sm px-3 text-label text-text-primary outline-none ${
-            confirm && next !== confirm ? 'border-danger' : 'border-border-default'
+            confirm && next !== confirm ? 'border-danger-bar' : 'border-border-default'
           }`}
         />
         {confirm && next !== confirm && (
