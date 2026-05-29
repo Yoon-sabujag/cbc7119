@@ -26,14 +26,14 @@ function BottomSheet({ onClose, title, children }: {
 }) {
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+      className="fixed inset-0 bg-[rgba(0,0,0,0.6)] z-[50] flex flex-col justify-end"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', animation: 'slideUp 0.28s ease-out both', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          <div style={{ width: 32, height: 4, background: 'var(--bd2)', borderRadius: 2 }} />
+      <div className="bg-surface-raised rounded-t-[16px] [animation:slideUp_0.28s_ease-out_both] max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-center pt-3">
+          <div className="w-[32px] h-1 bg-border-strong rounded-[2px]" />
         </div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', padding: '12px 16px 0' }}>{title}</div>
+        <div className="text-base font-bold text-text-primary px-4 pt-3 pb-0">{title}</div>
         {children}
       </div>
     </div>
@@ -46,11 +46,11 @@ function DesktopModal({ onClose, title, children }: {
 }) {
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-[50] flex items-center justify-center"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{ background: 'var(--bg2)', borderRadius: 12, width: 440, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', padding: '20px 24px 0' }}>{title}</div>
+      <div className="bg-surface-raised rounded-[12px] w-[440px] max-h-[85vh] overflow-y-auto shadow-[0_8px_32px_rgba(0,0,0,0.18)]">
+        <div className="text-base font-bold text-text-primary px-6 pt-5 pb-0">{title}</div>
         {children}
       </div>
     </div>
@@ -247,9 +247,9 @@ function CheckPointModalContent({
 
   return (
     <>
-      <div className="form-body" style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="form-body px-4 pt-4 pb-0 flex flex-col gap-3">
         <div>
-          <label style={LABEL_STYLE}>카테고리 <span className="required-star" style={{ color: 'var(--status-danger)' }}>*</span></label>
+          <label style={LABEL_STYLE}>카테고리 <span className="required-star text-danger-bar">*</span></label>
           <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }} value={form.category} onChange={handleCategoryChange}>
             <option value="">카테고리 선택</option>
             {CATEGORIES_FALLBACK.map(c => <option key={c} value={c}>{c}</option>)}
@@ -257,11 +257,10 @@ function CheckPointModalContent({
         </div>
         <div>
           <label style={LABEL_STYLE}>구역</label>
-          <div className="zone-row" style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
+          <div className="zone-row flex gap-0 rounded-[8px] overflow-hidden border border-border-default">
             {(['office', 'research', 'basement'] as const).map(z => (
               <button key={z} onClick={() => setForm(f => ({ ...f, zone: f.zone === z ? '' : z, floor: '' }))}
-                className={form.zone === z ? 'zone-btn active' : 'zone-btn inactive'}
-                style={{ flex: 1, height: 36, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: form.zone === z ? 'var(--accent)' : 'var(--surface-active)', color: form.zone === z ? '#fff' : 'var(--text-tertiary)' }}
+                className={`flex-1 h-9 border-0 cursor-pointer transition-[all_0.15s] ${form.zone === z ? 'zone-btn active bg-accent text-white' : 'zone-btn inactive bg-surface-active text-text-tertiary'}`}
               >
                 <span className="text-caption font-bold">{ZONE_LABEL[z] ?? z}</span>
               </button>
@@ -282,7 +281,7 @@ function CheckPointModalContent({
         {isExtCategory && (
           <>
             <div>
-              <label style={LABEL_STYLE}>종류 <span className="required-star" style={{ color: 'var(--status-danger)' }}>*</span></label>
+              <label style={LABEL_STYLE}>종류 <span className="required-star text-danger-bar">*</span></label>
               <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }}
                 value={extForm.type}
                 onChange={e => setExtForm(p => ({ ...p, type: e.target.value }))}>
@@ -332,7 +331,7 @@ function CheckPointModalContent({
           </>
         )}
         <div>
-          <label style={LABEL_STYLE}>개소명 <span className="required-star" style={{ color: 'var(--status-danger)' }}>*</span></label>
+          <label style={LABEL_STYLE}>개소명 <span className="required-star text-danger-bar">*</span></label>
           <input style={INPUT_STYLE} value={form.location} onChange={setField('location')} placeholder="1층 로비 소화기" />
         </div>
         {!isExtCategory && (
@@ -350,41 +349,36 @@ function CheckPointModalContent({
       </div>
 
       {!confirmDeactivate ? (
-        <div className="action-row" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div className="action-btns" style={{ display: 'flex', gap: 8 }}>
+        <div className="action-row p-4 flex flex-col gap-2">
+          <div className="action-btns flex gap-2">
             <button onClick={onClose}
-              className="btn-cancel"
-              style={{ flex: 1, height: 44, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+              className="btn-cancel flex-1 h-11 bg-surface-active text-text-secondary border-0 rounded-[8px] cursor-pointer">
               <span className="text-body-sm font-bold">취소</span>
             </button>
             <button onClick={handleSave} disabled={!canSave || isBusy}
-              className={canSave && !isBusy ? 'btn-save' : 'btn-save disabled'}
-              style={{ flex: 1, height: 44, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !isBusy ? 'pointer' : 'not-allowed', opacity: canSave && !isBusy ? 1 : 0.4 }}>
+              className={`flex-1 h-11 bg-accent text-white border-0 rounded-[8px] ${canSave && !isBusy ? 'btn-save cursor-pointer opacity-100' : 'btn-save disabled cursor-not-allowed opacity-40'}`}>
               <span className="text-body-sm font-bold">저장</span>
             </button>
           </div>
           {mode === 'edit' && cp?.isActive !== 0 && (
             <button onClick={() => setConfirmDeactivate(true)}
-              className="btn-deactivate"
-              style={{ width: '100%', height: 40, background: 'rgba(239,68,68,.08)', color: 'var(--status-danger)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+              className="btn-deactivate w-full h-10 bg-[rgba(239,68,68,0.08)] text-danger-bar border-0 rounded-[8px] cursor-pointer">
               <span className="text-caption">비활성화</span>
             </button>
           )}
         </div>
       ) : (
-        <div className="deactivate-confirm-box" style={{ padding: 16 }}>
-          <div style={{ background: 'rgba(239,68,68,.08)', borderRadius: 8, padding: '12px', color: 'var(--text-secondary)', marginBottom: 8 }}>
+        <div className="deactivate-confirm-box p-4">
+          <div className="bg-[rgba(239,68,68,0.08)] rounded-[8px] p-3 text-text-secondary mb-2">
             <span className="text-caption">이 개소를 비활성화합니다. 기존 점검 기록은 보존됩니다.</span>
           </div>
-          <div className="action-btns" style={{ display: 'flex', gap: 8 }}>
+          <div className="action-btns flex gap-2">
             <button onClick={() => setConfirmDeactivate(false)}
-              className="btn-cancel"
-              style={{ flex: 1, height: 44, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+              className="btn-cancel flex-1 h-11 bg-surface-active text-text-secondary border-0 rounded-[8px] cursor-pointer">
               <span className="text-body-sm">취소</span>
             </button>
             <button onClick={() => deactivateMutation.mutate()} disabled={deactivateMutation.isPending}
-              className="btn-deactivate-confirm"
-              style={{ flex: 1, height: 44, background: 'var(--status-danger)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: deactivateMutation.isPending ? 0.6 : 1 }}>
+              className={`btn-deactivate-confirm flex-1 h-11 bg-danger-bar text-white border-0 rounded-[8px] cursor-pointer ${deactivateMutation.isPending ? 'opacity-60' : 'opacity-100'}`}>
               <span className="text-body-sm font-bold">비활성화</span>
             </button>
           </div>
@@ -398,21 +392,20 @@ function CheckPointModalContent({
 function CheckPointCard({ cp, onEdit }: { cp: CheckPointFull; onEdit: () => void }) {
   return (
     <div onClick={onEdit}
-      className={cp.isActive === 0 ? 'cp-card inactive' : 'cp-card'}
-      style={{ background: 'var(--surface-sunken)', borderRadius: 12, padding: '12px 16px', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, opacity: cp.isActive === 0 ? 0.45 : 1, cursor: 'pointer' }}>
-      <span className="cp-dot w-[8px] h-[8px] rounded-full" style={{ flexShrink: 0, background: cp.isActive !== 0 ? 'var(--status-safe-bar)' : 'var(--text-tertiary)' }} />
-      <div className="cp-content" style={{ flex: 1, minWidth: 0 }}>
-        <div className="cp-top" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          <span className="cp-location text-body-sm font-bold" style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp.location}</span>
-          <span className="cp-cat-badge text-caption leading-none" style={{ padding: '2px 5px', borderRadius: 4, background: 'rgba(59,130,246,.13)', color: 'var(--accent)', flexShrink: 0 }}>
+      className={`${cp.isActive === 0 ? 'cp-card inactive opacity-45' : 'cp-card opacity-100'} bg-surface-sunken rounded-[12px] px-4 py-3 min-h-12 flex items-center gap-2.5 cursor-pointer`}>
+      <span className={`cp-dot w-[8px] h-[8px] rounded-full flex-shrink-0 ${cp.isActive !== 0 ? 'bg-safe-bar' : 'bg-text-tertiary'}`} />
+      <div className="cp-content flex-1 min-w-0">
+        <div className="cp-top flex items-center gap-1.5 mb-0.5">
+          <span className="cp-location text-body-sm font-bold text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">{cp.location}</span>
+          <span className="cp-cat-badge text-caption leading-none px-[5px] py-0.5 rounded-[4px] bg-[rgba(59,130,246,0.13)] text-accent flex-shrink-0">
             {cp.category}
           </span>
         </div>
-        <span className="cp-meta text-caption leading-none" style={{ color: 'var(--text-secondary)' }}>
+        <span className="cp-meta text-caption leading-none text-text-secondary">
           {ZONE_LABEL[cp.zone] ?? cp.zone} · {cp.floor}
         </span>
       </div>
-      <span className="cp-action text-caption leading-none" style={{ color: 'var(--accent)', fontWeight: 700, flexShrink: 0 }}>수정 ▸</span>
+      <span className="cp-action text-caption leading-none text-accent font-bold flex-shrink-0">수정 ▸</span>
     </div>
   )
 }
@@ -590,7 +583,7 @@ export default function CheckpointsPage() {
           </div>
         )}
         {selectedCategory !== '' && isLoading && (
-          <div className="skeleton-wrap" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="skeleton-wrap px-4 py-3 flex flex-col gap-2">
             <div className="skeleton-bar" style={SKELETON_STYLE} />
             <div className="skeleton-bar" style={SKELETON_STYLE} />
             <div className="skeleton-bar" style={SKELETON_STYLE} />
@@ -659,11 +652,11 @@ export default function CheckpointsPage() {
 
         {/* 모바일: 카드 리스트 */}
         {!isDesktop && selectedCategory !== '' && !isLoading && !isError && (
-          <div className="card-list" style={{ padding: '0 16px 80px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="card-list px-4 pb-20 flex flex-col gap-2">
             {cpList.length === 0 && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '40px 16px' }}>
-                <div className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>해당 카테고리에 개소가 없습니다</div>
-                <div className="text-caption" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>개소 추가 버튼을 눌러 점검 개소를 등록하세요</div>
+              <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 py-10">
+                <div className="text-body font-bold text-text-primary">해당 카테고리에 개소가 없습니다</div>
+                <div className="text-caption text-text-secondary text-center">개소 추가 버튼을 눌러 점검 개소를 등록하세요</div>
               </div>
             )}
             {cpList.map(cp => (
@@ -675,10 +668,9 @@ export default function CheckpointsPage() {
 
       {/* 모바일 FAB */}
       {!isDesktop && (
-        <div className="mobile-fab-wrap" style={{ position: 'sticky', bottom: 0, padding: '0 16px', paddingBottom: 'calc(16px + var(--sab))', background: 'var(--surface-page)' }}>
-          <button className="mobile-fab-btn w-full h-[52px] bg-accent text-white rounded-xl flex items-center justify-center gap-2 text-body-sm font-bold"
-            onClick={() => setModal({ open: true, mode: 'add' })}
-            style={{ border: 'none', cursor: 'pointer' }}>
+        <div className="mobile-fab-wrap sticky bottom-0 px-4 pb-[calc(16px+var(--sab))] bg-surface-page">
+          <button className="mobile-fab-btn w-full h-[52px] bg-accent text-white rounded-xl flex items-center justify-center gap-2 text-body-sm font-bold border-0 cursor-pointer"
+            onClick={() => setModal({ open: true, mode: 'add' })}>
             <Plus size={18} color="#fff" />
             개소 추가
           </button>
