@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-05-29 - **🎉 Phase B 완전 종결** Wave 16c (260529-tbv): XS batch 분할 atomic (16c-1 large 4 컴포넌트 42→11 + 16c-2 small 7 컴포넌트 + SettingsPanel L143 비색 cleanup) = 59→19 (-68%). **Phase B 전체 누적: ~1163 inline + 25 emoji + 1 비색 변환, ~88%** (옵션 N 의도 잔존 ~12%). 27 atomic 누적. 다음: 묶음 D production cherry-pick 직원 도메인 sync (20260328 워크트리)
+Last activity: 2026-05-29 - **헤더 통일 시안 v1 작성** (.planning/quick/260529-header-unification/sketch.html, Option A = GlobalHeader 기준 채택). **다음 세션 작업**: 헤더 안 버튼 종류 추가 조사 (백버튼 외에 액션/필터/검색/엑셀/메뉴 등 다양) → 세로폭만 h-8 (32px) 통일 룰 반영한 시안 v2 → wave 분할 진행. 그 외 진행: Phase B 완전 종결 (28+ atomic 누적), 묶음 D production cherry-pick 보류 (20260328 워크트리), CheckpointsPage 폐기 완료, DivPage/EducationPage 모달 회귀 fix 완료, 모달 z-index cleanup 7곳 완료
 
 Progress: [░░░░░░░░░░] 0%
 
