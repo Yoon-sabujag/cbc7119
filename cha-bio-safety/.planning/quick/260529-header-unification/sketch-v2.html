@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch v2 — 페이지 헤더 안 버튼 통일화 시안
+  작성: 2026-05-30
+  v1 (8ac3e96) 이후 사용자 추가 가이드 반영:
+    - 헤더 안에 백버튼만 있지 않음 — 액션/필터/엑셀/햄버거/토글/배지 등 다양
+    - 종류별 가로폭은 OK 다를 수 있음
+    - 세로폭만 GlobalHeader 와 같으면 됨 (32px 표준)
+
+  핵심 룰 (v2 단일):
+    "헤더 안 모든 버튼 세로 = 32px. 가로는 종류별 자유."
+
+  codebase 함정 — tailwind.config.js spacing override:
+    - h-7 / w-7 = 32px (Tailwind 기본 28 X)
+    - h-8 / w-8 = 48px (Tailwind 기본 32 X)
+    - h-11 / w-11 = 44px
+    → 32px 세로 표현 = `h-7` 또는 `h-[32px]` arbitrary
+    → ElevatorPage 의 `h-8 px-3.5` 액션은 실제 48px (가장 큰 빡빡함)
+
+  메모리 룰 anchor:
+    - feedback_design_sketch_first.md: 시안 먼저
+    - feedback_tailwind_w8_h8_is_48px.md: override 함정 박제
+    - feedback_tailwind_token_class_pattern.md
+    - feedback_design_changes_ask_first.md
+-->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>페이지 헤더 안 버튼 통일화 — v2 (세로 32px 단일 룰)</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --border-default:  #2c333d;
+    --border-strong:   #3a4250;
+    --text-primary:    #f3f6f9;
+    --text-secondary:  #b8c1cb;
+    --text-tertiary:   #6e7681;
+    --accent:          #3b82f6;
+    --danger-bar:      #ef4444;
+    --warning-bar:     #f59e0b;
+    --safe-bar:        #10b981;
+    --fire-bar:        #f97316;
+    --fire-bg:         #2a1408;
+    --fire:            #fb923c;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #050810;
+    color: var(--text-primary);
+    font-family: -apple-system, 'Noto Sans KR', sans-serif;
+  }
+
+  .page-wrap { max-width: 1300px; margin: 0 auto; padding: 24px 20px 60px; }
+  .page-title { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+  .page-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 28px; }
+  .page-desc code { background: var(--surface-raised); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .section-title { font-size: 16px; font-weight: 700; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-default); }
+
+  .standard-box {
+    background: linear-gradient(135deg, rgba(16,185,129,.08), rgba(59,130,246,.08));
+    border: 1px solid rgba(16,185,129,.3);
+    border-radius: 12px; padding: 20px 24px; margin-bottom: 24px;
+  }
+  .standard-box h3 { margin: 0 0 12px; font-size: 14px; color: #6ee7b7; letter-spacing: 0.4px; }
+  .standard-box table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .standard-box td { padding: 6px 10px 6px 0; vertical-align: top; }
+  .standard-box td:first-child { width: 180px; color: var(--text-tertiary); font-weight: 700; }
+  .standard-box code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  .rule-box {
+    background: rgba(59,130,246,.08);
+    border: 1px solid rgba(59,130,246,.35);
+    border-radius: 12px; padding: 18px 22px; margin: 14px 0 22px;
+  }
+  .rule-box .rule-h { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.4px; margin: 0 0 8px; }
+  .rule-box .rule-line { font-size: 14px; line-height: 1.7; color: var(--text-primary); }
+  .rule-box .rule-line strong { color: #93c5fd; }
+
+  .dist-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+  .dist-table th, .dist-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-default); text-align: left; }
+  .dist-table th { font-size: 11px; color: var(--text-tertiary); font-weight: 700; letter-spacing: 0.3px; background: var(--surface-raised); }
+  .dist-table td.ok { color: #6ee7b7; }
+  .dist-table td.bad { color: #fca5a5; }
+  .dist-table td.warn { color: #fcd34d; }
+  .dist-table code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .dist-table .px-bar { display: inline-block; height: 10px; background: var(--accent); border-radius: 3px; vertical-align: middle; margin-right: 8px; }
+
+  .compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-bottom: 28px; }
+  @media (max-width: 1100px) { .compare-row { grid-template-columns: 1fr; } }
+
+  .case-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .case-tag { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; letter-spacing: 0.4px; }
+  .case-tag.before { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+  .case-tag.after  { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,.3); }
+  .case-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .case-detail { font-size: 11px; color: var(--text-tertiary); margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+
+  .phone-frame { width: 100%; max-width: 375px; margin: 0 auto; border: 6px solid #0d1117; border-radius: 28px; overflow: hidden; background: var(--surface-page); box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+  .desktop-frame { width: 100%; border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden; background: var(--surface-page); }
+
+  /* 모든 헤더 = 표준 컨테이너 (v1 결정 유지: 모바일 h-12 / 데스크톱 h-14) */
+  .hdr-m {
+    background: var(--surface-raised); border-bottom: 1px solid var(--border-default);
+    display: flex; align-items: center; gap: 10px;
+    height: 48px; padding: 0 12px;          /* h-12 px-3 */
+  }
+  .hdr-d {
+    background: var(--surface-raised); border-bottom: 1px solid var(--border-default);
+    display: flex; align-items: center; gap: 10px;
+    height: 56px; padding: 0 20px;          /* h-14 px-5 */
+  }
+
+  /* BEFORE 컨테이너 (산포된 패턴) */
+  .hdr-pt2-pb9 {
+    background: var(--surface-raised); border-bottom: 1px solid var(--border-default);
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px 9px;
+  }
+  .hdr-px4-py25 {
+    background: var(--surface-page); border-bottom: 1px solid var(--border-default);
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+  }
+
+  /* ── 버튼 mock ─────────────────────────────────────────── */
+
+  /* 표준: 모두 세로 32px. 가로만 다름 */
+  .b-icon {  /* 정사각 32×32 — back/menu/icon-only */
+    width: 32px; height: 32px; border-radius: 7px;
+    background: var(--surface-sunken); border: 0; cursor: pointer;
+    color: var(--text-secondary);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .b-icon.ghost { background: transparent; }
+  .b-action-text {  /* 텍스트 액션 — "완료" / "저장" / "수정" */
+    height: 32px; padding: 0 12px; border-radius: 6px;
+    background: var(--accent); color: white; border: 0; cursor: pointer;
+    font-size: 12px; font-weight: 700;
+    display: inline-flex; align-items: center; flex-shrink: 0;
+  }
+  .b-action-text.danger { background: linear-gradient(135deg,#991b1b,#ef4444); }
+  .b-action-text.warn   { background: linear-gradient(135deg,#854d0e,#eab308); }
+  .b-icon-text {  /* 아이콘 + 텍스트 — "엑셀 다운로드" / "고장 접수" */
+    height: 32px; padding: 0 14px; border-radius: 6px;
+    background: var(--accent); color: white; border: 0; cursor: pointer;
+    font-size: 12px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+  .b-icon-text.danger { background: linear-gradient(135deg,#991b1b,#ef4444); }
+  .b-icon-text.warn   { background: linear-gradient(135deg,#854d0e,#eab308); }
+  .b-icon-text.safe   { background: var(--safe-bar); }
+  .b-toggle-group {  /* 헤더 안 inline 탭/토글 그룹 */
+    display: inline-flex; height: 32px; border-radius: 6px;
+    background: var(--surface-sunken); padding: 2px; flex-shrink: 0;
+  }
+  .b-toggle-group > button {
+    height: 28px; padding: 0 12px; border-radius: 4px;
+    background: transparent; border: 0; cursor: pointer;
+    color: var(--text-tertiary); font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center;
+  }
+  .b-toggle-group > button.on { background: var(--surface-active); color: var(--text-primary); }
+  .b-badge {  /* 헤더 안 상태 배지 (인포메이션) */
+    height: 32px; padding: 0 10px; border-radius: 999px;
+    border: 1px solid var(--fire-bar); background: var(--fire-bg);
+    color: var(--fire); font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
+  }
+
+  /* BEFORE 다양 사이즈 */
+  .b-34 {  /* 34×34 — WorkShift/Annual back */
+    width: 34px; height: 34px; border-radius: 6px;
+    background: var(--surface-sunken); border: 1px solid var(--border-default); cursor: pointer;
+    color: var(--text-secondary); display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .b-34-text {  /* h-[34px] px-[14px] 엑셀 (WorkShift) */
+    height: 34px; padding: 0 14px; border-radius: 6px;
+    background: var(--safe-bar); color: white; border: 0; cursor: pointer;
+    font-size: 12px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+  .b-36 {  /* w-9 h-9 — RemediationDetail back */
+    width: 36px; height: 36px; border-radius: 8px;
+    background: transparent; border: 0; cursor: pointer;
+    color: var(--text-primary); display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .b-44 {  /* w-11 h-11 — Education / LegalFindings back */
+    width: 44px; height: 44px; border-radius: 8px;
+    background: var(--surface-sunken); border: 0; cursor: pointer;
+    color: var(--text-secondary); display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .b-48-text {  /* h-8 px-3.5 — ElevatorPage 액션 (override 함정) */
+    height: 48px; padding: 0 14px; border-radius: 6px;
+    background: linear-gradient(135deg,#991b1b,#ef4444); color: white; border: 0; cursor: pointer;
+    font-size: 12px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+
+  .title { flex: 1; font-size: 15px; font-weight: 600; color: var(--text-primary); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mock-content { padding: 16px; color: var(--text-tertiary); font-size: 12px; }
+
+  /* annot */
+  .annot {
+    margin: 12px 0; padding: 12px 14px;
+    background: var(--surface-raised); border-radius: 8px;
+    border: 1px solid var(--border-default);
+    font-size: 12px; line-height: 1.7; color: var(--text-secondary);
+  }
+  .annot.warn { border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.05); }
+  .annot.good { border-color: rgba(16,185,129,.4); background: rgba(16,185,129,.05); }
+  .annot .lbl { font-weight: 700; color: var(--text-primary); }
+  .annot code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  /* 버튼 카탈로그 grid */
+  .cat-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    margin: 16px 0 24px;
+  }
+  @media (max-width: 900px) { .cat-grid { grid-template-columns: 1fr; } }
+  .cat-card {
+    background: var(--surface-raised); border: 1px solid var(--border-default);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .cat-card h4 {
+    margin: 0 0 4px; font-size: 12px; font-weight: 700;
+    color: var(--text-primary); letter-spacing: 0.3px;
+  }
+  .cat-card .desc { font-size: 11px; color: var(--text-tertiary); margin-bottom: 12px; line-height: 1.5; }
+  .cat-card .demo {
+    background: var(--surface-page); border-radius: 6px;
+    padding: 10px 12px; display: flex; align-items: center; gap: 8px;
+    border: 1px dashed var(--border-default);
+  }
+  .cat-card .pattern { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-tertiary); margin-top: 10px; line-height: 1.6; }
+  .cat-card .pattern code { background: var(--surface-sunken); color: var(--text-secondary); padding: 1px 5px; border-radius: 3px; }
+
+  /* SVG icon */
+  .ic { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .ic.lg { width: 18px; height: 18px; }
+  .ic.xl { width: 22px; height: 22px; }
+
+  /* 룰러 (세로 px 시각화) */
+  .rulers {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;
+    background: var(--surface-raised); border: 1px solid var(--border-default);
+    border-radius: 12px; padding: 18px 20px; margin: 16px 0 28px;
+  }
+  @media (max-width: 1000px) { .rulers { grid-template-columns: repeat(3, 1fr); } }
+  .ruler-cell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .ruler-cell .label { font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
+  .ruler-cell .val { font-size: 14px; font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
+  .ruler-cell .bar { width: 60px; background: var(--surface-sunken); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 10px; font-family: 'JetBrains Mono', monospace; }
+  .ruler-cell.std .bar { background: var(--safe-bar); color: white; }
+  .ruler-cell .pages { font-size: 10px; color: var(--text-tertiary); text-align: center; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <h1 class="page-title">페이지 헤더 안 버튼 통일화 — v2 시안</h1>
+  <p class="page-desc">
+    v1 (commit <code>8ac3e96</code>) 이후 사용자 추가 가이드 반영:
+    <strong>"헤더 안에 백버튼만 있지 않음. 종류별 가로폭은 OK 다를 수 있음. 세로폭만 GlobalHeader 와 같으면 됨."</strong><br>
+    → 가로는 종류별 자유, <strong>세로만 32px 단일 룰</strong> 로 좁힘.
+  </p>
+
+  <!-- 단일 룰 ─ 강조 -->
+  <div class="rule-box">
+    <div class="rule-h">⊕ v2 단일 룰</div>
+    <div class="rule-line">
+      페이지 헤더 안 <strong>모든 버튼의 세로 = 32px</strong>.<br>
+      가로는 종류별 자유 (back 32 / action 텍스트 자유 padding / 엑셀 큰 padding / 배지 padding 자유).<br>
+      <span style="color:var(--text-tertiary);font-size:12px">→ 코드에서는 <code>h-7</code> 또는 <code>h-[32px]</code>. <code>h-8</code> 은 codebase override 로 48px 이므로 금지.</span>
+    </div>
+  </div>
+
+  <!-- codebase 함정 경고 -->
+  <div class="annot warn">
+    <span class="lbl">codebase 함정 — tailwind.config.js spacing override</span><br>
+    이 리포지토리는 spacing 을 다시 정의함:<br>
+    <code>h-7</code>/<code>w-7</code> = <strong>32px</strong> (Tailwind 기본 28 X)<br>
+    <code>h-8</code>/<code>w-8</code> = <strong>48px</strong> (Tailwind 기본 32 X)<br>
+    <code>h-11</code>/<code>w-11</code> = <strong>44px</strong><br>
+    → 32px 세로를 만들 때 <code>h-7</code> 또는 <code>h-[32px]</code> 사용. <code>h-8</code> 쓰면 48px 됨.<br>
+    → 메모리 anchor: <code>feedback_tailwind_w8_h8_is_48px.md</code>
+  </div>
+
+  <!-- ─────────────── 표준 정의 ─────────────── -->
+  <h2 class="section-title">표준 정의 (v2)</h2>
+
+  <div class="standard-box">
+    <h3>✅ 헤더 컨테이너 (v1 그대로)</h3>
+    <table>
+      <tr><td>모바일 헤더</td><td><code>className="h-12 px-3 bg-surface-raised border-b border-border-default flex items-center gap-2.5 shrink-0"</code></td></tr>
+      <tr><td>데스크톱 헤더</td><td><code>className="h-14 px-5 bg-surface-raised border-b border-border-default flex items-center gap-2.5 shrink-0"</code></td></tr>
+      <tr><td>타이틀</td><td><code>className="flex-1 text-title font-semibold text-text-primary"</code></td></tr>
+    </table>
+  </div>
+
+  <div class="standard-box">
+    <h3>✅ 헤더 안 버튼 — 종류별 (세로 32px 공통)</h3>
+    <table>
+      <tr>
+        <td>back / menu (icon)</td>
+        <td><code>w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary</code> (32×32 정사각)</td>
+      </tr>
+      <tr>
+        <td>action 텍스트만</td>
+        <td><code>h-7 px-3 rounded-sm bg-accent text-text-on-accent text-caption font-bold</code> (높이 32, 가로 padding 자유)</td>
+      </tr>
+      <tr>
+        <td>action 아이콘+텍스트</td>
+        <td><code>h-7 px-3.5 rounded-sm gap-1.5 inline-flex items-center</code> + bg (가로 padding 약간 더)</td>
+      </tr>
+      <tr>
+        <td>toggle 그룹 (탭)</td>
+        <td><code>h-7 rounded-sm bg-surface-sunken p-0.5 inline-flex</code> 안에 <code>h-[28px] px-3 rounded-[4px]</code> button</td>
+      </tr>
+      <tr>
+        <td>상태 배지 (인포)</td>
+        <td><code>h-7 px-2.5 rounded-pill border bg-... text-...</code> (텍스트만, 누름 X)</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ─────────────── 현재 세로폭 분포 ─────────────── -->
+  <h2 class="section-title">현재 세로폭 분포 — 28 ~ 48px 흩어짐</h2>
+
+  <div class="rulers">
+    <div class="ruler-cell std">
+      <div class="label">표준 (목표)</div>
+      <div class="bar" style="height:32px">32</div>
+      <div class="val">32px</div>
+      <div class="pages">h-7 / h-[32px]</div>
+    </div>
+    <div class="ruler-cell">
+      <div class="label">현재 ①</div>
+      <div class="bar" style="height:28px">28</div>
+      <div class="val">~28px</div>
+      <div class="pages">InspectionPage 모달<br>inline (py-1.5)</div>
+    </div>
+    <div class="ruler-cell">
+      <div class="label">현재 ②</div>
+      <div class="bar" style="height:34px">34</div>
+      <div class="val">34px</div>
+      <div class="pages">WorkShift back/엑셀<br>AnnualPlan back</div>
+    </div>
+    <div class="ruler-cell">
+      <div class="label">현재 ③</div>
+      <div class="bar" style="height:36px">36</div>
+      <div class="val">36px</div>
+      <div class="pages">RemediationDetail<br>back (w-9 h-9)</div>
+    </div>
+    <div class="ruler-cell">
+      <div class="label">현재 ④</div>
+      <div class="bar" style="height:44px">44</div>
+      <div class="val">44px</div>
+      <div class="pages">EducationPage back<br>LegalFindings back</div>
+    </div>
+    <div class="ruler-cell">
+      <div class="label">현재 ⑤ (worst)</div>
+      <div class="bar" style="height:48px">48</div>
+      <div class="val">48px</div>
+      <div class="pages">ElevatorPage 데스크톱<br>고장 접수 / 수리 기록<br>(h-8 = override 함정)</div>
+    </div>
+  </div>
+
+  <!-- ─────────────── 페이지 헤더 안 모든 버튼 카탈로그 ─────────────── -->
+  <h2 class="section-title">현재 분포 — 페이지 헤더 안 버튼 전체 (정정 표)</h2>
+
+  <table class="dist-table">
+    <thead><tr><th>페이지 / 헤더</th><th>종류</th><th>현재 className (요약)</th><th>실제 세로</th><th>표준 대비</th></tr></thead>
+    <tbody>
+      <tr><td>GlobalHeader (햄버거)</td><td>menu</td><td><code>w-7 h-7 rounded-[7px] bg-surface-sunken</code></td><td>32</td><td class="ok">✅ 표준</td></tr>
+      <tr><td>DivPage 모바일 (back)</td><td>back</td><td><code>w-[32px] h-[32px] rounded-[7px]</code></td><td>32</td><td class="ok">✅</td></tr>
+      <tr><td>FloorPlanPage 모바일 (back)</td><td>back</td><td><code>w-7 h-7</code></td><td>32</td><td class="ok">✅</td></tr>
+      <tr><td>SchedulePage 모바일 (back)</td><td>back</td><td><code>w-7 h-7 rounded-sm border</code></td><td>32</td><td class="ok">✅</td></tr>
+      <tr><td>SchedulePage 모바일 (엑셀)</td><td>icon+text</td><td><code>px-3 py-1.5 rounded-sm</code> 동적 bg</td><td>~32</td><td class="ok">✅ (py-1.5=24+border)</td></tr>
+      <tr><td>WorkShiftPage 모바일 (back)</td><td>back</td><td><code>w-[34px] h-[34px] rounded-sm border</code></td><td>34</td><td class="bad">❌ 2px ↓</td></tr>
+      <tr><td>WorkShiftPage 모바일 (엑셀)</td><td>icon+text</td><td><code>h-[34px] px-[14px] bg-safe-bar</code></td><td>34</td><td class="bad">❌ 2px ↓</td></tr>
+      <tr><td>AnnualPlanPage 모바일 (back)</td><td>back</td><td><code>w-[34px] h-[34px] rounded-sm border</code></td><td>34</td><td class="bad">❌ 2px ↓</td></tr>
+      <tr><td>AnnualPlanPage 모바일 (위치 조정)</td><td>toggle</td><td><code>px-2.5 py-[6px] rounded-sm border</code></td><td>~28</td><td class="warn">⚠ 4px ↑</td></tr>
+      <tr><td>AnnualPlanPage 데스크톱 (위치 조정)</td><td>toggle</td><td><code>px-[14px] py-2 rounded-sm border</code></td><td>~32</td><td class="ok">✅ (py-2)</td></tr>
+      <tr><td>AnnualPlanPage 데스크톱 (엑셀)</td><td>icon+text</td><td><code>px-5 py-2 rounded-sm gap-2</code></td><td>~32</td><td class="ok">✅</td></tr>
+      <tr><td>EducationPage (back)</td><td>back</td><td><code>w-11 h-11 bg-transparent</code></td><td>44</td><td class="bad">❌ 12px ↓</td></tr>
+      <tr><td>LegalFindingsPage (back)</td><td>back</td><td><code>w-[44px] h-[44px]</code></td><td>44</td><td class="bad">❌ 12px ↓</td></tr>
+      <tr><td>RemediationDetailPage (back)</td><td>back</td><td><code>w-9 h-9 bg-transparent absolute</code></td><td>36</td><td class="bad">❌ 4px ↓</td></tr>
+      <tr><td>DailyReportPage (back)</td><td>back</td><td><code>.back-btn</code> CSS (34×34)</td><td>34</td><td class="bad">❌ 2px ↓</td></tr>
+      <tr><td>ReportsPage (back)</td><td>back</td><td><code>.back-btn</code> CSS</td><td>34</td><td class="bad">❌ 2px ↓</td></tr>
+      <tr><td>WorkLogPage (back)</td><td>back</td><td><code>.back-btn</code> CSS</td><td>34</td><td class="bad">❌ 2px ↓</td></tr>
+      <tr><td>ElevatorPage 데스크톱 (고장 접수)</td><td>icon+text</td><td><code>h-8 px-3.5 rounded-sm</code> gradient</td><td><strong>48</strong></td><td class="bad">❌ <strong>16px ↓</strong></td></tr>
+      <tr><td>ElevatorPage 데스크톱 (수리 기록)</td><td>icon+text</td><td><code>h-8 px-3.5 rounded-sm</code> gradient</td><td><strong>48</strong></td><td class="bad">❌ <strong>16px ↓</strong></td></tr>
+      <tr><td>ElevatorPage 데스크톱 (미해결 배지)</td><td>badge</td><td><code>px-2.5 py-1 rounded-pill border</code></td><td>~28</td><td class="warn">⚠ 4px ↑</td></tr>
+      <tr><td>InspectionPage 카테고리 (8) — back</td><td>back</td><td><code>w-7 h-7</code></td><td>32</td><td class="ok">✅ (back 자체는 OK)</td></tr>
+      <tr><td>InspectionPage 카테고리 (8) — 완료</td><td>action 텍스트</td><td><code>h-7 px-3</code> 또는 inline</td><td>~32</td><td class="ok">✅ (확인 필요)</td></tr>
+      <tr><td>InspectionPage 서브 (8) — back</td><td>back</td><td><code>w-7 h-7</code></td><td>32</td><td class="ok">✅</td></tr>
+      <tr><td>DashboardPage (메뉴/알림)</td><td>menu</td><td>GlobalHeader 표준</td><td>32</td><td class="ok">✅</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:11px;color:var(--text-tertiary);margin-top:-8px">
+    ※ InspectionPage 16곳 헤더는 v1 조사 시 컨테이너 (px-4 py-2.5 / px-3.5 py-2) 격차가 핵심 — 안에 들어가는 버튼은 대부분 32px 권역. wave 별 점검 시 같이 확인.
+  </p>
+
+  <!-- ─────────────── 버튼 종류 카탈로그 ─────────────── -->
+  <h2 class="section-title">버튼 종류 카탈로그 — 7 type</h2>
+
+  <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">
+    페이지 헤더 안에 나타나는 모든 종류. 세로 = 32px 공통, 가로는 종류별 권장값.
+  </p>
+
+  <div class="cat-grid">
+
+    <!-- 1. back -->
+    <div class="cat-card">
+      <h4>① back — 이전 페이지로</h4>
+      <div class="desc">왼쪽 첫 자리. ChevronLeft 아이콘. GlobalHeader 표준 동일.</div>
+      <div class="demo">
+        <button class="b-icon"><svg class="ic lg" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+        <span style="font-size:11px;color:var(--text-tertiary)">32×32 정사각</span>
+      </div>
+      <div class="pattern"><code>w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary</code></div>
+    </div>
+
+    <!-- 2. menu -->
+    <div class="cat-card">
+      <h4>② menu — 사이드 메뉴 열기 (햄버거)</h4>
+      <div class="desc">왼쪽 첫 자리 (back 없을 때). Menu 아이콘.</div>
+      <div class="demo">
+        <button class="b-icon"><svg class="ic lg" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <span style="font-size:11px;color:var(--text-tertiary)">32×32 정사각</span>
+      </div>
+      <div class="pattern"><code>w-7 h-7 rounded-[7px] bg-surface-sunken</code> (back 과 동일)</div>
+    </div>
+
+    <!-- 3. action-text -->
+    <div class="cat-card">
+      <h4>③ action 텍스트만 — "완료" / "저장"</h4>
+      <div class="desc">우측. 짧은 텍스트 액션. 가로 padding 자유 (텍스트 길이에 비례).</div>
+      <div class="demo">
+        <button class="b-action-text">완료</button>
+        <button class="b-action-text" style="background:var(--surface-sunken);color:var(--text-secondary)">취소</button>
+      </div>
+      <div class="pattern"><code>h-7 px-3 rounded-sm bg-accent text-text-on-accent text-caption font-bold</code></div>
+    </div>
+
+    <!-- 4. action icon+text -->
+    <div class="cat-card">
+      <h4>④ action 아이콘+텍스트 — "엑셀" / "고장 접수"</h4>
+      <div class="desc">우측. 강조 액션. 가로 padding 약간 더 크고 gap 으로 아이콘 띄움.</div>
+      <div class="demo">
+        <button class="b-icon-text danger">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          고장 접수
+        </button>
+        <button class="b-icon-text safe">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          엑셀
+        </button>
+      </div>
+      <div class="pattern"><code>h-7 px-3.5 rounded-sm gap-1.5 inline-flex items-center</code> + 강조 bg</div>
+    </div>
+
+    <!-- 5. icon-action (X / Info / Settings) -->
+    <div class="cat-card">
+      <h4>⑤ icon-action — 아이콘 단독 (X / Settings)</h4>
+      <div class="desc">우측. 아이콘만 누르는 버튼. back 과 동일 정사각.</div>
+      <div class="demo">
+        <button class="b-icon"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="b-icon"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      </div>
+      <div class="pattern"><code>w-7 h-7 rounded-[7px] bg-surface-sunken</code> (back/menu 와 동일)</div>
+    </div>
+
+    <!-- 6. toggle/tab -->
+    <div class="cat-card">
+      <h4>⑥ toggle 그룹 — segmented (탭)</h4>
+      <div class="desc">중앙 또는 우측. 2~3 옵션 inline 선택. 그룹 자체가 h-7, 내부 버튼은 h-[28px].</div>
+      <div class="demo">
+        <div class="b-toggle-group">
+          <button class="on">일</button><button>주</button><button>월</button>
+        </div>
+      </div>
+      <div class="pattern"><code>h-7 rounded-sm bg-surface-sunken p-0.5 inline-flex</code> wrap<br>안에 <code>h-[28px] px-3 rounded-[4px]</code> button</div>
+    </div>
+
+    <!-- 7. badge (인포메이션) -->
+    <div class="cat-card">
+      <h4>⑦ badge — 상태 알림 (미해결 N건)</h4>
+      <div class="desc">우측. 누름 X. 인포메이션 표시 전용. 세로 32, 가로 padding 자유.</div>
+      <div class="demo">
+        <span class="b-badge">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          미해결 고장 3건
+        </span>
+      </div>
+      <div class="pattern"><code>h-7 px-2.5 rounded-pill border bg-fire-bg text-fire</code></div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────── BEFORE vs AFTER 비교 — 종류별 ─────────────── -->
+  <h2 class="section-title">BEFORE vs AFTER — 종류별 비교</h2>
+
+  <!-- 케이스 1: ElevatorPage 데스크톱 액션 (h-8=48 → 32) — 가장 큰 변화 -->
+  <h3 style="font-size:14px;color:var(--text-secondary);margin-top:20px">
+    케이스 1. ElevatorPage 데스크톱 액션 (<code>h-8</code> override 함정, 48 → 32) ─ <strong>가장 큰 격차</strong>
+  </h3>
+  <div class="compare-row">
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE</span>
+        <span class="case-title">h-8 (override) = 48px</span>
+        <span class="case-detail">헤더 56px 안에 48px 버튼 → 4px gap</span>
+      </div>
+      <div class="desktop-frame">
+        <div class="hdr-d">
+          <span class="title">승강기 관리</span>
+          <span class="b-badge">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            미해결 3건
+          </span>
+          <button class="b-48-text">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            고장 접수
+          </button>
+          <button class="b-48-text" style="background:linear-gradient(135deg,#854d0e,#eab308)">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            수리
+          </button>
+        </div>
+        <div class="mock-content">본문…</div>
+      </div>
+    </div>
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER</span>
+        <span class="case-title">h-7 = 32px (GlobalHeader 짝)</span>
+        <span class="case-detail">위아래 12px gap, 시각 정돈</span>
+      </div>
+      <div class="desktop-frame">
+        <div class="hdr-d">
+          <span class="title">승강기 관리</span>
+          <span class="b-badge">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            미해결 3건
+          </span>
+          <button class="b-icon-text danger">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            고장 접수
+          </button>
+          <button class="b-icon-text warn">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            수리
+          </button>
+        </div>
+        <div class="mock-content">본문…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 케이스 2: EducationPage back (44 → 32) -->
+  <h3 style="font-size:14px;color:var(--text-secondary);margin-top:20px">
+    케이스 2. EducationPage / LegalFindingsPage back (<code>w-11 h-11</code> = 44 → 32)
+  </h3>
+  <div class="compare-row">
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE</span>
+        <span class="case-title">w-11 h-11 (44×44)</span>
+        <span class="case-detail">헤더 48px 안에 44px → 2px gap (거의 꽉 참)</span>
+      </div>
+      <div class="phone-frame">
+        <div class="hdr-m" style="height:48px">
+          <button class="b-44"><svg class="ic xl" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="title">보수교육</span>
+        </div>
+        <div class="mock-content">교육 목록…</div>
+      </div>
+    </div>
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER</span>
+        <span class="case-title">w-7 h-7 (32×32)</span>
+        <span class="case-detail">위아래 8px gap, 표준</span>
+      </div>
+      <div class="phone-frame">
+        <div class="hdr-m">
+          <button class="b-icon"><svg class="ic lg" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="title">보수교육</span>
+        </div>
+        <div class="mock-content">교육 목록…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 케이스 3: WorkShiftPage 모바일 (back 34 + 엑셀 34 → 32) -->
+  <h3 style="font-size:14px;color:var(--text-secondary);margin-top:20px">
+    케이스 3. WorkShiftPage 모바일 back+엑셀 (둘 다 34 → 32)
+  </h3>
+  <div class="compare-row">
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE</span>
+        <span class="case-title">w-[34px] h-[34px] + h-[34px] px-[14px]</span>
+        <span class="case-detail">2px ↓ (시각 거의 동일)</span>
+      </div>
+      <div class="phone-frame">
+        <div class="hdr-pt2-pb9">
+          <button class="b-34"><svg class="ic" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="title">근무표</span>
+          <button class="b-34-text">
+            <svg class="ic" viewBox="0 0 24 24"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            엑셀
+          </button>
+        </div>
+        <div class="mock-content">근무표…</div>
+      </div>
+    </div>
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER</span>
+        <span class="case-title">w-7 h-7 + h-7 px-3.5 gap-1.5</span>
+        <span class="case-detail">컨테이너 h-12 px-3 도 함께 표준화</span>
+      </div>
+      <div class="phone-frame">
+        <div class="hdr-m">
+          <button class="b-icon"><svg class="ic lg" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="title">근무표</span>
+          <button class="b-icon-text safe">
+            <svg class="ic" viewBox="0 0 24 24"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            엑셀
+          </button>
+        </div>
+        <div class="mock-content">근무표…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 케이스 4: RemediationDetailPage back (36 → 32) -->
+  <h3 style="font-size:14px;color:var(--text-secondary);margin-top:20px">
+    케이스 4. RemediationDetailPage back (<code>w-9 h-9</code> = 36 → 32)
+  </h3>
+  <div class="compare-row">
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE</span>
+        <span class="case-title">w-9 h-9 absolute (transparent bg)</span>
+        <span class="case-detail">4px ↓, absolute 배치</span>
+      </div>
+      <div class="phone-frame">
+        <div class="hdr-m" style="position:relative">
+          <button class="b-36" style="position:absolute;left:12px"><svg class="ic lg" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="title" style="text-align:center;padding-left:0">조치 상세</span>
+        </div>
+        <div class="mock-content">조치…</div>
+      </div>
+    </div>
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER</span>
+        <span class="case-title">w-7 h-7 (flex 배치, bg-surface-sunken)</span>
+        <span class="case-detail">표준 + 시각 명확 (배경 있음)</span>
+      </div>
+      <div class="phone-frame">
+        <div class="hdr-m">
+          <button class="b-icon"><svg class="ic lg" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="title">조치 상세</span>
+        </div>
+        <div class="mock-content">조치…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 케이스 5: page-header CSS (.back-btn 34 → 32) -->
+  <h3 style="font-size:14px;color:var(--text-secondary);margin-top:20px">
+    케이스 5. <code>.page-header</code> CSS 패턴 (DailyReport / Reports / WorkLog, .back-btn 34 → 32)
+  </h3>
+  <div class="compare-row">
+    <div>
+      <div class="case-header">
+        <span class="case-tag before">BEFORE</span>
+        <span class="case-title">.back-btn CSS (34×34)</span>
+        <span class="case-detail">CSS 단일 정의 → 3 페이지 공유</span>
+      </div>
+      <div class="phone-frame">
+        <div class="hdr-pt2-pb9">
+          <button class="b-34"><svg class="ic" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="title">근무일지</span>
+          <span style="font-size:11px;color:var(--text-tertiary)">2026.05</span>
+        </div>
+        <div class="mock-content">일지…</div>
+      </div>
+    </div>
+    <div>
+      <div class="case-header">
+        <span class="case-tag after">AFTER</span>
+        <span class="case-title">.back-btn CSS width/height 34 → 32</span>
+        <span class="case-detail">CSS 1 곳 수정으로 3 페이지 일괄</span>
+      </div>
+      <div class="phone-frame">
+        <div class="hdr-m">
+          <button class="b-icon"><svg class="ic lg" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+          <span class="title">근무일지</span>
+          <span style="font-size:11px;color:var(--text-tertiary)">2026.05</span>
+        </div>
+        <div class="mock-content">일지…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── 작업 wave 계획 ─────────────── -->
+  <h2 class="section-title">작업 wave 계획 — v2 (재구성)</h2>
+
+  <div class="annot good">
+    <span class="lbl">분할 전략 ─ 변경 영향 / 위험도 별 wave</span><br>
+    v1 의 7 wave 를 다시 구성 (헤더 컨테이너 + 버튼 종류 통합 처리). 큰 wave 5 개:<br><br>
+
+    <strong>Wave H1 (low risk, big win).</strong> CSS 정의 1 곳 → 3 페이지<br>
+    &nbsp;&nbsp;&nbsp;<code>.back-btn</code> CSS width/height 34 → 32 + border-radius 정정. DailyReport/Reports/WorkLog 일괄.<br><br>
+
+    <strong>Wave H2 (low risk).</strong> 큰 백버튼 정정 (44 → 32)<br>
+    &nbsp;&nbsp;&nbsp;EducationPage L460 + LegalFindingsPage L291. 2 곳. <code>w-11 h-11</code> → <code>w-7 h-7 rounded-[7px] bg-surface-sunken</code>.<br><br>
+
+    <strong>Wave H3 (medium risk — 가장 큰 시각 변화).</strong> ElevatorPage 데스크톱 액션 48 → 32<br>
+    &nbsp;&nbsp;&nbsp;"고장 접수" + "수리 기록" 2 버튼 + 미해결 배지 28 → 32. <code>h-8 px-3.5</code> → <code>h-7 px-3.5 gap-1.5</code>.<br>
+    &nbsp;&nbsp;&nbsp;시각 변화 큼 — 사용자 컨펌 후 진행 권장.<br><br>
+
+    <strong>Wave H4 (medium).</strong> WorkShift/AnnualPlan/Schedule 모바일 헤더 컨테이너 + 버튼 통합<br>
+    &nbsp;&nbsp;&nbsp;<code>pt-2 pb-[9px]</code> → <code>h-12</code>, 백버튼 34 → 32, 엑셀/액션 34 → 32. 캘리브 좌표 risk 검증 필수.<br><br>
+
+    <strong>Wave H5 (medium).</strong> 데스크톱 헤더 통일 + 잔여<br>
+    &nbsp;&nbsp;&nbsp;DivPage/FloorPlan/WorkShift 데스크톱 <code>h-[54px]</code> → <code>h-14</code> (v1 의 H6). StaffManage 데스크톱 <code>px-6 py-3</code> 처리.<br>
+    &nbsp;&nbsp;&nbsp;RemediationDetailPage back <code>w-9 h-9 absolute</code> → <code>w-7 h-7</code> flex 정돈.<br>
+    &nbsp;&nbsp;&nbsp;FloorPlanPage 모바일 <code>px-4 py-2.5</code> → <code>h-12 px-3</code>.<br><br>
+
+    <strong>Wave H6 (large — InspectionPage 메가, 별도 wave).</strong> InspectionPage 16 헤더 (카테고리 8 + 서브 8)<br>
+    &nbsp;&nbsp;&nbsp;<code>px-4 py-2.5</code> / <code>px-3.5 py-2</code> → <code>h-12 px-3</code>. 6047줄 파일, 컨텍스트 부담 → 단독 wave.<br>
+    &nbsp;&nbsp;&nbsp;안에 버튼은 대부분 32px 권역 (확인 필요).<br><br>
+
+    합계 6 atomic. wave 별 commit. 단순 (H1/H2) → 큼 (H6) 순서로 점진 진행 권장.
+  </div>
+
+  <div class="annot warn">
+    <span class="lbl">진행 전 사용자 확인 항목</span><br>
+    1. <strong>ElevatorPage 데스크톱 액션 48 → 32 (Wave H3)</strong>: 16px 시각 변화 가장 큼. "고장 접수" / "수리 기록" 가시성 낮아지지 않나? padding/font 보정 필요할 수도.<br>
+    2. <strong>EducationPage / LegalFindingsPage back 44 → 32 (Wave H2)</strong>: 노안 친화 ↔ 표준 일관성 trade-off. 44px 이 의도된 큰 터치 영역이었다면 보존 결정 가능.<br>
+    3. <strong>RemediationDetailPage absolute 배치 (Wave H5)</strong>: <code>position:absolute left-3</code> 의도가 무엇이었는지 확인. flex 로 바꾸면 동일 좌측 정렬되지만 absolute 만의 의도 있을 수도.<br>
+    4. <strong>InspectionPage 16 헤더 (Wave H6)</strong>: 점검 화면이 메인이라 시각 변화 영향 큼. 카테고리 별 차이 (자탐/소화기/유도등 등) 있는지 확인 필요. 단독 wave + 사용자 컨펌 후 진행.<br>
+    5. <strong>액션 텍스트 padding</strong>: <code>px-3</code> (12px) vs <code>px-3.5</code> (14px) vs <code>px-4</code> (16px). 종류별 권장 값 한 번 더 fix?
+  </div>
+
+  <!-- ─────────────── 요약 ─────────────── -->
+  <h2 class="section-title">요약</h2>
+
+  <div class="annot">
+    <span class="lbl">v2 변경 핵심</span><br>
+    - v1 의 "back 버튼 사이즈 통일" 만이 아닌 → <strong>모든 헤더 안 버튼 세로 32px</strong> 통일로 룰 확장<br>
+    - 가로 자유 명시 (종류별 padding 권장값 카탈로그화)<br>
+    - 7 종류 카탈로그 정의 (back / menu / action 텍스트 / action 아이콘+텍스트 / icon-action / toggle / badge)<br>
+    - codebase 함정 (<code>h-8</code> = 48px override) 박제 → <code>h-7</code> / <code>h-[32px]</code> 만 사용<br><br>
+
+    <span class="lbl">대상 페이지 분포</span><br>
+    - 모바일 헤더 컨테이너: 11 페이지 (v1 동일)<br>
+    - 데스크톱 헤더: 4 페이지 (DivPage/FloorPlan/WorkShift/StaffManage)<br>
+    - 백버튼 세로 격차: 5 곳 (Education/LegalFindings/RemediationDetail/WorkShift/AnnualPlan + .back-btn CSS 3 페이지)<br>
+    - 액션 버튼 세로 격차: 3 곳 (ElevatorPage 데스크톱 액션 ×2 + WorkShift 엑셀)<br>
+    - InspectionPage 16 헤더 (별도 메가 wave)<br><br>
+
+    <span class="lbl">예상 작업량 (v2 재추정)</span><br>
+    6 atomic wave (v1 의 7 → 6 으로 통합). 평균 2-3 파일 변경. 총 ~15-20 파일 fix.<br>
+    Wave 마다 시각 변화 commit 별 비교 가능. rollback 안전.<br><br>
+
+    <span class="lbl">다음 단계</span><br>
+    1. 이 sketch v2 사용자 컨펌<br>
+    2. wave H1 (CSS 1 곳 → 3 페이지) 부터 시작<br>
+    3. wave 마다 commit + cbc7119-preview 자동 배포 → 시각 확인 → 다음 wave
+  </div>
+
+</div>
+</body>
+</html>
