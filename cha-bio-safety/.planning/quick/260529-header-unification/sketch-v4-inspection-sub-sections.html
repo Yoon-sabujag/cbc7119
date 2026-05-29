@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch v4 — Wave H6b 결정 시각화
+  작성: 2026-05-30
+
+  핵심 발견 (sketch v2 가 잘못 잡은 부분):
+  - sketch v2 §케이스 4 가정: InspectionPage 서브 헤더 16 곳 (점검개소 선택) — "헤더 패턴 통일"
+  - 실제 grep 결과: 17 곳 `px-3.5 py-2 bg-surface-raised border-b ...` 패턴이
+    페이지 헤더가 아니라 **본문 안 sticky filter section** (계단실/구역/층/위치 선택 등)
+
+  결정 필요: 17 곳을 페이지 헤더 통일 범위에 포함시킬지, 보존할지.
+-->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wave H6b — InspectionPage 서브 헤더 17 곳 결정 시각화</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --border-default:  #2c333d;
+    --border-strong:   #3a4250;
+    --text-primary:    #f3f6f9;
+    --text-secondary:  #b8c1cb;
+    --text-tertiary:   #6e7681;
+    --accent:          #3b82f6;
+    --safe-bar:        #10b981;
+    --safe-bg:         #082b1f;
+    --safe:            #34d399;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #050810; color: var(--text-primary); font-family: -apple-system, 'Noto Sans KR', sans-serif; }
+  .page-wrap { max-width: 1300px; margin: 0 auto; padding: 24px 20px 60px; }
+  .page-title { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+  .page-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 28px; }
+  .page-desc code { background: var(--surface-raised); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .section-title { font-size: 16px; font-weight: 700; margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-default); }
+
+  .alert-box {
+    background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.35);
+    border-radius: 12px; padding: 18px 22px; margin: 14px 0 22px;
+  }
+  .alert-box .alert-h { font-size: 13px; font-weight: 700; color: #fca5a5; letter-spacing: 0.4px; margin: 0 0 8px; }
+  .alert-box .alert-line { font-size: 14px; line-height: 1.7; color: var(--text-primary); }
+  .alert-box .alert-line strong { color: #fca5a5; }
+  .alert-box code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  .info-box {
+    background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.35);
+    border-radius: 12px; padding: 18px 22px; margin: 14px 0 22px;
+  }
+  .info-box .info-h { font-size: 13px; font-weight: 700; color: var(--accent); margin: 0 0 8px; }
+  .info-box .info-line { font-size: 14px; line-height: 1.7; color: var(--text-primary); }
+  .info-box code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  .dist-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+  .dist-table th, .dist-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-default); text-align: left; }
+  .dist-table th { font-size: 11px; color: var(--text-tertiary); font-weight: 700; letter-spacing: 0.3px; background: var(--surface-raised); }
+  .dist-table code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  /* phone frame */
+  .phone-frame {
+    width: 100%; max-width: 375px; margin: 0 auto;
+    border: 6px solid #0d1117; border-radius: 28px; overflow: hidden;
+    background: var(--surface-page); box-shadow: 0 6px 24px rgba(0,0,0,.4);
+  }
+
+  /* 페이지 헤더 (이미 H6a 에서 변환됨 — h-12 px-3) */
+  .page-header {
+    flex-shrink: 0; height: 48px; padding: 0 12px;
+    background: var(--surface-page);
+    border-bottom: 1px solid var(--border-default);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .back-btn {
+    width: 32px; height: 32px; border-radius: 7px;
+    background: var(--surface-sunken); border: 0; cursor: pointer;
+    color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .back-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .header-icon { width: 18px; height: 18px; color: var(--accent); flex-shrink: 0; }
+  .page-title-text { font-size: 15px; font-weight: 700; flex: 1; }
+
+  /* 본문 안 filter section (현재 상태 — px-3.5 py-2) */
+  .filter-section {
+    flex-shrink: 0;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-default);
+    padding: 8px 14px;     /* px-3.5 py-2 */
+  }
+  .filter-label {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+    letter-spacing: 0.6px;
+  }
+  .filter-chips {
+    display: flex; gap: 6px;
+    overflow-x: auto;
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-page);
+    color: var(--text-secondary);
+    font-size: 12px; font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .filter-chip.active {
+    border: 1.5px solid var(--accent);
+    background: var(--accent);
+    color: white;
+  }
+  .filter-chip.done {
+    border: 1.5px solid var(--safe-bar);
+    background: var(--safe-bg);
+    color: var(--safe);
+  }
+
+  /* AFTER 옵션별 변형 */
+  .filter-section.opt-b {
+    height: 48px;          /* h-12 */
+    padding: 0 12px;       /* px-3 */
+    display: flex; align-items: center; gap: 10px;
+  }
+  .filter-section.opt-b .filter-label { margin-bottom: 0; flex-shrink: 0; }
+  .filter-section.opt-b .filter-chips { flex: 1; align-items: center; }
+
+  .filter-section.opt-c {
+    height: 40px;          /* h-10 */
+    padding: 0 12px;       /* px-3 */
+    display: flex; align-items: center; gap: 10px;
+  }
+  .filter-section.opt-c .filter-label { margin-bottom: 0; flex-shrink: 0; }
+  .filter-section.opt-c .filter-chips { flex: 1; align-items: center; }
+
+  /* 본문 mock */
+  .body-mock { padding: 16px; color: var(--text-tertiary); font-size: 11px; }
+  .cp-card {
+    background: var(--surface-raised); border: 1px solid var(--border-default);
+    border-radius: 8px; padding: 12px; margin-bottom: 8px;
+  }
+
+  /* 옵션 grid */
+  .opt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 20px 0 28px; }
+  @media (max-width: 1100px) { .opt-grid { grid-template-columns: 1fr; } }
+  .opt-card {
+    background: var(--surface-raised); border: 1px solid var(--border-default);
+    border-radius: 10px; padding: 16px;
+  }
+  .opt-card.recommended { border-color: rgba(16,185,129,.5); background: rgba(16,185,129,.04); }
+  .opt-card h4 { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .opt-card .desc { font-size: 11px; color: var(--text-tertiary); margin-bottom: 14px; line-height: 1.5; }
+  .opt-card .recommended-tag { display: inline-block; margin-left: 6px; font-size: 10px; background: rgba(16,185,129,.2); color: #6ee7b7; padding: 1px 6px; border-radius: 3px; font-weight: 700; }
+
+  .annot {
+    margin: 12px 0; padding: 12px 14px;
+    background: var(--surface-raised); border-radius: 8px;
+    border: 1px solid var(--border-default);
+    font-size: 12px; line-height: 1.7; color: var(--text-secondary);
+  }
+  .annot.warn { border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.05); }
+  .annot.good { border-color: rgba(16,185,129,.4); background: rgba(16,185,129,.05); }
+  .annot .lbl { font-weight: 700; color: var(--text-primary); }
+  .annot code { background: var(--surface-sunken); padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <h1 class="page-title">Wave H6b — InspectionPage 서브 17 곳 결정 시각화</h1>
+  <p class="page-desc">
+    sketch v2 §케이스 4 가 가정: "InspectionPage 서브 헤더 16 곳" 페이지 헤더 통일 범위.<br>
+    실제 grep 결과 17 곳 `px-3.5 py-2 bg-surface-raised border-b ...` 가 **페이지 헤더가 아니라
+    본문 안 sticky filter section** (계단실/구역/층/위치 선택 등) 임을 발견.
+  </p>
+
+  <div class="alert-box">
+    <div class="alert-h">⚠ 핵심 발견 — sketch v2 가 범위를 잘못 잡음</div>
+    <div class="alert-line">
+      17 곳은 페이지 헤더가 아닌 <strong>본문 안 sticky filter row</strong>:
+      <ul style="margin:6px 0;padding-left:18px;line-height:1.7">
+        <li>L378 "계단실 선택" + 칩 그룹 (S1~S6)</li>
+        <li>L845 "구역 선택" + 연구동/사무동 칩</li>
+        <li>L870 "층 선택" + 층 칩 (B5~F25)</li>
+        <li>L893 "위치 선택" + 위치 칩</li>
+        <li>L1555/1576/1599/2056/2079/2373/2630/2652 — 동일 패턴</li>
+        <li>L3017/3041/3081/3866/3889 — 동일 패턴</li>
+      </ul>
+      각 section 은 <strong>"label + 칩 그룹"</strong> 구조. 페이지 헤더가 아닌 **filter UI**.
+    </div>
+  </div>
+
+  <div class="info-box">
+    <div class="info-h">컨텍스트 — 페이지 헤더 통일 범위 정의</div>
+    <div class="info-line">
+      sketch v2 의 "헤더 통일" = <strong>페이지 최상단 fixed/sticky 헤더</strong> 한정 (back/title/액션).<br>
+      본문 안 filter section / sub-section / sticky-toolbar 는 <strong>별도 패턴 영역</strong>:
+      <ul style="margin:6px 0;padding-left:18px;line-height:1.7">
+        <li>페이지 헤더는 navigation 요소</li>
+        <li>본문 안 filter 는 컨텐츠 인터랙션 요소 (선택/필터)</li>
+        <li>둘은 디자인 의도와 사이즈 기준이 다름</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─── 17 곳 분포 ─── -->
+  <h2 class="section-title">17 곳 grep 분포 (line → 컨텐츠)</h2>
+
+  <table class="dist-table">
+    <thead><tr><th>line</th><th>컨텐츠 (sample)</th><th>카테고리 추정</th></tr></thead>
+    <tbody>
+      <tr><td>L378</td><td>"계단실 선택" + S1~S6 칩</td><td>유도등/소화전 (계단실)</td></tr>
+      <tr><td>L845</td><td>"구역 선택" + 연구동/사무동</td><td>배연창</td></tr>
+      <tr><td>L870</td><td>"층 선택" + B5~F25 칩 (overflow-x)</td><td>배연창</td></tr>
+      <tr><td>L893</td><td>"위치 선택" + 위치 칩</td><td>배연창 sub</td></tr>
+      <tr><td>L1555/1576/1599</td><td>비슷한 selector (구역/층/위치)</td><td>방화셔터/방화문 등</td></tr>
+      <tr><td>L2056/2079</td><td>비슷한 selector</td><td>전실제연댐퍼/연결송수관</td></tr>
+      <tr><td>L2373</td><td>selector</td><td>가스소화설비</td></tr>
+      <tr><td>L2630/2652</td><td>selector</td><td>비상조명등</td></tr>
+      <tr><td>L3017/3041/3081</td><td>selector</td><td>소화기 외 카테고리</td></tr>
+      <tr><td>L3866/3889</td><td>selector</td><td>잔여 카테고리</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:11px;color:var(--text-tertiary);margin-top:-6px">
+    ※ 모두 동일 패턴: <code>label (text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider) + flex gap-1.5/2 칩 그룹</code>. 칩 들은 (active / done / default) 3 state 분기.
+  </p>
+
+  <!-- ─── 현재 상태 시각화 ─── -->
+  <h2 class="section-title">현재 상태 — 페이지 헤더 + 본문 filter section</h2>
+
+  <div class="phone-frame">
+    <!-- 페이지 헤더 (이미 H6a 에서 변환됨) -->
+    <div class="page-header">
+      <button class="back-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg></button>
+      <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM10 14h4M2 14l3-10h3l3 10M17 14h5"/></svg>
+      <span class="page-title-text">유도등 점검</span>
+      <button style="height:32px;padding:0 12px;border-radius:4px;background:var(--accent);color:white;border:0;font-size:12px;font-weight:700;cursor:pointer">완료</button>
+    </div>
+
+    <!-- 본문 안 filter section (현재 px-3.5 py-2) -->
+    <div class="filter-section">
+      <div class="filter-label">계단실 선택</div>
+      <div class="filter-chips">
+        <button class="filter-chip done">S1 ✓</button>
+        <button class="filter-chip active">S2</button>
+        <button class="filter-chip">S3</button>
+        <button class="filter-chip">S4</button>
+        <button class="filter-chip">S5</button>
+        <button class="filter-chip">S6</button>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-label">층 선택</div>
+      <div class="filter-chips">
+        <button class="filter-chip">B5</button>
+        <button class="filter-chip done">B4 ✓</button>
+        <button class="filter-chip done">B3 ✓</button>
+        <button class="filter-chip">B2</button>
+        <button class="filter-chip">B1</button>
+        <button class="filter-chip">1F</button>
+        <button class="filter-chip active">2F</button>
+      </div>
+    </div>
+
+    <div class="body-mock">
+      <div class="cp-card">CP-GUIDE-S2-2F-1 (선택)</div>
+      <div class="cp-card">CP-GUIDE-S2-2F-2</div>
+      <div class="cp-card">CP-GUIDE-S2-2F-3</div>
+    </div>
+  </div>
+
+  <p style="font-size:12px;color:var(--text-secondary);text-align:center;margin-top:12px">
+    ↑ 현재 상태 — 페이지 헤더 (H6a 완결, h-12) + 본문 filter 2 칸 (px-3.5 py-2 = ~33+content px)
+  </p>
+
+  <!-- ─── 결정 옵션 3 가지 ─── -->
+  <h2 class="section-title">결정 옵션 — H6b 어떻게?</h2>
+
+  <div class="opt-grid">
+
+    <!-- 옵션 A: 보존 (권장) -->
+    <div class="opt-card recommended">
+      <h4>옵션 A — 보존 (px-3.5 py-2 유지) <span class="recommended-tag">권장</span></h4>
+      <div class="desc">
+        17 곳은 본문 안 filter row → 페이지 헤더 통일 범위 밖.<br>
+        sketch v2 가 잘못 잡은 부분. <strong>H6b 자체 폐기</strong> → 헤더 통일 H6a 까지로 종결.
+      </div>
+      <div class="phone-frame" style="max-width:280px;border-radius:20px;border-width:4px">
+        <div class="page-header" style="height:40px">
+          <div class="back-btn" style="width:28px;height:28px;border-radius:5px"></div>
+          <span style="flex:1;font-size:12px;font-weight:700">유도등 점검</span>
+        </div>
+        <div class="filter-section">
+          <div class="filter-label">계단실 선택</div>
+          <div class="filter-chips" style="gap:4px">
+            <button class="filter-chip" style="padding:4px 10px;font-size:10px">S1</button>
+            <button class="filter-chip active" style="padding:4px 10px;font-size:10px">S2</button>
+            <button class="filter-chip" style="padding:4px 10px;font-size:10px">S3</button>
+          </div>
+        </div>
+        <div style="padding:10px;font-size:10px;color:var(--text-tertiary)">본문…</div>
+      </div>
+      <p style="font-size:11px;color:var(--text-secondary);margin-top:10px">
+        시각 변화 0. label 위 + 칩 아래 2 단 구성 자연. 본문 filter UX 유지.
+      </p>
+    </div>
+
+    <!-- 옵션 B: h-12 px-3 강제 적용 -->
+    <div class="opt-card">
+      <h4>옵션 B — h-12 px-3 강제 (페이지 헤더 표준 적용)</h4>
+      <div class="desc">
+        sketch v2 §케이스 4 spec 따라 강제 적용. 17 곳 단일 라인 height 48px 로 통일.<br>
+        <strong>중대한 시각/구조 변경</strong> — label + 칩 2 단 구성 → 1 단 inline.
+      </div>
+      <div class="phone-frame" style="max-width:280px;border-radius:20px;border-width:4px">
+        <div class="page-header" style="height:40px">
+          <div class="back-btn" style="width:28px;height:28px;border-radius:5px"></div>
+          <span style="flex:1;font-size:12px;font-weight:700">유도등 점검</span>
+        </div>
+        <div class="filter-section opt-b" style="height:40px">
+          <div class="filter-label" style="font-size:10px">계단실</div>
+          <div class="filter-chips" style="gap:4px">
+            <button class="filter-chip" style="padding:4px 10px;font-size:10px">S1</button>
+            <button class="filter-chip active" style="padding:4px 10px;font-size:10px">S2</button>
+            <button class="filter-chip" style="padding:4px 10px;font-size:10px">S3</button>
+          </div>
+        </div>
+        <div style="padding:10px;font-size:10px;color:var(--text-tertiary)">본문…</div>
+      </div>
+      <p style="font-size:11px;color:var(--text-secondary);margin-top:10px">
+        시각 변화 큼. label/칩 같은 줄. 좁아짐. **다중 칩 overflow scroll** 시 답답함.
+      </p>
+    </div>
+
+    <!-- 옵션 C: h-10 px-3 중간 -->
+    <div class="opt-card">
+      <h4>옵션 C — h-10 px-3 (중간, 40px)</h4>
+      <div class="desc">
+        명시 height 40px. 옵션 B (48) 보다 컴팩트.<br>
+        그래도 label + 칩 2 단 → 1 단 변경 필요. 옵션 B 와 동일한 구조 변화.
+      </div>
+      <div class="phone-frame" style="max-width:280px;border-radius:20px;border-width:4px">
+        <div class="page-header" style="height:40px">
+          <div class="back-btn" style="width:28px;height:28px;border-radius:5px"></div>
+          <span style="flex:1;font-size:12px;font-weight:700">유도등 점검</span>
+        </div>
+        <div class="filter-section opt-c" style="height:34px">
+          <div class="filter-label" style="font-size:10px">계단실</div>
+          <div class="filter-chips" style="gap:4px">
+            <button class="filter-chip" style="padding:3px 8px;font-size:10px">S1</button>
+            <button class="filter-chip active" style="padding:3px 8px;font-size:10px">S2</button>
+            <button class="filter-chip" style="padding:3px 8px;font-size:10px">S3</button>
+          </div>
+        </div>
+        <div style="padding:10px;font-size:10px;color:var(--text-tertiary)">본문…</div>
+      </div>
+      <p style="font-size:11px;color:var(--text-secondary);margin-top:10px">
+        옵션 B 보다 컴팩트. 그래도 구조 변화 필요.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ─── 결론 ─── -->
+  <h2 class="section-title">결론</h2>
+
+  <div class="annot good">
+    <span class="lbl">권장: 옵션 A (보존, H6b 폐기)</span><br>
+    헤더 통일 wave (H1~H6a) 는 <strong>페이지 헤더 정의</strong> 안에서 완결됨:<br>
+    - H1~H5: 일일업무일지/점검일지출력/업무수행기록/보수교육/지적사항/승강기관리/근무표/연간업무추진/일정/Div/도면/조치상세/직원관리 페이지 헤더<br>
+    - H6a: 소방안전 점검 카테고리 헤더 10 곳<br><br>
+
+    17 곳 본문 filter section 은 별도 영역:<br>
+    - <strong>"label + 칩 그룹" 2 단 구조</strong> 가 의도된 디자인 (선택 인터랙션 UX)<br>
+    - h-12/h-10 inline 으로 압축하면 label 작게 / 칩 좁게 → 노안 친화 깨짐<br>
+    - "구역/층/위치 선택" 같은 명확한 sub-section label 이 점검 UX 의 핵심<br><br>
+
+    → <strong>H6b 폐기 / H6a 완결로 "헤더 통일 wave" 전체 종결</strong>
+  </div>
+
+  <div class="annot warn">
+    <span class="lbl">만약 옵션 B/C 를 굳이 적용하려면</span><br>
+    - 17 곳 모두 className 만 변경이 아니라 **JSX 구조 변경 필요** (label + 칩 → inline)<br>
+    - 칩 너비 + label 크기 + overflow-x scroll 동작 모두 재설계<br>
+    - 점검 UX 핵심 영역 → 사용자 테스트 + 5월 법정점검 영향 검토 필수<br>
+    - <strong>단순 sed/replace 로 처리 불가</strong>. 별도 wave (UI 재설계) 분리 권장
+  </div>
+
+  <h2 class="section-title">대안 — 헤더 통일 wave 종결 후 다음 단계</h2>
+
+  <div class="annot">
+    <span class="lbl">완결 정리</span><br>
+    - 옵션 A 채택 시: H6a (00a34bd) 가 헤더 통일 마지막 wave<br>
+    - 누적 14 페이지 헤더 통일 완결<br>
+    - 검증: cbc7119-preview 전체 페이지 시각 확인 → 운영 5월 법정점검 영향 검토 후 직원 도메인 cherry-pick 계획<br>
+    - 본문 filter section 통일이 필요하면 별도 새 wave (UI 재설계 트랙) 으로 분리
+  </div>
+
+</div>
+</body>
+</html>
