@@ -220,7 +220,6 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
   })
 
   const isDesktopSheet = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
-  const pad = isDesktopSheet ? '0 24px' : '12px 16px'
 
   const headerTitle = mode === 'edit' ? '지적사항 수정' : '지적사항 등록'
   const submitLabel = mode === 'edit' ? '저장' : '등록'
@@ -228,11 +227,11 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
 
   const formContent = (
     <>
-        <div style={{ padding: pad, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className={`flex flex-col gap-3.5 ${isDesktopSheet ? 'px-6' : 'py-3 px-4'}`}>
           {/* 구역 선택 */}
           <div>
             <div style={lblStyle}>구역</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div className="flex gap-1.5 flex-wrap">
               {ZONES.map(z => (
                 <button key={z.key} onClick={() => { setZone(z.key); setFloor('') }} style={chipStyle(zone === z.key)}>{z.label}</button>
               ))}
@@ -243,7 +242,7 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
           {floors.length > 0 && (
             <div>
               <div style={lblStyle}>층</div>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div className="flex gap-1">
                 {floors.map(f => (
                   <button key={f} onClick={() => setFloor(f)} style={floorChipStyle(floor === f)}>{f}</button>
                 ))}
@@ -266,22 +265,18 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
           {/* 지적 항목 (리스트 선택) */}
           <div>
             <div style={lblStyle}>지적 항목</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--bd2)', borderRadius: 9, overflow: 'hidden', maxHeight: 123, overflowY: 'auto' }}>
+            <div className="flex flex-col gap-0 border border-border-strong rounded-[9px] overflow-hidden max-h-[123px] overflow-y-auto">
               {FINDING_ITEMS.map((item, i) => (
                 <button
                   key={item}
                   onClick={() => setInspectionItem(item)}
-                  style={{
-                    padding: '10px 12px',
-                    background: inspectionItem === item ? 'rgba(59,130,246,.1)' : 'var(--bg3)',
-                    border: 'none',
-                    borderBottom: i < FINDING_ITEMS.length - 1 ? '1px solid var(--bd)' : 'none',
-                    color: inspectionItem === item ? 'var(--acl)' : 'var(--t1)',
-                    fontSize: 13,
-                    fontWeight: inspectionItem === item ? 700 : 400,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
+                  className={`py-2.5 px-3 border-0 text-[13px] text-left cursor-pointer ${
+                    inspectionItem === item
+                      ? 'bg-[rgba(59,130,246,.1)] text-accent font-bold'
+                      : 'bg-surface-sunken text-text-primary font-normal'
+                  } ${
+                    i < FINDING_ITEMS.length - 1 ? 'border-b border-border-default' : ''
+                  }`}
                 >
                   {item}
                 </button>
@@ -301,7 +296,7 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
           {/* 지적 내용 */}
           <div>
             <div style={lblStyle}>
-              지적 내용 <span style={{ color: 'var(--danger)' }}>*</span>
+              지적 내용 <span className="text-danger-bar">*</span>
             </div>
             <textarea
               value={description}
@@ -315,36 +310,36 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
           {/* 지적 사진 (최대 5장) */}
           <div>
             <div style={lblStyle}>지적 사진 (최대 5장)</div>
-            <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={photos.handleFiles} />
-            <input ref={photos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
+            <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={photos.handleFiles} />
+            <input ref={photos.albumRef} type="file" accept="image/*" multiple className="hidden" onChange={photos.handleFiles} />
             <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} />
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {/* 기존 사진 (edit mode) */}
               {existingKeys.map((k, i) => (
-                <div key={`ex-${k}`} style={{ position: 'relative', flexShrink: 0 }}>
-                  <img src={`/api/uploads/${k}`} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+                <div key={`ex-${k}`} className="relative shrink-0">
+                  <img src={`/api/uploads/${k}`} alt="" className="w-[72px] h-[72px] object-cover rounded-[10px] border border-border-default block" />
                   <button
                     aria-label="기존 사진 제거"
                     onClick={() => setExistingKeys(prev => prev.filter((_, j) => j !== i))}
-                    style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger-bar border-0 text-white text-[11px] font-bold cursor-pointer flex items-center justify-center leading-none"
                   >✕</button>
                 </div>
               ))}
               {/* 새 업로드 사진 */}
               {photos.slots.map((slot, i) => (
-                <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
-                  <img src={slot.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+                <div key={i} className="relative shrink-0">
+                  <img src={slot.preview} alt="" className="w-[72px] h-[72px] object-cover rounded-[10px] border border-border-default block" />
                   <button
                     aria-label="사진 제거"
                     onClick={() => photos.removeSlot(i)}
-                    style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger-bar border-0 text-white text-[11px] font-bold cursor-pointer flex items-center justify-center leading-none"
                   >✕</button>
-                  {slot.uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>업로드 중</div>}
+                  {slot.uploading && <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)] rounded-[10px] flex items-center justify-center text-[10px] text-white">업로드 중</div>}
                 </div>
               ))}
               {canAddPhoto && (
-                <button onClick={photos.openPicker} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
-                  <span style={{ fontSize: 22 }}>📷</span>사진 첨부
+                <button onClick={photos.openPicker} className="w-[72px] h-[72px] rounded-[10px] bg-surface-sunken border border-dashed border-border-strong text-text-tertiary text-[11px] font-semibold cursor-pointer flex flex-col items-center justify-center gap-1 shrink-0">
+                  <span className="text-[22px]">📷</span>사진 첨부
                 </button>
               )}
             </div>
@@ -352,11 +347,11 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
         </div>
 
         {/* 버튼 영역 */}
-        <div style={{ padding: isDesktopSheet ? '8px 24px 24px' : '4px 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button onClick={handleSubmit} disabled={isSubmitting} style={{ width: '100%', height: 48, background: 'var(--acl)', borderRadius: 10, border: 'none', color: '#fff', fontWeight: 700, fontSize: 14, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.6 : 1 }}>
+        <div className={`flex flex-col gap-2 ${isDesktopSheet ? 'pt-2 px-6 pb-6' : 'pt-1 px-4 pb-8'}`}>
+          <button onClick={handleSubmit} disabled={isSubmitting} className={`w-full h-12 bg-accent rounded-[10px] border-0 text-white font-bold text-[14px] ${isSubmitting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'}`}>
             {isSubmitting ? '처리 중...' : submitLabel}
           </button>
-          <button onClick={onClose} disabled={isSubmitting} style={{ width: '100%', height: 48, background: 'transparent', border: '1px solid var(--bd2)', borderRadius: 10, color: 'var(--t2)', fontSize: 14, cursor: 'pointer' }}>
+          <button onClick={onClose} disabled={isSubmitting} className="w-full h-12 bg-transparent border border-border-strong rounded-[10px] text-text-secondary text-[14px] cursor-pointer">
             취소
           </button>
         </div>
@@ -365,11 +360,11 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
 
   if (isDesktopSheet) {
     return (
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-        <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg2)', borderRadius: 12, width: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
-          <div style={{ padding: '20px 24px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{headerTitle}</div>
-            <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--bg3)', border: 'none', color: 'var(--t2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>✕</button>
+      <div onClick={onClose} className="fixed inset-0 bg-[rgba(0,0,0,0.5)] flex items-center justify-center z-50">
+        <div onClick={e => e.stopPropagation()} className="bg-surface-raised rounded-xl w-[520px] max-h-[85vh] overflow-y-auto shadow-[0_8px_32px_rgba(0,0,0,.18)]">
+          <div className="pt-5 px-6 pb-3 flex items-center justify-between">
+            <div className="text-[16px] font-bold text-text-primary">{headerTitle}</div>
+            <button onClick={onClose} className="w-[28px] h-[28px] rounded-[7px] bg-surface-sunken border-0 text-text-secondary cursor-pointer flex items-center justify-center text-[15px]">✕</button>
           </div>
           {formContent}
         </div>
@@ -378,13 +373,13 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
   }
 
   return (
-    <div onClick={onClose} onTouchMove={e => e.stopPropagation()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 50, overscrollBehavior: 'contain' }}>
-      <div onClick={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', animation: 'slideUp 0.28s ease-out both', maxHeight: '90vh', overflowY: 'auto', overscrollBehavior: 'contain' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          <div style={{ width: 32, height: 4, background: 'var(--bd2)', borderRadius: 2 }} />
+    <div onClick={onClose} onTouchMove={e => e.stopPropagation()} className="fixed inset-0 bg-[rgba(0,0,0,0.6)] flex flex-col justify-end z-50 overscroll-contain">
+      <div onClick={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} className="bg-surface-raised rounded-t-[16px] max-h-[90vh] overflow-y-auto overscroll-contain" style={{ animation: 'slideUp 0.28s ease-out both' }}>
+        <div className="flex justify-center pt-3">
+          <div className="w-[32px] h-1 bg-border-strong rounded-[2px]" />
         </div>
-        <div style={{ padding: '12px 16px 0' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{headerTitle}</div>
+        <div className="pt-3 px-4">
+          <div className="text-[16px] font-bold text-text-primary">{headerTitle}</div>
         </div>
         {formContent}
       </div>
