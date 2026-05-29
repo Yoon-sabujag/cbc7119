@@ -232,7 +232,7 @@ function StaffModalContent({
         </div>
         <div className="form-field">
           <label style={LABEL_STYLE}>생년월일 <span className="form-sub-label text-caption text-text-tertiary">(휴가신청서 자동 채움)</span></label>
-          <input className="form-input" style={INPUT_STYLE} value={form.birthDate} onChange={setField('birthDate')} type="date" />
+          <input className="form-input appearance-none [-webkit-appearance:none]" style={INPUT_STYLE} value={form.birthDate} onChange={setField('birthDate')} type="date" />
         </div>
         <div className="form-field">
           <label style={LABEL_STYLE}>직책</label>
