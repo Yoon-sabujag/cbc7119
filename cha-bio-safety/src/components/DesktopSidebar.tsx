@@ -36,40 +36,24 @@ export function DesktopSidebar({ unresolvedCount, onSettingsOpen }: DesktopSideb
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <div data-no-print style={{
-      width: 280,
-      flexShrink: 0,
-      height: '100dvh',
-      background: 'var(--bg2)',
-      borderRight: '1px solid var(--bd)',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
+    <div
+      data-no-print
+      className="w-[280px] flex-shrink-0 h-dvh bg-surface-raised border-r border-border-default flex flex-col"
+    >
       {/* ── 로고 스트립 ─────────────────────────────────────────── */}
       <div
         onClick={() => navigate('/dashboard')}
-        style={{
-          height: 54,
-          boxSizing: 'border-box',
-          padding: '0 16px',
-          background: 'var(--bg2)',
-          borderBottom: '1px solid var(--bd)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          flexShrink: 0,
-          cursor: 'pointer',
-        }}
+        className="h-[54px] box-border px-4 bg-surface-raised border-b border-border-default flex items-center gap-2.5 flex-shrink-0 cursor-pointer"
       >
-        <img src="/icons/icon-192.png" alt="" style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0 }} />
+        <img src="/icons/icon-192.png" alt="" className="w-[30px] h-[30px] rounded-[8px] flex-shrink-0" />
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>차바이오컴플렉스</div>
-          <div style={{ fontSize: 9.5, color: 'var(--t3)', marginTop: 1 }}>소방안전 통합관리</div>
+          <div className="text-[13px] font-bold text-text-primary">차바이오컴플렉스</div>
+          <div className="text-[9.5px] text-text-tertiary mt-px">소방안전 통합관리</div>
         </div>
       </div>
 
       {/* ── 스크롤 가능 네비 (flex: 1) ────────────────────────────────── */}
-      <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly' }}>
+      <div className="flex-1 overflow-auto flex flex-col justify-evenly">
         {DESKTOP_SECTIONS.map(section => {
           const isCollapsed = collapsed[section.label] === true
           return (
@@ -77,24 +61,10 @@ export function DesktopSidebar({ unresolvedCount, onSettingsOpen }: DesktopSideb
               {/* 섹션 라벨 */}
               <button
                 onClick={() => toggleSection(section.label)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '100%',
-                  textAlign: 'left',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: 'var(--t2)',
-                  textTransform: 'uppercase',
-                  padding: '8px 16px 4px',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  letterSpacing: '0.05em',
-                }}
+                className="flex items-center w-full text-left text-[11px] font-bold text-text-secondary uppercase pt-2 px-4 pb-1 bg-transparent border-0 cursor-pointer tracking-[0.05em]"
               >
-                <span style={{ flex: 1 }}>{section.label}</span>
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.15s', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+                <span className="flex-1">{section.label}</span>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${isCollapsed ? '-rotate-90' : 'rotate-0'}`}>
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
@@ -130,43 +100,19 @@ export function DesktopSidebar({ unresolvedCount, onSettingsOpen }: DesktopSideb
       </div>
 
       {/* ── 사용자 카드 (56px) ────────────────────────────────────────── */}
-      <div style={{
-        height: 56,
-        background: 'var(--bg2)',
-        borderTop: '1px solid var(--bd)',
-        padding: '0 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-          <span style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'var(--t1)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
+      <div className="h-14 bg-surface-raised border-t border-border-default px-4 flex items-center justify-between flex-shrink-0">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[12px] font-bold text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">
             {staff?.name ?? ''}
           </span>
-          <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--t2)' }}>
+          <span className="text-[11px] font-normal text-text-secondary">
             {staff?.role === 'admin' ? '관리자' : '부관리자'}
           </span>
         </div>
         <button
           onClick={onSettingsOpen}
           aria-label="설정"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 4,
-            display: 'flex',
-            alignItems: 'center',
-            opacity: 0.8,
-          }}
+          className="bg-transparent border-0 cursor-pointer p-1 flex items-center opacity-80"
           onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
           onMouseLeave={e => (e.currentTarget.style.opacity = '0.8')}
         >
@@ -189,54 +135,18 @@ interface NavItemProps {
 function NavItem({ label, active, soon, badge, onClick }: NavItemProps) {
   const [hovered, setHovered] = useState(false)
 
-  const bg = active ? 'var(--bg4)' : hovered ? 'var(--bg3)' : 'transparent'
-  const color = soon ? 'var(--t3)' : active ? 'var(--acl)' : 'var(--t1)'
-
   return (
     <button
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        width: '100%',
-        height: 36,
-        padding: '0 16px',
-        background: bg,
-        border: 'none',
-        borderLeft: active ? '3px solid var(--acl)' : '3px solid transparent',
-        cursor: soon ? 'default' : 'pointer',
-        pointerEvents: soon ? 'none' : 'auto',
-        textAlign: 'left',
-        gap: 4,
-      }}
+      className={`flex items-center w-full h-9 px-4 border-0 text-left gap-1 ${active ? 'bg-surface-active border-l-[3px] border-l-accent' : hovered ? 'bg-surface-sunken border-l-[3px] border-l-transparent' : 'bg-transparent border-l-[3px] border-l-transparent'} ${soon ? 'cursor-default pointer-events-none' : 'cursor-pointer'}`}
     >
-      <span style={{
-        flex: 1,
-        fontSize: 14,
-        fontWeight: 400,
-        color,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>
+      <span className={`flex-1 text-[14px] font-normal overflow-hidden text-ellipsis whitespace-nowrap ${soon ? 'text-text-tertiary' : active ? 'text-accent' : 'text-text-primary'}`}>
         {label}
       </span>
       {badge > 0 && (
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 16,
-          height: 16,
-          borderRadius: 8,
-          background: 'var(--danger)',
-          color: '#fff',
-          fontSize: 11,
-          fontWeight: 700,
-          flexShrink: 0,
-        }}>
+        <span className="inline-flex items-center justify-center w-4 h-4 rounded-[8px] bg-danger-bar text-white text-[11px] font-bold flex-shrink-0">
           {badge}
         </span>
       )}

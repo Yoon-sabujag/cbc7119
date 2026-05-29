@@ -357,15 +357,10 @@ export function ExcelPreview({ reportType, year, month }: ExcelPreviewProps) {
   return (
     <div
       ref={containerRef}
-      style={{
-        width: '100%', height: '100%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        overflow: 'hidden', background: 'var(--bg)',
-        position: 'relative',
-      }}
+      className="w-full h-full flex items-center justify-center overflow-hidden bg-surface-page relative"
     >
       {!reportType && (
-        <span style={{ fontSize: 14, color: 'var(--t2)' }}>좌측에서 점검일지를 선택하세요.</span>
+        <span className="text-[14px] text-text-secondary">좌측에서 점검일지를 선택하세요.</span>
       )}
 
       {reportType && previewSrc && (
@@ -375,12 +370,7 @@ export function ExcelPreview({ reportType, year, month }: ExcelPreviewProps) {
             src={previewSrc}
             alt=""
             onLoad={measure}
-            style={{
-              maxWidth: '100%', maxHeight: '100%',
-              objectFit: 'contain',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-              borderRadius: 4, background: '#fff',
-            }}
+            className="max-w-full max-h-full object-contain shadow-[0_4px_24px_rgba(0,0,0,0.3)] rounded bg-white"
           />
 
           {/* 오버레이 + 캘리브레이션 영역 */}
@@ -432,38 +422,29 @@ export function ExcelPreview({ reportType, year, month }: ExcelPreviewProps) {
 
           {/* 캘리브레이션 안내 바 */}
           {calibMode && (
-            <div style={{
-              position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-              background: 'rgba(0,0,0,0.9)', color: '#fff',
-              padding: '10px 20px', borderRadius: 10,
-              fontSize: 14, fontWeight: 700,
-              display: 'flex', alignItems: 'center', gap: 16, zIndex: 10,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            }}>
-              <span style={{
-                width: 24, height: 24, borderRadius: '50%',
-                background: CALIB_STEPS[calibStep].color,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12,
-              }}>{calibStep + 1}</span>
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-[rgba(0,0,0,0.9)] text-white px-5 py-2.5 rounded-[10px] text-[14px] font-bold flex items-center gap-4 z-10 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+              <span
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[12px]"
+                style={{ background: CALIB_STEPS[calibStep].color }}
+              >{calibStep + 1}</span>
               <span>{CALIB_STEPS[calibStep].label}</span>
-              <span style={{ fontSize: 11, color: '#aaa' }}>{activePoint ? '위치를 확인하세요' : '터치 후 드래그'}</span>
+              <span className="text-[11px] text-[#aaa]">{activePoint ? '위치를 확인하세요' : '터치 후 드래그'}</span>
               {activePoint && (
-                <button onClick={confirmPoint} style={{
-                  background: '#22c55e', border: 'none', color: '#fff',
-                  padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700,
-                }}>확인</button>
+                <button
+                  onClick={confirmPoint}
+                  className="bg-[#22c55e] border-0 text-white px-4 py-1.5 rounded-[6px] cursor-pointer text-[13px] font-bold"
+                >확인</button>
               )}
               {CALIB_STEPS[calibStep].skip && !activePoint && (
-                <button onClick={skipPoint} style={{
-                  background: 'rgba(255,255,255,0.3)', border: 'none', color: '#fff',
-                  padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12,
-                }}>스킵</button>
+                <button
+                  onClick={skipPoint}
+                  className="bg-white/30 border-0 text-white px-3.5 py-1.5 rounded-[6px] cursor-pointer text-[12px]"
+                >스킵</button>
               )}
-              <button onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }} style={{
-                background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
-                padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12,
-              }}>취소</button>
+              <button
+                onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }}
+                className="bg-white/15 border-0 text-white px-3.5 py-1.5 rounded-[6px] cursor-pointer text-[12px]"
+              >취소</button>
             </div>
           )}
 
@@ -471,25 +452,15 @@ export function ExcelPreview({ reportType, year, month }: ExcelPreviewProps) {
           {!calibMode && !isDivType && (
             <button
               onClick={() => { setCalibMode(true); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }}
-              style={{
-                position: 'absolute', bottom: 12, right: 12,
-                background: hasCalib ? 'rgba(0,0,0,0.6)' : 'rgba(239,68,68,0.9)',
-                color: '#fff', border: 'none',
-                padding: '8px 16px', borderRadius: 8,
-                fontSize: 12, fontWeight: 700, cursor: 'pointer', zIndex: 10,
-              }}
+              className={`absolute bottom-3 right-3 text-white border-0 px-4 py-2 rounded-[8px] text-[12px] font-bold cursor-pointer z-10 ${hasCalib ? 'bg-[rgba(0,0,0,0.6)]' : 'bg-[rgba(239,68,68,0.9)]'}`}
             >
               {hasCalib ? '위치 재설정' : '⚠ 위치 설정'}
             </button>
           )}
 
           {isLoading && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(255,255,255,0.7)', borderRadius: 4,
-            }}>
-              <span style={{ fontSize: 12, color: '#666' }}>데이터 로딩 중...</span>
+            <div className="absolute inset-0 flex items-center justify-center bg-white/70 rounded">
+              <span className="text-[12px] text-[#666]">데이터 로딩 중...</span>
             </div>
           )}
         </>
@@ -501,33 +472,27 @@ export function ExcelPreview({ reportType, year, month }: ExcelPreviewProps) {
 // ── 캘리브레이션 마커 ───────────────────────────────────────
 function CalibMarker({ x, y, color, label, active }: { x: number; y: number; color: string; label: string; active?: boolean }) {
   return (
-    <div style={{
-      position: 'absolute',
-      left: `${x}%`, top: `${y}%`,
-      transform: 'translate(-50%, -50%)',
-      pointerEvents: 'none',
-    }}>
+    <div
+      className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+      style={{ left: `${x}%`, top: `${y}%` }}
+    >
       {/* 십자선 */}
-      <div style={{
-        position: 'absolute', left: -20, top: 0,
-        width: 40, height: 2, background: color, opacity: 0.8,
-      }} />
-      <div style={{
-        position: 'absolute', top: -20, left: 0,
-        width: 2, height: 40, background: color, opacity: 0.8,
-      }} />
+      <div
+        className="absolute -left-5 top-0 w-10 h-0.5 opacity-80"
+        style={{ background: color }}
+      />
+      <div
+        className="absolute -top-5 left-0 w-0.5 h-10 opacity-80"
+        style={{ background: color }}
+      />
       {/* 중심점 */}
-      <div style={{
-        width: active ? 20 : 16, height: active ? 20 : 16,
-        borderRadius: '50%',
-        background: color,
-        border: `2px solid #fff`,
-        boxShadow: `0 2px 8px rgba(0,0,0,0.4)`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 10, fontWeight: 900, color: '#fff',
-        transform: 'translate(-50%, -50%)',
-        position: 'absolute', left: 0, top: 0,
-      }}>
+      <div
+        className="rounded-full border-2 border-white shadow-[0_2px_8px_rgba(0,0,0,0.4)] flex items-center justify-center text-[10px] font-black text-white -translate-x-1/2 -translate-y-1/2 absolute left-0 top-0"
+        style={{
+          width: active ? 20 : 16, height: active ? 20 : 16,
+          background: color,
+        }}
+      >
         {label}
       </div>
     </div>
