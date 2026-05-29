@@ -41,9 +41,13 @@ export const onRequestPut: PagesFunction<Env> = async ({ params, request, env })
 
 // DELETE /api/floorplan-markers/:id — 마커 삭제 (로그인한 전체 스태프)
 //
-// 소화기(plan_type='extinguisher' + check_point_id LIKE 'CP-FE-%')인 경우
-// floor_plan_markers / extinguishers / check_points.is_active 3 테이블을 atomic 으로 정리한다.
-// 그 외 마커(guidelamp/sprinkler/detector 등)는 기존과 동일하게 단일 DELETE 만 수행한다.
+// 분기 동작:
+//   (A) 소화기(plan_type='extinguisher' + check_point_id LIKE 'CP-FE-%'): floor_plan_markers /
+//       extinguishers / check_points.is_active 3 테이블 atomic 정리.
+//   (B) 그 외 마커 with cp_id (예: indoor_hydrant/descending_lifeline 의 자동 cp 링크):
+//       check_records=0 AND 다른 marker=0 일 때만 marker+cp atomic DELETE,
+//       아니면 marker 만 DELETE (cp 보존).
+//   (C) cp_id 없는 마커: 단일 DELETE.
 //
 // 절대 금지: check_records 는 어떤 분기에서도 삭제하지 않는다 (점검 기록 보존 원칙).
 export const onRequestDelete: PagesFunction<Env> = async ({ params, env }) => {
@@ -71,7 +75,38 @@ export const onRequestDelete: PagesFunction<Env> = async ({ params, env }) => {
       env.DB.prepare("UPDATE extinguishers SET check_point_id=NULL, updated_at=datetime('now','+9 hours') WHERE check_point_id=?").bind(cpId),
       env.DB.prepare('UPDATE check_points SET is_active=0 WHERE id=?').bind(cpId),
     ])
+  } else if (cpId) {
+    // 일반 cp cascade 가드:
+    // POST /api/floorplan-markers 가 indoor_hydrant/descending_lifeline 등에 대해 cp 를 자동 INSERT 하므로,
+    // DELETE 도 대칭으로 정리해야 orphan 발생 안 함. 단 두 안전 가드 동시 충족 시에만 cp 도 DELETE:
+    //   (1) 해당 cp 에 check_records 가 0건 (점검 기록 보존 절대 원칙)
+    //   (2) 동일 cp_id 를 참조하는 다른 marker 가 0건 (다른 도면/페어링 보호)
+    // 한 가드라도 위반하면 기존처럼 marker 만 DELETE, cp 는 보존.
+    //
+    // 소화기 분기 (isExtCascade) 는 위에서 처리되어 이 분기에 도달하지 않음.
+    // 절대 금지: check_records 는 어떤 분기에서도 DELETE 하지 않는다.
+    const [recRow, otherMarkerRow] = await Promise.all([
+      env.DB.prepare('SELECT COUNT(*) AS c FROM check_records WHERE check_point_id=?').bind(cpId).first<{ c: number }>(),
+      env.DB.prepare('SELECT COUNT(*) AS c FROM floor_plan_markers WHERE check_point_id=? AND id<>?').bind(cpId, id).first<{ c: number }>(),
+    ])
+    const recordCount = recRow?.c ?? 0
+    const otherMarkerCount = otherMarkerRow?.c ?? 0
+    const canCascadeCp = recordCount === 0 && otherMarkerCount === 0
+
+    if (canCascadeCp) {
+      // D1 batch 는 atomic — 둘 다 성공 또는 둘 다 롤백.
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM floor_plan_markers WHERE id=?').bind(id),
+        env.DB.prepare('DELETE FROM check_points WHERE id=?').bind(cpId),
+      ])
+      console.log(`[floorplan-markers DELETE] cascade marker+cp: marker=${id}, cp=${cpId}`)
+    } else {
+      // cp 보존 — 기존 동작.
+      await env.DB.prepare('DELETE FROM floor_plan_markers WHERE id=?').bind(id).run()
+      console.log(`[floorplan-markers DELETE] marker-only (cp preserved): marker=${id}, cp=${cpId}, records=${recordCount}, other_markers=${otherMarkerCount}`)
+    }
   } else {
+    // cp 가 애초에 연결 안 된 마커 — 단일 DELETE.
     await env.DB.prepare('DELETE FROM floor_plan_markers WHERE id=?').bind(id).run()
   }
 
