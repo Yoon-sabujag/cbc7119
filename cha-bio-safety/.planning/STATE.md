@@ -136,3 +136,4 @@ Resume file: .planning/ROADMAP.md
 | 2026-05-04 | fast | InspectionPage 헤더 '리스트' → '소화기 관리' 변경 | ✅ |
 | 2026-05-29 | fast | StaffManage + Checkpoints 모달 z-[50] → z-[200] (BottomNav z:100 위로 — 모바일 모달 접근 불가 fix, 기존 버그) | ✅ |
 | 2026-05-29 | fast | StaffManage + Checkpoints BottomSheet → InspectionPage 표준 Pattern A 재설계 (z-[200] hack revert + bottom:NAV_BOTTOM + maxHeight:calc(100dvh-54px-safe)) | ✅ |
+| 2026-05-29 | fast | StaffManage + Checkpoints 모달 input 가로 overflow + 좌우 스크롤 차단 fix (INPUT_STYLE minWidth:0 + sheet overflow-x-hidden) | ✅ |
