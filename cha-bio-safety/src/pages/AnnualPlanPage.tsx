@@ -166,7 +166,7 @@ export default function AnnualPlanPage() {
         >
           <ChevronLeft size={15} className="text-text-secondary" />
         </button>
-        <span className="text-body font-bold text-text-primary" style={{ flex:1 }}>연간 업무 추진 계획</span>
+        <span className="text-title font-semibold text-text-primary flex-1">연간 업무 추진 계획</span>
         <button
           onClick={() => setCalibMode(m => !m)}
           className={`text-caption font-bold leading-none rounded-sm border px-2.5 h-7 inline-flex items-center cursor-pointer ${calibMode ? 'border-accent bg-accent/10 text-accent' : 'bg-surface-sunken border-border-strong text-text-secondary'}`}

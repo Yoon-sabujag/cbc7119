@@ -276,7 +276,7 @@ export default function RemediationDetailPage() {
         >
           <ChevronLeft size={20} />
         </button>
-        <span className="text-base font-bold leading-tight text-text-primary">조치 상세</span>
+        <span className="text-title font-semibold text-text-primary">조치 상세</span>
       </div>
 
       {/* 로딩 */}

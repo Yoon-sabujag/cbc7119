@@ -364,7 +364,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
       <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <StairsIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary leading-tight truncate">
+          <div className="text-title font-semibold text-text-primary leading-tight truncate">
             {group.labels[0]}
             {group.labels.length > 1 && (
               <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>
@@ -613,7 +613,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
       <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <Video size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary truncate">CCTV 점검</div>
+          <div className="text-title font-semibold text-text-primary truncate">CCTV 점검</div>
         </div>
         {allDone && !justSaved && (
           <div className="text-caption font-semibold text-safe bg-safe-bg border border-safe-bar rounded-sm px-2 py-0.5 flex-shrink-0 inline-flex items-center gap-1">
@@ -836,7 +836,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
       <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <SmokeVentIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1">
-          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
+          <div className="text-title font-semibold text-text-primary">{group.labels[0]}</div>
         </div>
       </div>
 
@@ -1541,7 +1541,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
       {/* 헤더 */}
       <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <BarChart3 size={18} className="text-text-secondary" />
-        <span className="text-body font-bold text-text-primary">DIV 점검</span>
+        <span className="text-title font-semibold text-text-primary">DIV 점검</span>
         {currentPt && totalSteps && (
           <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
@@ -2041,7 +2041,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       {/* 헤더 */}
       <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <Wind size={18} className="text-text-secondary" />
-        <span className="text-body font-bold text-text-primary">컴프레셔 점검</span>
+        <span className="text-title font-semibold text-text-primary">컴프레셔 점검</span>
         {mode !== 'from-div' && currentPt && totalSteps && (
           <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
@@ -2366,7 +2366,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
       <div className="flex items-center h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Zap size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
+          <div className="text-title font-semibold text-text-primary">{group.labels[0]}</div>
         </div>
       </div>
 
@@ -2618,7 +2618,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
       <div className="flex items-center h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Car size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary truncate">
+          <div className="text-title font-semibold text-text-primary truncate">
             {group.labels[0]}
             {group.labels.length > 1 && (
               <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>
@@ -3005,7 +3005,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
       <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <Shield className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
         <div className="flex-1">
-          <div className="text-body font-bold text-text-primary truncate">
+          <div className="text-title font-semibold text-text-primary truncate">
             {group.labels[0]}
             {group.labels.length > 1 && (
               <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>
@@ -3844,7 +3844,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       <div className="shrink-0 bg-surface-page border-b border-border-default h-12 px-3 flex items-center gap-2.5">
         {HeaderIcon && <HeaderIcon size={22} className="text-text-secondary shrink-0" />}
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary truncate">
+          <div className="text-title font-semibold text-text-primary truncate">
             {group.labels[0]}
             {group.labels.length > 1 && (
               <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>

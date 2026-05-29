@@ -601,7 +601,7 @@ export default function ElevatorPage() {
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 14/700) */}
         <header className="flex-shrink-0 h-14 bg-surface-raised border-b border-border-default px-5 flex items-center gap-2.5">
-          <span className="flex-1 text-body font-bold text-text-primary">승강기 관리</span>
+          <span className="flex-1 text-title font-semibold text-text-primary">승강기 관리</span>
           {unresolvedCount > 0 && (
             <span className="inline-flex items-center gap-1 h-7 text-caption font-bold text-fire bg-fire-bg border border-fire-bar rounded-pill px-2.5">
               <AlertTriangle size={12} />
