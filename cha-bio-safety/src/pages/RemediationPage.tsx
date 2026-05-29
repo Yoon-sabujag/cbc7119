@@ -179,11 +179,7 @@ export default function RemediationPage() {
       >
         {/* 좌측 색바 — sketch .rem-card-bar.fire/.safe: status 기준 (status=open→fire-bar, resolved→safe-bar) */}
         <div
-          className="w-1 rounded-[2px] shrink-0"
-          style={{
-            background: record.status === 'open' ? 'var(--status-fire-bar)' : 'var(--status-safe-bar)',
-            alignSelf: 'stretch',
-          }}
+          className={`w-1 rounded-[2px] shrink-0 self-stretch ${record.status === 'open' ? 'bg-fire-bar' : 'bg-safe-bar'}`}
         />
         {/* 우측 컨텐츠 */}
         <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
@@ -242,30 +238,14 @@ export default function RemediationPage() {
   // 필터 바 (모바일/데스크톱 공용)
   // sketch .rem-filter-bar: bg-surface-raised border-b border-border-default shrink-0
   const filterBar = (
-    <div
-      className="shrink-0 border-b border-border-default"
-      style={{ background: 'var(--surface-raised)' }}
-    >
+    <div className="shrink-0 border-b border-border-default bg-surface-raised">
       {/* 탭 — sketch .rem-tabs: flex h-[44px] border-b border-border-default */}
       <div className="flex border-b border-border-default">
         {STATUS_TABS.map(tab => (
           <button
             key={tab.key}
             onClick={() => setStatusTab(tab.key)}
-            style={{
-              flex: 1,
-              height: 44,
-              border: 'none',
-              // sketch .rem-tab: font-size 13px font-weight 600 (sketch L338-L339)
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'color .13s',
-              // sketch .rem-tab.is-active: bg surface-active color text-primary border-bottom 2px accent
-              background: statusTab === tab.key ? 'var(--surface-active)' : 'transparent',
-              color: statusTab === tab.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
-              borderBottom: statusTab === tab.key ? '2px solid var(--accent)' : '2px solid transparent',
-            }}
+            className={`flex-1 h-11 border-0 text-[13px] font-semibold cursor-pointer transition-colors duration-[130ms] border-b-2 ${statusTab === tab.key ? 'bg-surface-active text-text-primary border-accent' : 'bg-transparent text-text-tertiary border-transparent'}`}
           >
             {tab.label}
           </button>
@@ -277,18 +257,7 @@ export default function RemediationPage() {
         <select
           value={categoryFilter}
           onChange={e => setCategoryFilter(e.target.value)}
-          style={{
-            flex: 1,
-            height: 36,
-            background: 'var(--surface-sunken)',
-            border: '1px solid var(--border-strong)',
-            borderRadius: 8,
-            color: 'var(--text-primary)',
-            fontSize: 12,
-            padding: '0 8px',
-            cursor: 'pointer',
-            minWidth: 0,
-          }}
+          className="flex-1 h-9 bg-surface-sunken border border-border-strong rounded-sm text-text-primary text-[12px] px-2 cursor-pointer min-w-0"
         >
           <option value="">전체 카테고리</option>
           {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -298,20 +267,7 @@ export default function RemediationPage() {
             <button
               key={btn.value}
               onClick={() => setDays(btn.value)}
-              style={{
-                // sketch .rem-period-btn: h-8 px-3 rounded-sm text-caption font-bold border-none cursor-pointer whitespace-nowrap
-                height: 32,
-                padding: '0 12px',
-                borderRadius: 8,
-                border: 'none',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                // sketch active: bg surface-active color text-primary / inactive: bg transparent color tertiary
-                background: days === btn.value ? 'var(--surface-active)' : 'transparent',
-                color: days === btn.value ? 'var(--text-primary)' : 'var(--text-tertiary)',
-              }}
+              className={`h-7 px-3 rounded-sm border-0 text-[12px] font-bold cursor-pointer whitespace-nowrap ${days === btn.value ? 'bg-surface-active text-text-primary' : 'bg-transparent text-text-tertiary'}`}
             >
               {btn.label}
             </button>
@@ -543,29 +499,14 @@ export default function RemediationPage() {
       <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
       {/* 필터 바 — sketch .rem-filter-bar: position sticky top-0 z-10 */}
-      <div
-        className="shrink-0 border-b border-border-default"
-        style={{ background: 'var(--surface-raised)', position: 'sticky', top: 0, zIndex: 10 }}
-      >
+      <div className="shrink-0 border-b border-border-default bg-surface-raised sticky top-0 z-10">
         {/* 상태 탭 — sketch .rem-tabs: flex h-[44px] border-b border-border-default */}
         <div className="flex border-b border-border-default">
           {STATUS_TABS.map(tab => (
             <button
               key={tab.key}
               onClick={() => setStatusTab(tab.key)}
-              style={{
-                flex: 1,
-                height: 44,
-                border: 'none',
-                // sketch .rem-tab: font-size 13px font-weight 600 (L338-L339)
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'color .13s',
-                background: statusTab === tab.key ? 'var(--surface-active)' : 'transparent',
-                color: statusTab === tab.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                borderBottom: statusTab === tab.key ? '2px solid var(--accent)' : '2px solid transparent',
-              }}
+              className={`flex-1 h-11 border-0 text-[13px] font-semibold cursor-pointer transition-colors duration-[130ms] border-b-2 ${statusTab === tab.key ? 'bg-surface-active text-text-primary border-accent' : 'bg-transparent text-text-tertiary border-transparent'}`}
             >
               {tab.label}
             </button>
@@ -578,18 +519,7 @@ export default function RemediationPage() {
           <select
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            style={{
-              flex: 1,
-              height: 36,
-              background: 'var(--surface-sunken)',
-              border: '1px solid var(--border-strong)',
-              borderRadius: 8,
-              color: 'var(--text-primary)',
-              fontSize: 12,
-              padding: '0 8px',
-              cursor: 'pointer',
-              minWidth: 0,
-            }}
+            className="flex-1 h-9 bg-surface-sunken border border-border-strong rounded-sm text-text-primary text-[12px] px-2 cursor-pointer min-w-0"
           >
             <option value="">전체 카테고리</option>
             {categories.map(cat => (
@@ -602,19 +532,7 @@ export default function RemediationPage() {
               <button
                 key={btn.value}
                 onClick={() => setDays(btn.value)}
-                style={{
-                  height: 32,
-                  padding: '0 12px',
-                  borderRadius: 8,
-                  border: 'none',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  background: days === btn.value ? 'var(--surface-active)' : 'transparent',
-                  color: days === btn.value ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                  transition: 'all 0.15s',
-                }}
+                className={`h-7 px-3 rounded-sm border-0 text-[12px] font-bold cursor-pointer whitespace-nowrap transition-all duration-150 ${days === btn.value ? 'bg-surface-active text-text-primary' : 'bg-transparent text-text-tertiary'}`}
               >
                 {btn.label}
               </button>
@@ -664,11 +582,7 @@ export default function RemediationPage() {
           >
             {/* 좌측 색바 — status 기준: open→fire-bar, resolved→safe-bar */}
             <div
-              className="w-1 rounded-[2px] shrink-0"
-              style={{
-                background: record.status === 'open' ? 'var(--status-fire-bar)' : 'var(--status-safe-bar)',
-                alignSelf: 'stretch',
-              }}
+              className={`w-1 rounded-[2px] shrink-0 self-stretch ${record.status === 'open' ? 'bg-fire-bar' : 'bg-safe-bar'}`}
             />
             <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
               {/* Line 1: 카테고리 + 결과 배지 */}
