@@ -9,11 +9,9 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 260529-kcs floorplan marker DELETE cascade cp + 테스트 orphan cp 2건 cleanup 완료
-진행 작업:       없음
-기준 production: `9f39a8f` (fix: checkpoint_id 컬럼명 정정) — 9492ad8 의 else 분기 + 9f39a8f 의 column fix 동시 포함
-마지막 동기화:   2026-05-29
-마지막 배포 URL: https://1caef8ca.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+상태:           작업중 (IN_PROGRESS) — 260529-lzh CP-B3-7-BC 누락 record 회복 INSERT + FloorPlanPage paired BC fetch race 가드
+진행 작업:       quick 260529-lzh: (1) D1 INSERT — CP-B3-7-BC 에 SH 짝꿍 (record `Z4FJ3Wa6V1Nv98VoJi5we`, session `nyD6soJiiNYaOE4cZeMHw`, staff 2022051052, checked_at 2026-05-29 13:49:09, result normal, status open) 와 동일 timestamp/staff/result/session 으로 record 1건 회복 (4-28 id1 패턴). (2) FloorPlanPage L413-427 paired BC fetch 에 loading state + L1924 저장 disabled 가드 추가 — fetch 미완료 상태 저장 시 BC 누락 race 차단.
+기준 production: `6136a0e` (docs: 260529-kcs 마무리) — 작업 시작 commit, 작업 완료 후 갱신
 ```
 
 **상태 의미**:
