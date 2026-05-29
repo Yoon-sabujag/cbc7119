@@ -9,9 +9,9 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 260529-gcj registry 실험 rollback 완료, 6d0b69a 시점 동등
-진행 작업:       없음
-기준 production: `62d947c` (revert: 260529-gcj rollback) — 동작 측면 = `6d0b69a` 와 동등
+상태:           작업중 (IN_PROGRESS) — 260529-kcs floorplan marker DELETE cascade cp + 테스트 cp cleanup
+진행 작업:       quick 260529-kcs: DELETE /api/floorplan-markers/:id 의 else 분기 보강 (cp_id + check_records 0 건 가드 후 cp 동시 DELETE) + 사무동 8-1F / 연구동 8F 의 "테스트" cp 정리. branch=production. 배포 포함.
+기준 production: `7b1f3ff` (docs: 260529-gcj rollback 기록) — 동작 측면 = `6d0b69a` 와 동등
 마지막 동기화:   2026-05-29
 마지막 배포 URL: https://37ba8635.cbc7119.pages.dev (production alias = cbc7119.pages.dev) — rollback 재배포
 ```
