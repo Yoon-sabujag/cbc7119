@@ -11,9 +11,9 @@
 ```
 상태:           안정 (SYNCED) — 인수 인계장 + 업무 관련 리스트 신규 도입 완료
 진행 작업:       없음
-기준 production: `1002a9e` (feat: handover + work-list 신규 페이지 2종 + migration 0089/0090)
+기준 production: `f4c0bed` (ui: work-list 비밀번호 토글 아이콘 중앙정렬)
 마지막 동기화:   2026-05-30
-마지막 배포 URL: https://b2a2e0f3.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+마지막 배포 URL: https://29ee05fc.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
 ```
 
 **상태 의미**:
