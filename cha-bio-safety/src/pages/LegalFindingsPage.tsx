@@ -194,8 +194,11 @@ export default function LegalFindingsPage() {
 
   const isDesktop = useIsDesktop()
 
-  // ── 관리자 도구 바 ──
-  const adminBar = role === 'admin' && round ? (
+  // 제출 완료(종결) = 지적/조치 신규 등록·수정·삭제 잠금
+  const isLocked = round?.submissionStatus === 'completed'
+
+  // ── 관리자 도구 바 (데스크톱 전용 — 모바일은 결과 입력/저장·보고서·일괄 다운로드 제거) ──
+  const adminBar = role === 'admin' && round && isDesktop ? (
     <div
       className={`bg-surface-raised border-b border-border-default flex gap-2 items-center flex-shrink-0 flex-wrap py-2 ${isDesktop ? 'px-6' : 'px-4'}`}
     >
@@ -251,22 +254,24 @@ export default function LegalFindingsPage() {
       <div className="text-caption leading-none text-text-secondary">{finding.location ?? '위치 미지정'}</div>
       <div className="flex items-center justify-between">
         <span className="text-caption leading-none text-text-tertiary">{fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}</span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); setEditingFinding(finding) }}
-            className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-[2px]"
-          >수정</button>
-          <button
-            onClick={(e) => handleDeleteFinding(e, finding)}
-            className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-[2px]"
-          >삭제</button>
-        </div>
+        {!isLocked && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditingFinding(finding) }}
+              className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-[2px]"
+            >수정</button>
+            <button
+              onClick={(e) => handleDeleteFinding(e, finding)}
+              className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-[2px]"
+            >삭제</button>
+          </div>
+        )}
       </div>
     </div>
   )
 
-  // ── 등록 버튼 ──
-  const addButton = (
+  // ── 등록 버튼 (제출 완료 시 잠금 → 미표시) ──
+  const addButton = isLocked ? null : (
     <button
       onClick={() => setShowSheet(true)}
       className={`text-text-on-accent font-bold border-0 cursor-pointer flex-shrink-0 ${isDesktop ? 'rounded-sm w-auto h-[36px] text-[13px] px-4' : 'rounded-md w-full h-8 text-[14px]'}`}
@@ -309,6 +314,13 @@ export default function LegalFindingsPage() {
 
       {adminBar}
 
+      {/* 제출 완료 잠금 안내 */}
+      {isLocked && (
+        <div className={`bg-safe-bg text-safe text-caption font-bold border-b border-border-default text-center flex-shrink-0 py-2 ${isDesktop ? 'px-7' : 'px-4'}`}>
+          제출 완료된 점검 — 지적/조치사항 등록·수정·삭제 불가
+        </div>
+      )}
+
       {/* 콘텐츠 영역 */}
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
@@ -323,18 +335,18 @@ export default function LegalFindingsPage() {
           목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.
         </div>
       ) : (
-        <div className={`flex-1 overflow-y-auto flex flex-col gap-2 ${isDesktop ? 'px-7 py-4 pb-6 max-w-[800px]' : 'px-4 py-3 pb-[calc(72px+var(--sab,0px))]'}`}>
+        <div className={`flex-1 overflow-y-auto flex flex-col gap-2 ${isDesktop ? 'px-7 py-4 pb-6 max-w-[800px]' : isLocked ? 'px-4 py-3 pb-6' : 'px-4 py-3 pb-[calc(72px+var(--sab,0px))]'}`}>
           {sortedFindings.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-2 px-4 py-[60px]">
               <div className="text-body font-bold text-text-primary">지적사항 없음</div>
-              <div className="text-caption text-text-secondary text-center">현장에서 지적된 항목을 등록하려면 {isDesktop ? '상단' : '아래'} 버튼을 누르세요.</div>
+              <div className="text-caption text-text-secondary text-center">{isLocked ? '제출 완료된 점검입니다.' : `현장에서 지적된 항목을 등록하려면 ${isDesktop ? '상단' : '아래'} 버튼을 누르세요.`}</div>
             </div>
           ) : sortedFindings.map(findingCard)}
         </div>
       )}
 
-      {/* 모바일 고정 하단 CTA */}
-      {!isDesktop && (
+      {/* 모바일 고정 하단 CTA (제출 완료 시 잠금 → 미표시) */}
+      {!isDesktop && !isLocked && (
         <div
           className="bg-surface-page border-t border-border-default fixed bottom-0 left-0 right-0 px-4 pt-3 pb-[calc(12px+var(--sab,0px))] z-20"
         >

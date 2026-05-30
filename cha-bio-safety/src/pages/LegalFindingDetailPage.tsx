@@ -55,6 +55,14 @@ export default function LegalFindingDetailPage() {
     enabled: !!id && !!fid,
   })
 
+  // 라운드 제출 상태 — 제출 완료(종결) 시 조치(신규 등록) 잠금
+  const { data: round } = useQuery({
+    queryKey: ['legal-round', id],
+    queryFn: () => legalApi.get(id!),
+    enabled: !!id,
+  })
+  const isLocked = round?.submissionStatus === 'completed'
+
   const resolveMutation = useMutation({
     mutationFn: async () => {
       const photoKeys = await resolutionPhotos.uploadAll()
@@ -195,7 +203,7 @@ export default function LegalFindingDetailPage() {
       {/* 콘텐츠 */}
       {!isLoading && !error && finding && (
         <div
-          className={`flex-1 overflow-y-auto ${isDesktop ? 'max-w-[700px] pb-6' : (finding.status === 'open' ? 'pb-[calc(72px+var(--sab,0px))]' : 'pb-6')}`}
+          className={`flex-1 overflow-y-auto ${isDesktop ? 'max-w-[700px] pb-6' : (finding.status === 'open' && !isLocked ? 'pb-[calc(72px+var(--sab,0px))]' : 'pb-6')}`}
         >
           {/* Section 1: 지적 정보 */}
           <div className={`border-b border-border-default ${sectionPadCls}`}>
@@ -218,8 +226,15 @@ export default function LegalFindingDetailPage() {
             )}
           </div>
 
-          {/* Section 3: 조치 내용 입력 (open) */}
-          {finding.status === 'open' && (
+          {/* 제출 완료 잠금 안내 (open + locked) */}
+          {finding.status === 'open' && isLocked && (
+            <div className={`bg-safe-bg text-safe text-caption font-bold border-b border-border-default text-center ${sectionPadCls}`}>
+              제출 완료된 점검 — 조치 등록·수정 불가
+            </div>
+          )}
+
+          {/* Section 3: 조치 내용 입력 (open + 미잠금) */}
+          {finding.status === 'open' && !isLocked && (
             <div className={`border-b border-border-default ${sectionPadCls}`}>
               <SectionHeader>조치 내용</SectionHeader>
               <textarea
@@ -294,8 +309,8 @@ export default function LegalFindingDetailPage() {
         </div>
       )}
 
-      {/* 모바일 고정 하단 CTA (open 상태만) */}
-      {!isDesktop && !isLoading && !error && finding && finding.status === 'open' && (
+      {/* 모바일 고정 하단 CTA (open + 미잠금) */}
+      {!isDesktop && !isLoading && !error && finding && finding.status === 'open' && !isLocked && (
         <div
           className="bg-surface-page border-t border-border-default fixed bottom-0 left-0 right-0 px-4 pt-3 pb-[calc(12px+var(--sab,0px))]"
         >
