@@ -9,8 +9,8 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 그룹 A 헤더 통일 wave 적용 완료
-진행 작업:       없음
+상태:           작업중 (IN_PROGRESS) — 그룹 B legal Tailwind 리팩터 7 commits cherry-pick
+진행 작업:       legal 데스크톱 inline 117 → Tailwind + 모바일 arbitrary + 잠금 UX 7 commits
 기준 production: `d60374f` (fix: 타이틀 백버튼 옆 정렬 + 버튼 32px 통일)
 마지막 동기화:   2026-05-30
 마지막 배포 URL: https://10850504.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
