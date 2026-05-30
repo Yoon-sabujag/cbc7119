@@ -1145,14 +1145,15 @@ export default function LegalPage() {
     <div className="bg-surface-page flex-1 flex flex-col h-full overflow-hidden">
       <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
-      <div className="bg-surface-raised border-b border-border-default h-12 px-3 flex items-center justify-center relative shrink-0">
+      <header className="flex items-center h-12 px-3 bg-surface-raised border-b border-border-default shrink-0">
         <button
           aria-label="뒤로 가기"
           onClick={() => navigate(-1)}
-          className="text-text-primary absolute left-2 w-7 h-7 rounded-[7px] bg-surface-sunken border-0 cursor-pointer flex items-center justify-center"
+          className="w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary border-0 cursor-pointer flex items-center justify-center shrink-0"
         ><ChevronLeft size={20} /></button>
-        <span className="text-title font-semibold text-text-primary">소방 점검 관리</span>
-      </div>
+        <span className="flex-1 text-title font-semibold text-text-primary text-center">소방 점검 관리</span>
+        <div className="w-7 shrink-0" />
+      </header>
 
       {/* 필터 */}
       <div className="bg-surface-raised border-b border-border-default shrink-0">
@@ -1161,13 +1162,12 @@ export default function LegalPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`${tab === t.key ? 'bg-surface-active text-text-primary' : 'text-text-tertiary bg-transparent'} text-caption font-bold leading-none flex-1 h-[44px] border-0 cursor-pointer`}
-              style={{ borderBottom: tab === t.key ? '2px solid var(--accent)' : '2px solid transparent' }}
+              className={`${tab === t.key ? 'bg-surface-active text-text-primary border-accent' : 'text-text-tertiary bg-transparent border-transparent'} text-caption font-bold leading-none flex-1 h-11 border-0 border-b-2 cursor-pointer`}
             >{t.label}</button>
           ))}
         </div>
         <div className="flex items-center gap-2 px-4 py-2">
-          <select value={year} onChange={e => setYear(e.target.value)} className="bg-surface-sunken border border-border-strong text-label leading-none text-text-primary rounded-sm px-3 py-[6px] cursor-pointer appearance-none">
+          <select value={year} onChange={e => setYear(e.target.value)} className="bg-surface-sunken border border-border-strong text-label leading-none text-text-primary rounded-sm px-3 py-1.5 cursor-pointer appearance-none">
             {years.map(y => <option key={y} value={y}>{y}년</option>)}
           </select>
         </div>
