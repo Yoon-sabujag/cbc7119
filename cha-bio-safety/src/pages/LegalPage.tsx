@@ -1444,14 +1444,38 @@ export default function LegalPage() {
           <div
             key={round.id}
             onClick={() => handleRoundClick(round)}
-            className={`bg-surface-sunken rounded-md border border-border-default border-l-[3px] ${accentColor(round.result)} p-3 cursor-pointer flex flex-col gap-1`}
+            className={`bg-surface-sunken rounded-md border border-border-default border-l-[3px] ${stripBySubmission(round.submissionStatus)} p-3 cursor-pointer flex flex-col gap-1`}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-body-sm font-bold text-text-primary flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{round.title}</span>
-              <ResultBadge result={round.result} />
+              {/* 데스크톱에서 정한 제출 상태를 읽기 전용으로 표시 */}
+              <span className={`text-caption font-bold leading-none rounded-sm px-2 py-0.5 shrink-0 whitespace-nowrap ${round.submissionStatus === 'completed' ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}>
+                제출 {round.submissionStatus === 'completed' ? '완료' : '미완료'}
+              </span>
             </div>
             <div className="text-caption leading-relaxed text-text-secondary">
               {fmtDate(round.date)}{round.endDate ? ` ~ ${fmtDate(round.endDate)}` : ''} · 지적 {round.findingCount}건 · 완료 {round.resolvedCount}건
+            </div>
+            {/* 다운로드 전용 (모바일): 결과내역서 / 지적조치사진 — 업로드·삭제 X */}
+            <div className="flex gap-1.5 pt-2 mt-0.5 border-t border-dashed border-border-default">
+              <button
+                type="button"
+                disabled={!round.reportFileKey}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (round.reportFileKey) downloadWithName('/api/uploads/' + round.reportFileKey, reportFileName(round))
+                }}
+                className={`flex-1 h-9 text-caption font-bold leading-none rounded-sm ${round.reportFileKey ? 'bg-surface-raised border border-border-strong text-text-primary cursor-pointer' : 'bg-transparent border border-border-default text-text-disabled cursor-not-allowed'}`}
+              >↓ 결과내역서{round.reportFileKey ? '' : ' (미업로드)'}</button>
+              <button
+                type="button"
+                disabled={!round.pptFileKey}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (round.pptFileKey) downloadWithName('/api/uploads/' + round.pptFileKey, pptFileName(round))
+                }}
+                className={`flex-1 h-9 text-caption font-bold leading-none rounded-sm ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary cursor-pointer' : 'bg-transparent border border-border-default text-text-disabled cursor-not-allowed'}`}
+              >↓ 지적조치사진{round.pptFileKey ? '' : ' (미생성)'}</button>
             </div>
           </div>
         ))}
