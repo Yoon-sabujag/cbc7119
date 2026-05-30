@@ -1432,16 +1432,12 @@ export default function LegalPage() {
           <div
             key={round.id}
             onClick={() => handleRoundClick(round)}
-            className={`bg-surface-sunken rounded-md border border-border-default border-l-[3px] ${stripBySubmission(round.submissionStatus)}`}
-            style={{ padding: 12, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
+            className={`bg-surface-sunken rounded-md border border-border-default border-l-[3px] ${stripBySubmission(round.submissionStatus)} p-3 cursor-pointer flex flex-col gap-1`}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <span className="text-body-sm font-bold text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.title}</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-body-sm font-bold text-text-primary flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{round.title}</span>
               {/* 데스크톱에서 정한 제출 상태를 읽기 전용으로 표시 */}
-              <span
-                className={`text-caption font-bold leading-none rounded-sm ${round.submissionStatus === 'completed' ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}
-                style={{ padding: '3px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
-              >
+              <span className={`text-caption font-bold leading-none rounded-sm px-2 py-0.5 shrink-0 whitespace-nowrap ${round.submissionStatus === 'completed' ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}>
                 제출 {round.submissionStatus === 'completed' ? '완료' : '미완료'}
               </span>
             </div>
@@ -1449,7 +1445,7 @@ export default function LegalPage() {
               {fmtDate(round.date)}{round.endDate ? ` ~ ${fmtDate(round.endDate)}` : ''} · 지적 {round.findingCount}건 · 완료 {round.resolvedCount}건
             </div>
             {/* 다운로드 전용 (모바일): 결과내역서 / 지적조치사진 — 업로드·삭제 X */}
-            <div style={{ display: 'flex', gap: 6, paddingTop: 8, marginTop: 2, borderTop: '1px dashed var(--border-default)' }}>
+            <div className="flex gap-1.5 pt-2 mt-0.5 border-t border-dashed border-border-default">
               <button
                 type="button"
                 disabled={!round.reportFileKey}
@@ -1457,8 +1453,7 @@ export default function LegalPage() {
                   e.stopPropagation()
                   if (round.reportFileKey) downloadWithName('/api/uploads/' + round.reportFileKey, reportFileName(round))
                 }}
-                className={`text-caption font-bold leading-none rounded-sm ${round.reportFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
-                style={{ flex: 1, height: 36, cursor: round.reportFileKey ? 'pointer' : 'not-allowed', background: round.reportFileKey ? undefined : 'transparent' }}
+                className={`flex-1 h-9 text-caption font-bold leading-none rounded-sm ${round.reportFileKey ? 'bg-surface-raised border border-border-strong text-text-primary cursor-pointer' : 'bg-transparent border border-border-default text-text-disabled cursor-not-allowed'}`}
               >↓ 결과내역서{round.reportFileKey ? '' : ' (미업로드)'}</button>
               <button
                 type="button"
@@ -1467,8 +1462,7 @@ export default function LegalPage() {
                   e.stopPropagation()
                   if (round.pptFileKey) downloadWithName('/api/uploads/' + round.pptFileKey, pptFileName(round))
                 }}
-                className={`text-caption font-bold leading-none rounded-sm ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
-                style={{ flex: 1, height: 36, cursor: round.pptFileKey ? 'pointer' : 'not-allowed', background: round.pptFileKey ? undefined : 'transparent' }}
+                className={`flex-1 h-9 text-caption font-bold leading-none rounded-sm ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary cursor-pointer' : 'bg-transparent border border-border-default text-text-disabled cursor-not-allowed'}`}
               >↓ 지적조치사진{round.pptFileKey ? '' : ' (미생성)'}</button>
             </div>
           </div>
