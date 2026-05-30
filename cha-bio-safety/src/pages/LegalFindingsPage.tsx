@@ -196,87 +196,14 @@ export default function LegalFindingsPage() {
   // 제출 완료(종결) = 지적/조치 신규 등록·수정·삭제 잠금
   const isLocked = round?.submissionStatus === 'completed'
 
-  // ── 관리자 도구 바 (데스크톱 전용 — 모바일은 결과 입력/저장·보고서·일괄 다운로드 제거) ──
-  const adminBar = role === 'admin' && round && isDesktop ? (
-    <div
-      className="bg-surface-raised border-b border-border-default"
-      style={{
-        padding: isDesktop ? '8px 24px' : '8px 16px',
-        display: 'flex',
-        gap: 8,
-        alignItems: 'center',
-        flexShrink: 0,
-        flexWrap: 'wrap',
-      }}
-    >
-      <select
-        value={effectiveSelectedResult}
-        onChange={e => setSelectedResult(e.target.value)}
-        className="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-sm"
-        style={{ padding: '6px 12px', appearance: 'none', cursor: 'pointer' }}
-      >
-        <option value="">결과 미입력</option>
-        <option value="pass">적합</option>
-        <option value="fail">부적합</option>
-        <option value="conditional">조건부적합</option>
-      </select>
-      <button
-        onClick={handleSaveResult}
-        disabled={savingResult}
-        className="bg-accent text-text-on-accent text-caption font-bold leading-none rounded-sm"
-        style={{ height: 36, padding: '0 12px', border: 'none', cursor: savingResult ? 'not-allowed' : 'pointer', opacity: savingResult ? 0.6 : 1, flexShrink: 0 }}
-      >결과 저장</button>
-      <input ref={reportInputRef} type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleReportUpload} />
-      {round.reportFileKey ? (
-        <button
-          onClick={() => window.open('/api/uploads/' + round.reportFileKey, '_blank')}
-          className="bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm"
-          style={{ height: 36, padding: '0 12px', cursor: 'pointer', flexShrink: 0 }}
-        >보고서 보기</button>
-      ) : (
-        <button
-          onClick={() => reportInputRef.current?.click()}
-          disabled={uploadingReport}
-          className="bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm"
-          style={{ height: 36, padding: '0 12px', cursor: uploadingReport ? 'not-allowed' : 'pointer', opacity: uploadingReport ? 0.6 : 1, flexShrink: 0 }}
-        >{uploadingReport ? '업로드 중...' : '보고서 업로드'}</button>
-      )}
-      <button
-        onClick={handleZipDownload}
-        disabled={!!zipLoading || !findings?.length}
-        className="bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm"
-        style={{ height: 36, padding: '0 12px', cursor: (zipLoading || !findings?.length) ? 'not-allowed' : 'pointer', opacity: (zipLoading || !findings?.length) ? 0.6 : 1, flexShrink: 0, whiteSpace: 'nowrap' }}
-      >{zipLoading || '일괄 다운로드'}</button>
-    </div>
-  ) : null
-
-  // ── 지적사항 카드 렌더 ──
-  const findingCard = (finding: LegalFinding) => (
-    <div
-      key={finding.id}
-      onClick={() => navigate(`/legal/${id}/finding/${finding.id}`)}
-      className={`bg-surface-sunken border border-border-default border-l-2 ${finding.status === 'open' ? 'border-fire-bar' : 'border-safe-bar'} rounded-md cursor-pointer flex flex-col gap-[3px] ${isDesktop ? 'p-4' : 'p-3'}`}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span className="text-body-sm text-text-primary" style={{ fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finding.description}</span>
-        <span
-          className={`text-caption font-bold leading-none rounded-sm px-2 py-[2px] flex-shrink-0 ${finding.status === 'open' ? 'bg-fire-bg text-fire' : 'bg-safe-bg text-safe'}`}
-        >{finding.status === 'open' ? '미조치' : '완료'}</span>
-      </div>
-      <div className="text-caption leading-none text-text-secondary">{finding.location ?? '위치 미지정'}</div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span className="text-caption leading-none text-text-tertiary">{fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}</span>
-        {!isLocked && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="flex items-center gap-2">
             <button
               onClick={(e) => { e.stopPropagation(); setEditingFinding(finding) }}
-              className="text-caption leading-none text-text-tertiary"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+              className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-[2px]"
             >수정</button>
             <button
               onClick={(e) => handleDeleteFinding(e, finding)}
-              className="text-caption leading-none text-text-tertiary"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+              className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-[2px]"
             >삭제</button>
           </div>
         )}
@@ -335,10 +262,7 @@ export default function LegalFindingsPage() {
 
       {/* 제출 완료 잠금 안내 */}
       {isLocked && (
-        <div
-          className="bg-safe-bg text-safe text-caption font-bold border-b border-border-default"
-          style={{ padding: isDesktop ? '8px 32px' : '8px 16px', flexShrink: 0, textAlign: 'center' }}
-        >
+        <div className={`bg-safe-bg text-safe text-caption font-bold border-b border-border-default text-center flex-shrink-0 py-2 ${isDesktop ? 'px-7' : 'px-4'}`}>
           제출 완료된 점검 — 지적/조치사항 등록·수정·삭제 불가
         </div>
       )}
@@ -358,17 +282,11 @@ export default function LegalFindingsPage() {
           목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.
         </div>
       ) : (
-        <div style={{
-          flex: 1, overflowY: 'auto',
-          padding: isDesktop ? '16px 32px' : '12px 16px',
-          paddingBottom: isDesktop || isLocked ? 24 : 'calc(72px + var(--sab, 0px))',
-          display: 'flex', flexDirection: 'column', gap: 8,
-          maxWidth: isDesktop ? 800 : undefined,
-        }}>
+        <div className={`flex-1 overflow-y-auto flex flex-col gap-2 ${isDesktop ? 'px-7 py-4 pb-6 max-w-[800px]' : isLocked ? 'px-4 py-3 pb-6' : 'px-4 py-3 pb-[calc(72px+var(--sab,0px))]'}`}>
           {sortedFindings.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '60px 16px' }}>
               <div className="text-body font-bold text-text-primary">지적사항 없음</div>
-              <div className="text-caption text-text-secondary" style={{ textAlign: 'center' }}>{isLocked ? '제출 완료된 점검입니다.' : `현장에서 지적된 항목을 등록하려면 ${isDesktop ? '상단' : '아래'} 버튼을 누르세요.`}</div>
+              <div className="text-caption text-text-secondary text-center">{isLocked ? '제출 완료된 점검입니다.' : `현장에서 지적된 항목을 등록하려면 ${isDesktop ? '상단' : '아래'} 버튼을 누르세요.`}</div>
             </div>
           ) : sortedFindings.map(findingCard)}
         </div>

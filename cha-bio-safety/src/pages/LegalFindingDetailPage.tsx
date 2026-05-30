@@ -206,11 +206,7 @@ export default function LegalFindingDetailPage() {
       {/* 콘텐츠 */}
       {!isLoading && !error && finding && (
         <div
-          className="flex-1 overflow-y-auto"
-          style={{
-            paddingBottom: finding.status === 'open' && !isLocked ? (isDesktop ? 24 : 'calc(72px + var(--sab, 0px))') : 24,
-            maxWidth: isDesktop ? 700 : undefined,
-          }}
+          className={`flex-1 overflow-y-auto ${isDesktop ? 'max-w-[700px] pb-6' : (finding.status === 'open' && !isLocked ? 'pb-[calc(72px+var(--sab,0px))]' : 'pb-6')}`}
         >
           {/* Section 1: 지적 정보 */}
           <div className="border-b border-border-default" style={{ padding: sectionPad }}>
@@ -235,17 +231,14 @@ export default function LegalFindingDetailPage() {
 
           {/* 제출 완료 잠금 안내 (open + locked) */}
           {finding.status === 'open' && isLocked && (
-            <div
-              className="bg-safe-bg text-safe text-caption font-bold border-b border-border-default"
-              style={{ padding: sectionPad, textAlign: 'center' }}
-            >
+            <div className={`bg-safe-bg text-safe text-caption font-bold border-b border-border-default text-center ${sectionPadCls}`}>
               제출 완료된 점검 — 조치 등록·수정 불가
             </div>
           )}
 
           {/* Section 3: 조치 내용 입력 (open + 미잠금) */}
           {finding.status === 'open' && !isLocked && (
-            <div className="border-b border-border-default" style={{ padding: sectionPad }}>
+            <div className={`border-b border-border-default ${sectionPadCls}`}>
               <SectionHeader>조치 내용</SectionHeader>
               <textarea
                 value={memo}
@@ -321,7 +314,7 @@ export default function LegalFindingDetailPage() {
         </div>
       )}
 
-      {/* 모바일 고정 하단 CTA (open 상태 + 미잠금) */}
+      {/* 모바일 고정 하단 CTA (open + 미잠금) */}
       {!isDesktop && !isLoading && !error && finding && finding.status === 'open' && !isLocked && (
         <div
           className="bg-surface-page border-t border-border-default"
