@@ -216,38 +216,17 @@ export default function ElevatorFindingDetailPage() {
       {viewerSrc && <ImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />}
 
       {/* 자체 헤더 */}
-      <div style={{
-        height: 48,
-        background: 'rgba(22,27,34,0.97)',
-        borderBottom: '1px solid var(--bd)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        flexShrink: 0,
-      }}>
+      <div className="h-12 bg-[rgba(22,27,34,0.97)] border-b border-border-default flex items-center shrink-0 px-3">
         <button
           aria-label="뒤로 가기"
           onClick={() => navigate(-1)}
-          style={{
-            position: 'absolute',
-            left: 12,
-            width: 36,
-            height: 36,
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            color: 'var(--t1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="w-7 h-7 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center shrink-0"
         >
           <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 상세</span>
+        <span className="flex-1 ml-2 text-title font-semibold text-text-primary">지적사항 상세</span>
       </div>
 
       {/* 로딩 */}

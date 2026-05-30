@@ -533,20 +533,16 @@ export default function EducationPage() {
     <div className="bg-surface-page" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* 모바일 헤더 */}
-      <div
-        className="bg-surface-raised border-b border-border-default"
-        style={{ height: 48, display: 'flex', alignItems: 'center', flexShrink: 0 }}
-      >
+      <div className="bg-surface-raised border-b border-border-default h-12 px-3 flex items-center shrink-0">
         <button
           onClick={() => navigate(-1)}
-          className="text-text-secondary w-7 h-7 rounded-[7px] bg-surface-sunken border-0 cursor-pointer flex items-center justify-center"
+          className="text-text-secondary w-7 h-7 rounded-[7px] bg-surface-sunken border-0 cursor-pointer flex items-center justify-center shrink-0"
         >
           <ChevronLeft size={20} />
         </button>
-        <span className="text-title font-semibold text-text-primary flex-1 text-center">
+        <span className="flex-1 ml-2 text-title font-semibold text-text-primary">
           보수교육
         </span>
-        <div className="w-7" />
       </div>
 
       {/* 스크롤 영역 */}

@@ -268,15 +268,15 @@ export default function RemediationDetailPage() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }} className="bg-surface-page">
       {/* 자체 헤더 — sketch .det-page-hd */}
-      <div className="h-12 bg-surface-raised border-b border-border-default flex items-center justify-center relative flex-shrink-0 px-3">
+      <div className="h-12 bg-surface-raised border-b border-border-default flex items-center flex-shrink-0 px-3">
         <button
           aria-label="목록으로 돌아가기"
           onClick={() => navigate(-1)}
-          className="absolute left-3 w-7 h-7 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center"
+          className="w-7 h-7 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center shrink-0"
         >
           <ChevronLeft size={20} />
         </button>
-        <span className="text-title font-semibold text-text-primary">조치 상세</span>
+        <span className="flex-1 ml-2 text-title font-semibold text-text-primary">조치 상세</span>
       </div>
 
       {/* 로딩 */}
