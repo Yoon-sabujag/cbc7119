@@ -9,8 +9,8 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — legal-mobile UI + 다운로드 헤더 적용 완료
-진행 작업:       없음
+상태:           작업중 (IN_PROGRESS) — 그룹 A 헤더 통일 wave 14 commits cherry-pick
+진행 작업:       헤더 통일 H1~H8 + 5-30 후속 14 commits → cbc7119
 기준 production: `dc7e8f4` (feat: legal-mobile UI + download header)
 마지막 동기화:   2026-05-30
 마지막 배포 URL: https://c1f7fd92.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
