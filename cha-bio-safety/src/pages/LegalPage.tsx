@@ -159,15 +159,7 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab,
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`text-label font-bold leading-none ${isActive ? 'text-accent' : 'text-text-tertiary'}`}
-              style={{
-                flex: 1,
-                padding: '12px 8px',
-                background: isActive ? 'var(--surface-page)' : 'var(--surface-raised)',
-                border: 'none',
-                borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-                cursor: 'pointer',
-              }}
+              className={`text-label font-bold leading-none flex-1 px-2 py-3 border-0 border-b-2 cursor-pointer ${isActive ? 'text-accent bg-surface-page border-accent' : 'text-text-tertiary bg-surface-raised border-transparent'}`}
             >
               {t.label}
               <span
@@ -1165,13 +1157,12 @@ export default function LegalPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`${tab === t.key ? 'bg-surface-active text-text-primary' : 'text-text-tertiary'} text-caption font-bold leading-none`}
-              style={{ flex: 1, height: 38, border: 'none', background: tab === t.key ? undefined : 'transparent', cursor: 'pointer', borderBottom: tab === t.key ? '2px solid var(--accent)' : '2px solid transparent' }}
+              className={`${tab === t.key ? 'bg-surface-active text-text-primary border-accent' : 'text-text-tertiary bg-transparent border-transparent'} text-caption font-bold leading-none flex-1 h-[38px] border-0 border-b-2 cursor-pointer`}
             >{t.label}</button>
           ))}
         </div>
-        <div style={{ padding: '6px 12px' }}>
-          <select value={year} onChange={e => setYear(e.target.value)} className="bg-surface-sunken border border-border-strong text-caption leading-none text-text-primary rounded-sm" style={{ padding: '4px 8px', cursor: 'pointer', appearance: 'none' }}>
+        <div className="px-3 py-1.5">
+          <select value={year} onChange={e => setYear(e.target.value)} className="bg-surface-sunken border border-border-strong text-caption leading-none text-text-primary rounded-sm px-2 py-1 cursor-pointer appearance-none">
             {years.map(y => <option key={y} value={y}>{y}년</option>)}
           </select>
         </div>
