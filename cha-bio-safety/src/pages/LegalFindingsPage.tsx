@@ -243,12 +243,12 @@ export default function LegalFindingsPage() {
     <div
       key={finding.id}
       onClick={() => navigate(`/legal/${id}/finding/${finding.id}`)}
-      className={`bg-surface-sunken border border-border-default border-l-2 ${finding.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'} rounded-md cursor-pointer flex flex-col gap-[3px] ${isDesktop ? 'p-4' : 'p-3'}`}
+      className={`bg-surface-sunken border border-border-default border-l-2 ${finding.status === 'open' ? 'border-fire-bar' : 'border-safe-bar'} rounded-md cursor-pointer flex flex-col gap-[3px] ${isDesktop ? 'p-4' : 'p-3'}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-body-sm text-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{finding.description}</span>
         <span
-          className={`text-caption font-bold leading-none rounded-sm px-2 py-[2px] flex-shrink-0 ${finding.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'}`}
+          className={`text-caption font-bold leading-none rounded-sm px-2 py-[2px] flex-shrink-0 ${finding.status === 'open' ? 'bg-fire-bg text-fire' : 'bg-safe-bg text-safe'}`}
         >{finding.status === 'open' ? '미조치' : '완료'}</span>
       </div>
       <div className="text-caption leading-none text-text-secondary">{finding.location ?? '위치 미지정'}</div>
@@ -274,7 +274,7 @@ export default function LegalFindingsPage() {
   const addButton = isLocked ? null : (
     <button
       onClick={() => setShowSheet(true)}
-      className={`text-text-on-accent font-bold border-0 cursor-pointer flex-shrink-0 ${isDesktop ? 'rounded-sm w-auto h-[36px] text-[13px] px-4' : 'rounded-md w-full h-8 text-[14px]'}`}
+      className={`text-text-on-accent font-bold border-0 cursor-pointer flex-shrink-0 ${isDesktop ? 'rounded-sm w-auto h-9 text-label px-4' : 'rounded-md w-full h-8 text-body-sm'}`}
       style={{
         background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
       }}
@@ -289,23 +289,22 @@ export default function LegalFindingsPage() {
 
       {/* 모바일 헤더 */}
       {!isDesktop && (
-        <div
-          className="bg-surface-raised border-b border-border-default h-8 flex items-center justify-center relative flex-shrink-0"
-        >
+        <header className="flex items-center h-12 px-3 bg-surface-raised border-b border-border-default shrink-0">
           <button
             aria-label="뒤로 가기"
             onClick={() => navigate(-1)}
-            className="text-text-primary absolute left-2 w-7 h-7 rounded-[7px] bg-surface-sunken border-0 cursor-pointer flex items-center justify-center"
+            className="w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary border-0 cursor-pointer flex items-center justify-center shrink-0"
           ><ChevronLeft size={20} /></button>
-          <span className="text-title font-semibold text-text-primary">{headerTitle}</span>
-        </div>
+          <span className="flex-1 text-title font-semibold text-text-primary text-center">{headerTitle}</span>
+          <div className="w-7 shrink-0" />
+        </header>
       )}
 
       {/* 데스크톱 타이틀 + 등록 버튼 */}
       {isDesktop && (
         <div className="pt-6 px-7 pb-3 flex items-center justify-between flex-shrink-0">
           <div>
-            <div className="text-text-primary text-[22px] font-extrabold">{headerTitle}</div>
+            <div className="text-text-primary text-heading font-extrabold">{headerTitle}</div>
             {round && <div className="text-label text-text-secondary mt-1">{round.title}</div>}
           </div>
           {addButton}

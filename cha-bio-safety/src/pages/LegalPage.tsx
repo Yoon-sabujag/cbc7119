@@ -207,12 +207,12 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab,
             <div
               key={f.id}
               onClick={() => onSelectFinding(f.id)}
-              className={`bg-surface-sunken rounded-md ${selectedFindingId === f.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${f.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'}`}
+              className={`bg-surface-sunken rounded-md ${selectedFindingId === f.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${f.status === 'open' ? 'border-fire-bar' : 'border-safe-bar'}`}
               style={{ padding: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                 <span className="text-label font-medium text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description}</span>
-                <span className={`${f.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'} text-caption font-bold leading-none rounded-sm`} style={{ padding: '1px 6px', flexShrink: 0 }}>{f.status === 'open' ? '미조치' : '완료'}</span>
+                <span className={`${f.status === 'open' ? 'bg-fire-bg text-fire' : 'bg-safe-bg text-safe'} text-caption font-bold leading-none rounded-sm`} style={{ padding: '1px 6px', flexShrink: 0 }}>{f.status === 'open' ? '미조치' : '완료'}</span>
               </div>
               <div className="text-caption leading-none text-text-secondary">{f.location ?? '위치 미지정'}</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
