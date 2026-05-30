@@ -55,6 +55,14 @@ export default function LegalFindingDetailPage() {
     enabled: !!id && !!fid,
   })
 
+  // 라운드 제출 상태 — 제출 완료(종결) 시 조치(신규 등록) 잠금
+  const { data: round } = useQuery({
+    queryKey: ['legal-round', id],
+    queryFn: () => legalApi.get(id!),
+    enabled: !!id,
+  })
+  const isLocked = round?.submissionStatus === 'completed'
+
   const resolveMutation = useMutation({
     mutationFn: async () => {
       const photoKeys = await resolutionPhotos.uploadAll()
@@ -203,7 +211,7 @@ export default function LegalFindingDetailPage() {
         <div
           className="flex-1 overflow-y-auto"
           style={{
-            paddingBottom: finding.status === 'open' ? (isDesktop ? 24 : 'calc(72px + var(--sab, 0px))') : 24,
+            paddingBottom: finding.status === 'open' && !isLocked ? (isDesktop ? 24 : 'calc(72px + var(--sab, 0px))') : 24,
             maxWidth: isDesktop ? 700 : undefined,
           }}
         >
@@ -228,8 +236,18 @@ export default function LegalFindingDetailPage() {
             )}
           </div>
 
-          {/* Section 3: 조치 내용 입력 (open) */}
-          {finding.status === 'open' && (
+          {/* 제출 완료 잠금 안내 (open + locked) */}
+          {finding.status === 'open' && isLocked && (
+            <div
+              className="bg-safe-bg text-safe text-caption font-bold border-b border-border-default"
+              style={{ padding: sectionPad, textAlign: 'center' }}
+            >
+              제출 완료된 점검 — 조치 등록·수정 불가
+            </div>
+          )}
+
+          {/* Section 3: 조치 내용 입력 (open + 미잠금) */}
+          {finding.status === 'open' && !isLocked && (
             <div className="border-b border-border-default" style={{ padding: sectionPad }}>
               <SectionHeader>조치 내용</SectionHeader>
               <textarea
@@ -306,8 +324,8 @@ export default function LegalFindingDetailPage() {
         </div>
       )}
 
-      {/* 모바일 고정 하단 CTA (open 상태만) */}
-      {!isDesktop && !isLoading && !error && finding && finding.status === 'open' && (
+      {/* 모바일 고정 하단 CTA (open 상태 + 미잠금) */}
+      {!isDesktop && !isLoading && !error && finding && finding.status === 'open' && !isLocked && (
         <div
           className="bg-surface-page border-t border-border-default"
           style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px', paddingBottom: 'calc(12px + var(--sab, 0px))' }}

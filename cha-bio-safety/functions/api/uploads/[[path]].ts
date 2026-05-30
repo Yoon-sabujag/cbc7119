@@ -10,6 +10,9 @@ const EXT_MIME: Record<string, string> = {
   '.pdf':  'application/pdf',
   '.svg':  'image/svg+xml',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.zip':  'application/zip',
 }
 
 function contentTypeFromKey(key: string): string {
@@ -22,17 +25,26 @@ function contentTypeFromKey(key: string): string {
 }
 
 // GET /api/uploads/{...path}
-export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
+// ?download=<파일명> 이 있으면 Content-Disposition: attachment 로 강제 다운로드.
+// (iOS Safari/PWA 는 <a download> 파일명을 무시하고 서버 헤더를 따르며,
+//  octet-stream 을 텍스트로 간주해 .txt 를 덧붙이므로 헤더로 파일명·확장자를 지정한다.)
+export const onRequestGet: PagesFunction<Env> = async ({ env, params, request }) => {
   const key = (params.path as string[]).join('/')
   if (!key) return new Response('Not Found', { status: 404 })
 
   const obj = await env.STORAGE.get(key)
   if (!obj) return new Response('Not Found', { status: 404 })
 
-  return new Response(obj.body, {
-    headers: {
-      'Content-Type':  contentTypeFromKey(key),
-      'Cache-Control': 'private, max-age=31536000',
-    },
-  })
+  const headers: Record<string, string> = {
+    'Content-Type':  contentTypeFromKey(key),
+    'Cache-Control': 'private, max-age=31536000',
+  }
+
+  const downloadName = new URL(request.url).searchParams.get('download')
+  if (downloadName) {
+    // RFC 5987: 한글 등 비ASCII 파일명은 filename*=UTF-8'' 로 인코딩
+    headers['Content-Disposition'] = `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}`
+  }
+
+  return new Response(obj.body, { headers })
 }

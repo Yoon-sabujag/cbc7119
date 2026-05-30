@@ -193,9 +193,11 @@ export default function LegalFindingsPage() {
   })
 
   const isDesktop = useIsDesktop()
+  // 제출 완료(종결) = 지적/조치 신규 등록·수정·삭제 잠금
+  const isLocked = round?.submissionStatus === 'completed'
 
-  // ── 관리자 도구 바 ──
-  const adminBar = role === 'admin' && round ? (
+  // ── 관리자 도구 바 (데스크톱 전용 — 모바일은 결과 입력/저장·보고서·일괄 다운로드 제거) ──
+  const adminBar = role === 'admin' && round && isDesktop ? (
     <div
       className="bg-surface-raised border-b border-border-default"
       style={{
@@ -272,24 +274,26 @@ export default function LegalFindingsPage() {
       <div className="text-caption leading-none text-text-secondary">{finding.location ?? '위치 미지정'}</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span className="text-caption leading-none text-text-tertiary">{fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); setEditingFinding(finding) }}
-            className="text-caption leading-none text-text-tertiary"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
-          >수정</button>
-          <button
-            onClick={(e) => handleDeleteFinding(e, finding)}
-            className="text-caption leading-none text-text-tertiary"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
-          >삭제</button>
-        </div>
+        {!isLocked && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditingFinding(finding) }}
+              className="text-caption leading-none text-text-tertiary"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+            >수정</button>
+            <button
+              onClick={(e) => handleDeleteFinding(e, finding)}
+              className="text-caption leading-none text-text-tertiary"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+            >삭제</button>
+          </div>
+        )}
       </div>
     </div>
   )
 
-  // ── 등록 버튼 ──
-  const addButton = (
+  // ── 등록 버튼 (제출 완료 시 잠금 → 미표시) ──
+  const addButton = isLocked ? null : (
     <button
       onClick={() => setShowSheet(true)}
       className={`text-text-on-accent font-bold ${isDesktop ? 'rounded-sm' : 'rounded-md'}`}
@@ -341,6 +345,16 @@ export default function LegalFindingsPage() {
 
       {adminBar}
 
+      {/* 제출 완료 잠금 안내 */}
+      {isLocked && (
+        <div
+          className="bg-safe-bg text-safe text-caption font-bold border-b border-border-default"
+          style={{ padding: isDesktop ? '8px 32px' : '8px 16px', flexShrink: 0, textAlign: 'center' }}
+        >
+          제출 완료된 점검 — 지적/조치사항 등록·수정·삭제 불가
+        </div>
+      )}
+
       {/* 콘텐츠 영역 */}
       {isLoading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -359,21 +373,21 @@ export default function LegalFindingsPage() {
         <div style={{
           flex: 1, overflowY: 'auto',
           padding: isDesktop ? '16px 32px' : '12px 16px',
-          paddingBottom: isDesktop ? 24 : 'calc(72px + var(--sab, 0px))',
+          paddingBottom: isDesktop || isLocked ? 24 : 'calc(72px + var(--sab, 0px))',
           display: 'flex', flexDirection: 'column', gap: 8,
           maxWidth: isDesktop ? 800 : undefined,
         }}>
           {sortedFindings.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '60px 16px' }}>
               <div className="text-body font-bold text-text-primary">지적사항 없음</div>
-              <div className="text-caption text-text-secondary" style={{ textAlign: 'center' }}>현장에서 지적된 항목을 등록하려면 {isDesktop ? '상단' : '아래'} 버튼을 누르세요.</div>
+              <div className="text-caption text-text-secondary" style={{ textAlign: 'center' }}>{isLocked ? '제출 완료된 점검입니다.' : `현장에서 지적된 항목을 등록하려면 ${isDesktop ? '상단' : '아래'} 버튼을 누르세요.`}</div>
             </div>
           ) : sortedFindings.map(findingCard)}
         </div>
       )}
 
-      {/* 모바일 고정 하단 CTA */}
-      {!isDesktop && (
+      {/* 모바일 고정 하단 CTA (제출 완료 시 잠금 → 미표시) */}
+      {!isDesktop && !isLocked && (
         <div
           className="bg-surface-page border-t border-border-default"
           style={{

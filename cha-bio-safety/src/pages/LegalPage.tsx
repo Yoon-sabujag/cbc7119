@@ -11,7 +11,7 @@ import { PhotoGrid } from '../components/PhotoGrid'
 import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { FindingEditModal } from '../components/FindingEditModal'
 import { buildMetaTxt } from '../utils/findingDownload'
-import type { LegalRound, LegalInspectionResult, LegalFinding } from '../types'
+import type { LegalRound, LegalFinding } from '../types'
 
 // ── 날짜 포매터 ──────────────────────────────────────────────────
 function fmtDate(iso: string) {
@@ -24,15 +24,7 @@ function fmtDateTime(iso: string | null) {
   return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
-// ── 좌측 강조 색상 (Tailwind class) ──────────────────────────────
-function accentColor(result: LegalInspectionResult | null): string {
-  if (result === 'pass') return 'border-safe-bar'
-  if (result === 'fail') return 'border-danger-bar'
-  if (result === 'conditional') return 'border-warning-bar'
-  return 'border-border-strong'
-}
-
-// ── 1열 카드 strip 색 (submission_status 기준) ──────────────────────────
+// ── 카드 strip 색 (submission_status 기준) ──────────────────────────
 function stripBySubmission(status: 'pending' | 'completed'): string {
   return status === 'completed' ? 'border-safe-bar' : 'border-warning-bar'
 }
@@ -51,31 +43,27 @@ function reportFileName(round: LegalRound): string {
   // 결과내역서는 PDF 확장자 가정 (와치독/수동 업로드 모두 PDF)
   return `${year}.${month})차바이오컴플렉스 ${kind} 결과내역서.pdf`
 }
-function downloadWithName(url: string, fileName: string) {
-  const a = document.createElement('a')
-  a.href = url
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-}
-
-// ── 결과 배지 ──────────────────────────────────────────────────────
-function ResultBadge({ result }: { result: LegalInspectionResult | null }) {
-  const map: Record<string, { cls: string; label: string }> = {
-    pass: { cls: 'bg-safe-bg text-safe', label: '적합' },
-    fail: { cls: 'bg-danger-bg text-danger', label: '부적합' },
-    conditional: { cls: 'bg-warning-bg text-warning', label: '조건부적합' },
+async function downloadWithName(url: string, fileName: string) {
+  // iOS Safari/PWA 는 원격 http URL 을 가리키는 <a download> 의 파일명을 무시하고
+  // octet-stream 을 텍스트로 간주해 .txt 를 덧붙인다. blob: URL + a.download 은 존중하므로
+  // (앱 내 ZIP 다운로드와 동일 패턴) 파일을 fetch 해서 blob 으로 받아 저장한다.
+  const t = toast.loading('다운로드 준비 중...')
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error('fetch failed')
+    const blob = await res.blob()
+    const objUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objUrl
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(objUrl), 3000)
+    toast.success('다운로드 완료', { id: t })
+  } catch {
+    toast.error('다운로드 실패', { id: t })
   }
-  const m = result ? map[result] : null
-  return (
-    <span
-      className={`${m?.cls ?? 'bg-transparent text-text-tertiary'} text-caption font-bold leading-none rounded-sm`}
-      style={{ padding: '2px 8px', flexShrink: 0 }}
-    >
-      {m?.label ?? '결과 미입력'}
-    </span>
-  )
 }
 
 // ── 스켈레톤 ──────────────────────────────────────────────────────
@@ -1446,15 +1434,44 @@ export default function LegalPage() {
           <div
             key={round.id}
             onClick={() => handleRoundClick(round)}
-            className={`bg-surface-sunken rounded-md border border-border-default border-l-[3px] ${accentColor(round.result)}`}
+            className={`bg-surface-sunken rounded-md border border-border-default border-l-[3px] ${stripBySubmission(round.submissionStatus)}`}
             style={{ padding: 12, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <span className="text-body-sm font-bold text-text-primary" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.title}</span>
-              <ResultBadge result={round.result} />
+              {/* 데스크톱에서 정한 제출 상태를 읽기 전용으로 표시 */}
+              <span
+                className={`text-caption font-bold leading-none rounded-sm ${round.submissionStatus === 'completed' ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}
+                style={{ padding: '3px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
+              >
+                제출 {round.submissionStatus === 'completed' ? '완료' : '미완료'}
+              </span>
             </div>
             <div className="text-caption leading-relaxed text-text-secondary">
               {fmtDate(round.date)}{round.endDate ? ` ~ ${fmtDate(round.endDate)}` : ''} · 지적 {round.findingCount}건 · 완료 {round.resolvedCount}건
+            </div>
+            {/* 다운로드 전용 (모바일): 결과내역서 / 지적조치사진 — 업로드·삭제 X */}
+            <div style={{ display: 'flex', gap: 6, paddingTop: 8, marginTop: 2, borderTop: '1px dashed var(--border-default)' }}>
+              <button
+                type="button"
+                disabled={!round.reportFileKey}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (round.reportFileKey) downloadWithName('/api/uploads/' + round.reportFileKey, reportFileName(round))
+                }}
+                className={`text-caption font-bold leading-none rounded-sm ${round.reportFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
+                style={{ flex: 1, height: 36, cursor: round.reportFileKey ? 'pointer' : 'not-allowed', background: round.reportFileKey ? undefined : 'transparent' }}
+              >↓ 결과내역서{round.reportFileKey ? '' : ' (미업로드)'}</button>
+              <button
+                type="button"
+                disabled={!round.pptFileKey}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (round.pptFileKey) downloadWithName('/api/uploads/' + round.pptFileKey, pptFileName(round))
+                }}
+                className={`text-caption font-bold leading-none rounded-sm ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary' : 'border border-border-default text-text-disabled'}`}
+                style={{ flex: 1, height: 36, cursor: round.pptFileKey ? 'pointer' : 'not-allowed', background: round.pptFileKey ? undefined : 'transparent' }}
+              >↓ 지적조치사진{round.pptFileKey ? '' : ' (미생성)'}</button>
             </div>
           </div>
         ))}
