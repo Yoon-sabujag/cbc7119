@@ -255,20 +255,12 @@ export default function LegalFindingsPage() {
     <div
       key={finding.id}
       onClick={() => navigate(`/legal/${id}/finding/${finding.id}`)}
-      className={`bg-surface-sunken border border-border-default border-l-2 ${finding.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'} rounded-md`}
-      style={{
-        padding: isDesktop ? 16 : 12,
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 3,
-      }}
+      className={`bg-surface-sunken border border-border-default border-l-2 ${finding.status === 'open' ? 'border-fire-bar' : 'border-safe-bar'} rounded-md cursor-pointer flex flex-col gap-[3px] ${isDesktop ? 'p-4' : 'p-3'}`}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span className="text-body-sm text-text-primary" style={{ fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finding.description}</span>
         <span
-          className={`text-caption font-bold leading-none rounded-sm ${finding.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'}`}
-          style={{ padding: '2px 8px', flexShrink: 0 }}
+          className={`text-caption font-bold leading-none rounded-sm px-2 py-[2px] flex-shrink-0 ${finding.status === 'open' ? 'bg-fire-bg text-fire' : 'bg-safe-bg text-safe'}`}
         >{finding.status === 'open' ? '미조치' : '완료'}</span>
       </div>
       <div className="text-caption leading-none text-text-secondary">{finding.location ?? '위치 미지정'}</div>
@@ -296,7 +288,7 @@ export default function LegalFindingsPage() {
   const addButton = isLocked ? null : (
     <button
       onClick={() => setShowSheet(true)}
-      className={`text-text-on-accent font-bold ${isDesktop ? 'rounded-sm' : 'rounded-md'}`}
+      className={`text-text-on-accent font-bold border-0 cursor-pointer flex-shrink-0 ${isDesktop ? 'rounded-sm w-auto h-9 text-label px-4' : 'rounded-md w-full h-8 text-body-sm'}`}
       style={{
         width: isDesktop ? 'auto' : '100%',
         height: isDesktop ? 36 : 48,
@@ -318,25 +310,23 @@ export default function LegalFindingsPage() {
 
       {/* 모바일 헤더 */}
       {!isDesktop && (
-        <div
-          className="bg-surface-raised border-b border-border-default"
-          style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}
-        >
+        <header className="flex items-center h-12 px-3 bg-surface-raised border-b border-border-default shrink-0">
           <button
             aria-label="뒤로 가기"
             onClick={() => navigate(-1)}
-            className="text-text-primary absolute left-2 w-7 h-7 rounded-[7px] bg-surface-sunken border-0 cursor-pointer flex items-center justify-center"
+            className="w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary border-0 cursor-pointer flex items-center justify-center shrink-0"
           ><ChevronLeft size={20} /></button>
-          <span className="text-title font-semibold text-text-primary">{headerTitle}</span>
-        </div>
+          <span className="flex-1 text-title font-semibold text-text-primary text-center">{headerTitle}</span>
+          <div className="w-7 shrink-0" />
+        </header>
       )}
 
       {/* 데스크톱 타이틀 + 등록 버튼 */}
       {isDesktop && (
         <div style={{ padding: '24px 32px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
-            <div className="text-text-primary" style={{ fontSize: 22, fontWeight: 800 }}>{headerTitle}</div>
-            {round && <div className="text-label text-text-secondary" style={{ marginTop: 4 }}>{round.title}</div>}
+            <div className="text-text-primary text-heading font-extrabold">{headerTitle}</div>
+            {round && <div className="text-label text-text-secondary mt-1">{round.title}</div>}
           </div>
           {addButton}
         </div>

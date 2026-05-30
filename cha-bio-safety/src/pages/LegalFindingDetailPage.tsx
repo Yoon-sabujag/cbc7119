@@ -146,27 +146,24 @@ export default function LegalFindingDetailPage() {
 
       {/* 모바일 헤더 */}
       {!isDesktop && (
-        <div
-          className="bg-surface-raised border-b border-border-default flex items-center justify-center relative flex-shrink-0"
-          style={{ height: 48 }}
-        >
+        <header className="flex items-center h-12 px-3 bg-surface-raised border-b border-border-default shrink-0">
           <button
             aria-label="뒤로 가기"
             onClick={() => navigate(-1)}
-            className="text-text-primary"
-            style={{ position: 'absolute', left: 8, width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary border-0 cursor-pointer flex items-center justify-center shrink-0"
           ><ChevronLeft size={20} /></button>
-          <span className="text-body font-bold text-text-primary">지적 상세</span>
-          {staff?.role === 'admin' && finding && (
+          <span className="flex-1 text-title font-semibold text-text-primary text-center">지적 상세</span>
+          {staff?.role === 'admin' && finding ? (
             <button
               aria-label="다운로드"
               onClick={handleDownload}
               disabled={downloading}
-              className="text-text-primary"
-              style={{ position: 'absolute', right: 8, width: 44, height: 44, border: 'none', background: 'none', cursor: downloading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: downloading ? 0.5 : 1 }}
+              className={`w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary border-0 flex items-center justify-center shrink-0 ${downloading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
             ><Download size={18} /></button>
+          ) : (
+            <div className="w-7 shrink-0" />
           )}
-        </div>
+        </header>
       )}
 
       {/* 데스크톱 타이틀 */}
@@ -175,7 +172,7 @@ export default function LegalFindingDetailPage() {
           className="flex items-center justify-between flex-shrink-0"
           style={{ padding: '24px 32px 12px' }}
         >
-          <div className="text-text-primary" style={{ fontSize: 22, fontWeight: 800 }}>지적 상세</div>
+          <div className="text-text-primary text-heading font-extrabold">지적 상세</div>
           {staff?.role === 'admin' && finding && (
             <button
               onClick={handleDownload}
