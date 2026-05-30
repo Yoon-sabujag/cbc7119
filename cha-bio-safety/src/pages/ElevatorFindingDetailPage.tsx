@@ -215,17 +215,17 @@ export default function ElevatorFindingDetailPage() {
       {viewerSrc && <ImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />}
 
       {/* 자체 헤더 */}
-      <div className="h-[48px] bg-[rgba(22,27,34,0.97)] border-b border-border-default flex items-center justify-center relative shrink-0">
+      <div className="h-12 bg-[rgba(22,27,34,0.97)] border-b border-border-default flex items-center shrink-0 px-3">
         <button
           aria-label="뒤로 가기"
           onClick={() => navigate(-1)}
-          className="absolute left-3 w-9 h-9 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center"
+          className="w-7 h-7 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center shrink-0"
         >
           <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <span className="text-base font-bold text-text-primary">지적사항 상세</span>
+        <span className="flex-1 ml-2 text-title font-semibold text-text-primary">지적사항 상세</span>
       </div>
 
       {/* 로딩 */}
