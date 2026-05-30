@@ -230,14 +230,14 @@ export default function LegalFindingDetailPage() {
 
           {/* 제출 완료 잠금 안내 (open + locked) */}
           {finding.status === 'open' && isLocked && (
-            <div className={`bg-safe-bg text-safe text-caption font-bold border-b border-border-default text-center ${sectionPadCls}`}>
+            <div className="bg-safe-bg text-safe text-caption font-bold border-b border-border-default text-center" style={{ padding: sectionPad }}>
               제출 완료된 점검 — 조치 등록·수정 불가
             </div>
           )}
 
           {/* Section 3: 조치 내용 입력 (open + 미잠금) */}
           {finding.status === 'open' && !isLocked && (
-            <div className={`border-b border-border-default ${sectionPadCls}`}>
+            <div className="border-b border-border-default" style={{ padding: sectionPad }}>
               <SectionHeader>조치 내용</SectionHeader>
               <textarea
                 value={memo}

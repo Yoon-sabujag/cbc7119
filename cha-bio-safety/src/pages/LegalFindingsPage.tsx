@@ -196,8 +196,6 @@ export default function LegalFindingsPage() {
   // 제출 완료(종결) = 지적/조치 신규 등록·수정·삭제 잠금
   const isLocked = round?.submissionStatus === 'completed'
 
-<<<<<<< HEAD
-=======
   // ── 관리자 도구 바 (데스크톱 전용 — 모바일은 결과 입력/저장·보고서·일괄 다운로드 제거) ──
   const adminBar = role === 'admin' && round && isDesktop ? (
     <div
@@ -256,7 +254,6 @@ export default function LegalFindingsPage() {
       <div className="flex items-center justify-between">
         <span className="text-caption leading-none text-text-tertiary">{fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}</span>
         {!isLocked && (
->>>>>>> 4fdfb9f (fix(legal): 모바일 audit 후속 arbitrary 토큰화 (LegalFindingsPage + LegalFindingDetailPage))
           <div className="flex items-center gap-2">
             <button
               onClick={(e) => { e.stopPropagation(); setEditingFinding(finding) }}
