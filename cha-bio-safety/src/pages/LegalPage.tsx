@@ -102,8 +102,8 @@ function genYears() {
 function KVRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3 items-start">
-      <span className="text-caption leading-none text-text-tertiary w-[64px] shrink-0">{label}</span>
-      <span className="text-label text-text-primary flex-1 leading-[1.5]">{children}</span>
+      <span className="text-caption leading-none text-text-tertiary w-16 shrink-0">{label}</span>
+      <span className="text-label text-text-primary flex-1">{children}</span>
     </div>
   )
 }
@@ -183,7 +183,7 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab,
 
       {/* 본문 */}
       {activeTab === 'internal' ? (
-        <div className="flex-1 overflow-y-auto pt-3 px-4 pb-4 flex flex-col gap-[6px]">
+        <div className="flex-1 overflow-y-auto pt-3 px-4 pb-4 flex flex-col gap-1.5">
           {isLoading && <div className={SKELETON_CLS} style={SKELETON_STYLE} />}
           {sorted.length === 0 && !isLoading && (
             <div className="text-label text-text-tertiary flex-1 flex items-center justify-center">지적사항 없음</div>
@@ -192,16 +192,16 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId, activeTab,
             <div
               key={f.id}
               onClick={() => onSelectFinding(f.id)}
-              className={`bg-surface-sunken rounded-md ${selectedFindingId === f.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${f.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'} p-[10px] cursor-pointer flex flex-col gap-[2px]`}
+              className={`bg-surface-sunken rounded-md ${selectedFindingId === f.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${f.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'} p-2.5 cursor-pointer flex flex-col gap-0.5`}
             >
-              <div className="flex items-center justify-between gap-[6px]">
+              <div className="flex items-center justify-between gap-1.5">
                 <span className="text-label font-medium text-text-primary flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{f.description}</span>
                 <span className={`${f.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'} text-caption font-bold leading-none rounded-sm px-[6px] py-[1px] shrink-0`}>{f.status === 'open' ? '미조치' : '완료'}</span>
               </div>
               <div className="text-caption leading-none text-text-secondary">{f.location ?? '위치 미지정'}</div>
               <div className="flex items-center justify-between">
                 <span className="text-caption leading-none text-text-tertiary">{fmtDate(f.createdAt)}</span>
-                <div className="flex items-center gap-[6px]">
+                <div className="flex items-center gap-1.5">
                   <button onClick={e => { e.stopPropagation(); setEditingFinding(f) }} className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-[3px] py-[1px]">수정</button>
                   <button onClick={e => { e.stopPropagation(); handleDelete(f) }} className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-[3px] py-[1px]">삭제</button>
                 </div>
@@ -319,7 +319,7 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
   }
 
   return (
-    <div className="flex-1 overflow-y-auto pt-3 px-4 pb-4 flex flex-col gap-[10px]">
+    <div className="flex-1 overflow-y-auto pt-3 px-4 pb-4 flex flex-col gap-2.5">
       {sorted.map(f => {
         const hasBefore = f.photoKeys.length > 0
         const hasAfter = f.resolutionPhotoKeys.length > 0
@@ -344,14 +344,14 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
             </div>
 
             {/* input-row: 체크 (가로축 중앙) + textarea + 저장 버튼 */}
-            <div className="flex gap-[10px] items-stretch">
+            <div className="flex gap-2.5 items-stretch">
               <div className="flex items-center shrink-0">
                 <button
                   type="button"
                   onClick={() => { if (!cardDisabled) handleToggle(f.id, isSelected) }}
                   disabled={cardDisabled}
                   aria-pressed={isSelected}
-                  className={`rounded-sm flex items-center justify-center font-bold w-[28px] h-[28px] text-[18px] leading-none ${cardDisabled ? 'cursor-not-allowed' : 'cursor-pointer'} ${
+                  className={`rounded-sm flex items-center justify-center font-bold w-[28px] h-[28px] text-title leading-none ${cardDisabled ? 'cursor-not-allowed' : 'cursor-pointer'} ${
                     isSelected
                       ? 'bg-accent border-2 border-accent text-text-on-accent'
                       : cardDisabled
@@ -365,7 +365,7 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
                 disabled={!isSelected || cardDisabled}
                 onChange={(e) => handleLabelChange(f.id, e.target.value)}
                 placeholder={isSelected ? '' : '체크하면 PPT 라벨 입력 가능'}
-                className="bg-surface-sunken border border-border-strong text-text-primary rounded-sm focus:border-accent focus:outline-none flex-1 min-h-[36px] px-[10px] py-2 text-[12px] resize-y"
+                className="bg-surface-sunken border border-border-strong text-text-primary rounded-sm focus:border-accent focus:outline-none flex-1 min-h-9 px-2.5 py-2 text-caption resize-y"
                 style={{ fontFamily: 'inherit' }}
               />
               <button
@@ -378,7 +378,7 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
 
             {/* meta-row: 사진 chip (좌) + 저장 인디케이터 (우, 저장버튼 우측 모서리 정렬) */}
             <div className="flex justify-between items-center gap-2">
-              <div className="inline-flex items-center gap-[6px]">
+              <div className="inline-flex items-center gap-1.5">
                 <span className="text-caption font-bold text-text-tertiary">사진 :</span>
                 <span className={`text-caption font-bold leading-none rounded-sm px-[6px] py-[2px] ${hasBefore ? 'bg-safe-bg text-safe' : 'bg-danger-bg text-danger'}`}>
                   조치 전 {hasBefore ? <Check size={12} className="inline-block align-text-bottom ml-0.5" /> : <X size={12} className="inline-block align-text-bottom ml-0.5" />}
@@ -395,13 +395,13 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
                 ) : !isSelected ? (
                   <span className="text-text-tertiary">—</span>
                 ) : saveState === 'saving' ? (
-                  <span className="text-accent"><span className="w-[6px] h-[6px] rounded-full bg-current inline-block mr-1" />저장중...</span>
+                  <span className="text-accent"><span className="w-1.5 h-1.5 rounded-full bg-current inline-block mr-1" />저장중...</span>
                 ) : saveState === 'dirty' ? (
-                  <span className="text-warning"><span className="w-[6px] h-[6px] rounded-full bg-current inline-block mr-1" />변경됨</span>
+                  <span className="text-warning"><span className="w-1.5 h-1.5 rounded-full bg-current inline-block mr-1" />변경됨</span>
                 ) : saveState === 'error' ? (
-                  <span className="text-danger"><span className="w-[6px] h-[6px] rounded-full bg-current inline-block mr-1" />저장 실패</span>
+                  <span className="text-danger"><span className="w-1.5 h-1.5 rounded-full bg-current inline-block mr-1" />저장 실패</span>
                 ) : (
-                  <span className="text-safe"><span className="w-[6px] h-[6px] rounded-full bg-current inline-block mr-1" />저장됨</span>
+                  <span className="text-safe"><span className="w-1.5 h-1.5 rounded-full bg-current inline-block mr-1" />저장됨</span>
                 )}
               </div>
             </div>
@@ -564,16 +564,16 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
         <div className="text-label font-bold text-text-primary">
           지적사항 조치 작업사진 <span className="text-accent">{count}</span>건
         </div>
-        <div className="flex items-end gap-[10px]">
+        <div className="flex items-end gap-2.5">
           <div className={`text-caption ${indicatorColor} inline-flex items-center gap-1 leading-none pb-2`}>
-            <span className="w-[6px] h-[6px] rounded-full bg-current" />
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />
             {indicatorLabel}
           </div>
           <button
             type="button"
             onClick={handleSaveNow}
             disabled={count === 0 || isLocked || genState === 'saving'}
-            className={`border-0 h-[32px] px-[14px] rounded-[6px] text-[12px] font-bold inline-flex items-center gap-[6px] ${count === 0 || isLocked || genState === 'saving' ? 'bg-surface-sunken text-text-disabled cursor-not-allowed' : `${genState === 'dirty' || genState === 'error' ? 'bg-warning-bg text-warning' : 'bg-accent text-text-on-accent'} cursor-pointer`}`}
+            className={`border-0 h-7 px-[14px] rounded-[6px] text-caption font-bold inline-flex items-center gap-1.5 ${count === 0 || isLocked || genState === 'saving' ? 'bg-surface-sunken text-text-disabled cursor-not-allowed' : `${genState === 'dirty' || genState === 'error' ? 'bg-warning-bg text-warning' : 'bg-accent text-text-on-accent'} cursor-pointer`}`}
           >
             {genState === 'saving' ? '저장중...' : <><Save size={14} className="inline-block align-text-bottom mr-1" />저장하기</>}
           </button>
@@ -594,7 +594,7 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
             {/* 표지 (A4 가로 297:210) */}
             <div>
               <div className="text-caption text-text-tertiary mb-1">표지 (slide 1)</div>
-              <div className="bg-white text-black rounded-[8px] p-6 flex flex-col justify-center items-center text-center aspect-[297/210] shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+              <div className="bg-white text-black rounded-sm p-6 flex flex-col justify-center items-center text-center aspect-[297/210] shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
                 <div className="text-[36px] font-bold">{coverTitle}</div>
                 <div className="text-[22px] font-bold mt-4">지적사항 조치 작업사진</div>
                 <div className="text-[18px] mt-6 text-[#444]">차바이오 컴플렉스</div>
@@ -607,7 +607,7 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
                 <div className="text-caption text-text-tertiary mb-1">
                   조치 전 / 후 (slide {pageIdx + 2} of {totalPages + 1}) — A4 가로
                 </div>
-                <div className="bg-white text-black rounded-[8px] p-2 grid gap-1 aspect-[297/210] grid-cols-[1fr_1fr] grid-rows-[auto_1fr_auto_1fr] shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+                <div className="bg-white text-black rounded-sm p-2 grid gap-1 aspect-[297/210] grid-cols-[1fr_1fr] grid-rows-[auto_1fr_auto_1fr] shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
                   {/* Row 1: 라벨 (조치 전) */}
                   <SlideLabelCell text={currentPage.left ? `${labelFor(currentPage.left)} 조치 전` : ''} />
                   <SlideLabelCell text={currentPage.right ? `${labelFor(currentPage.right)} 조치 전` : ''} />
@@ -634,7 +634,7 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
             type="button"
             onClick={() => setPageIdx(i => Math.max(0, i - 1))}
             disabled={pageIdx === 0}
-            className={`bg-surface-sunken border border-border-strong text-text-primary disabled:text-text-disabled disabled:border-border-default disabled:bg-transparent w-[36px] h-[36px] rounded-[6px] text-[16px] ${pageIdx === 0 ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`bg-surface-sunken border border-border-strong text-text-primary disabled:text-text-disabled disabled:border-border-default disabled:bg-transparent w-9 h-9 rounded-[6px] text-body ${pageIdx === 0 ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >◀</button>
           <div className="text-label font-bold text-text-primary min-w-[80px] text-center">
             {pageIdx + 1} / {totalPages}
@@ -643,7 +643,7 @@ function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
             type="button"
             onClick={() => setPageIdx(i => Math.min(totalPages - 1, i + 1))}
             disabled={pageIdx >= totalPages - 1}
-            className={`bg-surface-sunken border border-border-strong text-text-primary disabled:text-text-disabled disabled:border-border-default disabled:bg-transparent w-[36px] h-[36px] rounded-[6px] text-[16px] ${pageIdx >= totalPages - 1 ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`bg-surface-sunken border border-border-strong text-text-primary disabled:text-text-disabled disabled:border-border-default disabled:bg-transparent w-9 h-9 rounded-[6px] text-body ${pageIdx >= totalPages - 1 ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >▶</button>
         </div>
       )}
@@ -751,14 +751,14 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
       <div className="flex items-center justify-between mb-4">
         <div className="text-body-sm font-bold text-text-primary">지적 상세</div>
         {staff?.role === 'admin' && (
-          <button onClick={handleDownload} disabled={downloading} className={`bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm h-[28px] px-[10px] ${downloading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}>{downloading ? '...' : '다운로드'}</button>
+          <button onClick={handleDownload} disabled={downloading} className={`bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm h-[28px] px-2.5 ${downloading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}>{downloading ? '...' : '다운로드'}</button>
         )}
       </div>
 
       {/* 지적 정보 */}
       <div className="mb-4">
         <div className="text-caption leading-none font-bold text-text-tertiary mb-2">지적 정보</div>
-        <div className="flex flex-col gap-[6px]">
+        <div className="flex flex-col gap-1.5">
           <KVRow label="지적 내용"><span className="whitespace-pre-wrap">{finding.description}</span></KVRow>
           <KVRow label="위치">{finding.location ?? '-'}</KVRow>
           <KVRow label="등록일">{fmtDateTime(finding.createdAt)}</KVRow>
@@ -776,7 +776,7 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
       {finding.status === 'open' && (
         <div className="border-t border-border-default pt-4">
           <div className="text-caption leading-none font-bold text-text-tertiary mb-2">조치 내용</div>
-          <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="조치 내용을 입력하세요" rows={3} className="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md w-full px-3 py-[10px] box-border leading-[1.5] resize-y outline-none" style={{ fontFamily: 'inherit' }} />
+          <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="조치 내용을 입력하세요" rows={3} className="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md w-full px-3 py-2.5 box-border resize-y outline-none" style={{ fontFamily: 'inherit' }} />
           <div className="mt-[10px]">
             <div className="text-caption leading-none font-bold text-text-tertiary mb-[6px]">조치 사진 (최대 5장)</div>
             <input ref={resPhotos.cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={resPhotos.handleFiles} />
@@ -785,12 +785,12 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
             <div className="flex gap-2 flex-wrap">
               {resPhotos.slots.map((slot, i) => (
                 <div key={i} className="relative">
-                  <img src={slot.preview} alt="" className="border border-border-default rounded-sm w-[64px] h-[64px] object-cover" />
+                  <img src={slot.preview} alt="" className="border border-border-default rounded-sm w-16 h-16 object-cover" />
                   <button onClick={() => resPhotos.removeSlot(i)} className="text-text-on-accent text-caption font-bold leading-none absolute -top-[5px] -right-[5px] w-[18px] h-[18px] rounded-full bg-danger-bar border-0 cursor-pointer flex items-center justify-center">✕</button>
                 </div>
               ))}
               {resPhotos.canAdd && (
-                <button onClick={resPhotos.openPicker} className="bg-surface-sunken text-text-tertiary rounded-sm w-[64px] h-[64px] border border-dashed border-border-strong cursor-pointer flex flex-col items-center justify-center gap-[2px]">
+                <button onClick={resPhotos.openPicker} className="bg-surface-sunken text-text-tertiary rounded-sm w-16 h-16 border border-dashed border-border-strong cursor-pointer flex flex-col items-center justify-center gap-0.5">
                   <Camera size={18} />
                   <span className="text-caption leading-none font-bold">첨부</span>
                 </button>
@@ -800,7 +800,7 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
           <button
             onClick={() => { if (!memo.trim()) { toast.error('조치 내용을 입력하세요'); return }; resolveMutation.mutate() }}
             disabled={isSubmitting}
-            className={`text-text-on-accent text-label font-bold rounded-md mt-3 w-full h-[44px] border-0 ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
+            className={`text-text-on-accent text-label font-bold rounded-md mt-3 w-full h-11 border-0 ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
             style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}
           >{isSubmitting ? '처리 중...' : '조치 완료'}</button>
         </div>
@@ -810,7 +810,7 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
       {finding.status === 'resolved' && (
         <div className="border-t border-border-default pt-4">
           <div className="text-caption leading-none font-bold text-text-tertiary mb-2">조치 결과</div>
-          <div className="flex flex-col gap-[6px]">
+          <div className="flex flex-col gap-1.5">
             <KVRow label="조치일시">{fmtDateTime(finding.resolvedAt)}</KVRow>
             <KVRow label="조치자">{finding.resolvedByName ?? finding.resolvedBy ?? '-'}</KVRow>
             <KVRow label="조치 내용"><span className="whitespace-pre-wrap">{finding.resolutionMemo ?? '-'}</span></KVRow>
@@ -952,7 +952,7 @@ export default function LegalPage() {
       </div>
 
       {/* 카드 */}
-      <div className="flex-1 overflow-y-auto py-2 px-3 flex flex-col gap-[6px]">
+      <div className="flex-1 overflow-y-auto py-2 px-3 flex flex-col gap-1.5">
         {isLoading && <><div className={SKELETON_CLS} style={SKELETON_STYLE} /><div className={SKELETON_CLS} style={SKELETON_STYLE} /><div className={SKELETON_CLS} style={SKELETON_STYLE} /></>}
         {isError && !isLoading && (
           <div className="text-label text-text-secondary text-center p-6">
@@ -972,9 +972,9 @@ export default function LegalPage() {
           <div
             key={round.id}
             onClick={() => handleRoundClick(round)}
-            className={`bg-surface-sunken rounded-md ${selectedRoundId === round.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${stripBySubmission(effectiveStatus)} p-[10px] cursor-pointer flex flex-col gap-[6px]`}
+            className={`bg-surface-sunken rounded-md ${selectedRoundId === round.id ? 'border-2 border-accent' : 'border border-border-default'} border-l-[3px] ${stripBySubmission(effectiveStatus)} p-2.5 cursor-pointer flex flex-col gap-1.5`}
           >
-            <div className="flex items-start justify-between gap-[6px]">
+            <div className="flex items-start justify-between gap-1.5">
               <span className="text-label font-bold text-text-primary flex-1 overflow-hidden text-ellipsis whitespace-nowrap pt-1">{round.title}</span>
               {isDesktop && (
                 <div onClick={(e) => e.stopPropagation()} className="flex gap-1 items-center shrink-0">
@@ -985,7 +985,7 @@ export default function LegalPage() {
                       if (!isAdmin || isLocked) return
                       setPendingStatuses(prev => ({ ...prev, [round.id]: effectiveStatus === 'completed' ? 'pending' : 'completed' }))
                     }}
-                    className={`text-caption font-bold leading-none rounded-sm h-[26px] px-[10px] whitespace-nowrap ${isAdmin && !isLocked ? 'cursor-pointer' : 'cursor-not-allowed'} ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}
+                    className={`text-caption font-bold leading-none rounded-sm h-[26px] px-2.5 whitespace-nowrap ${isAdmin && !isLocked ? 'cursor-pointer' : 'cursor-not-allowed'} ${effectiveStatus === 'completed' ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}
                   >
                     제출 {effectiveStatus === 'completed' ? '완료' : '미완료'}
                   </button>
@@ -993,7 +993,7 @@ export default function LegalPage() {
                     <button
                       type="button"
                       disabled
-                      className="text-caption font-bold leading-none rounded-sm bg-safe-bg text-safe h-[26px] px-[10px] cursor-default whitespace-nowrap"
+                      className="text-caption font-bold leading-none rounded-sm bg-safe-bg text-safe h-[26px] px-2.5 cursor-default whitespace-nowrap"
                     ><Lock size={12} className="inline-block align-text-bottom mr-1" />종결</button>
                   ) : (
                     <button
@@ -1003,7 +1003,7 @@ export default function LegalPage() {
                         if (!isAdmin || !isDirty) return
                         saveStatusMutation.mutate({ id: round.id, status: effectiveStatus })
                       }}
-                      className={`text-caption font-bold leading-none rounded-sm border-0 h-[26px] px-[10px] ${isAdmin && isDirty ? 'cursor-pointer' : 'cursor-not-allowed'} ${isDirty ? 'bg-warning-bg text-warning' : 'bg-accent text-text-on-accent'} disabled:bg-surface-sunken disabled:text-text-disabled`}
+                      className={`text-caption font-bold leading-none rounded-sm border-0 h-[26px] px-2.5 ${isAdmin && isDirty ? 'cursor-pointer' : 'cursor-not-allowed'} ${isDirty ? 'bg-warning-bg text-warning' : 'bg-accent text-text-on-accent'} disabled:bg-surface-sunken disabled:text-text-disabled`}
                     >
                       {isSaving ? '저장중...' : isDirty ? '저장 *' : '저장'}
                     </button>
@@ -1021,7 +1021,7 @@ export default function LegalPage() {
             <div className="text-caption leading-none text-text-secondary">
               {fmtDate(round.date)} · 지적 {round.findingCount} · 완료 {round.resolvedCount}
             </div>
-            <div className="flex gap-[6px] pt-[6px] border-t border-dashed border-border-default">
+            <div className="flex gap-1.5 pt-[6px] border-t border-dashed border-border-default">
               {/* 결과내역서: reportFileKey 있으면 다운로드 + (데스크톱 admin && !locked) X 삭제 / 없으면 (데스크톱 admin) 업로드 */}
               {round.reportFileKey ? (
                 <div className="flex-1 relative">
@@ -1033,14 +1033,14 @@ export default function LegalPage() {
                         downloadWithName('/api/uploads/' + round.reportFileKey, reportFileName(round))
                       }
                     }}
-                    className="text-caption font-bold leading-none rounded-sm bg-surface-raised border border-border-strong text-text-primary w-full h-[32px] cursor-pointer"
+                    className="text-caption font-bold leading-none rounded-sm bg-surface-raised border border-border-strong text-text-primary w-full h-7 cursor-pointer"
                   >↓ 결과내역서</button>
                   {isDesktop && isAdmin && !isLocked && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleDeleteReport(round) }}
                       title="결과내역서 삭제 (새 파일 업로드 시)"
-                      className="bg-danger-bar text-text-on-accent border-0 absolute -top-[6px] -right-[6px] w-[18px] h-[18px] rounded-full text-[12px] leading-none flex items-center justify-center cursor-pointer p-0"
+                      className="bg-danger-bar text-text-on-accent border-0 absolute -top-1.5 -right-1.5 w-[18px] h-[18px] rounded-full text-caption leading-none flex items-center justify-center cursor-pointer p-0"
                     >×</button>
                   )}
                 </div>
@@ -1056,7 +1056,7 @@ export default function LegalPage() {
                         e.stopPropagation()
                         if (canUpload) triggerUpload(round.id)
                       }}
-                      className={`text-caption font-bold leading-none rounded-sm flex-1 h-[32px] ${canUpload ? 'bg-surface-raised border border-border-strong text-text-primary cursor-pointer' : 'border border-border-default text-text-disabled bg-transparent cursor-not-allowed'}`}
+                      className={`text-caption font-bold leading-none rounded-sm flex-1 h-7 ${canUpload ? 'bg-surface-raised border border-border-strong text-text-primary cursor-pointer' : 'border border-border-default text-text-disabled bg-transparent cursor-not-allowed'}`}
                     >
                       {isUploading ? '업로드중...' : (canUpload ? '⬆ 결과내역서 업로드' : '↓ 결과내역서 (미업로드)')}
                     </button>
@@ -1072,7 +1072,7 @@ export default function LegalPage() {
                   }
                 }}
                 disabled={!round.pptFileKey}
-                className={`text-caption font-bold leading-none rounded-sm flex-1 h-[32px] ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary cursor-pointer' : 'border border-border-default text-text-disabled bg-transparent cursor-not-allowed'}`}
+                className={`text-caption font-bold leading-none rounded-sm flex-1 h-7 ${round.pptFileKey ? 'bg-surface-raised border border-border-strong text-text-primary cursor-pointer' : 'border border-border-default text-text-disabled bg-transparent cursor-not-allowed'}`}
               >
                 ↓ 지적조치사진{round.pptFileKey ? '' : ' (미생성)'}
               </button>
