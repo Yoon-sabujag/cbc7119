@@ -177,8 +177,7 @@ export default function LegalFindingDetailPage() {
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm"
-              style={{ height: 36, padding: '0 16px', cursor: downloading ? 'not-allowed' : 'pointer', opacity: downloading ? 0.5 : 1 }}
+              className={`bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm h-9 px-4 ${downloading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
             >
               {downloading ? '다운로드 중...' : '다운로드'}
             </button>
@@ -245,8 +244,8 @@ export default function LegalFindingDetailPage() {
                 onChange={e => setMemo(e.target.value)}
                 placeholder="조치 내용을 입력하세요"
                 rows={3}
-                className="bg-surface-sunken border border-border-strong text-text-primary text-body-sm rounded-sm"
-                style={{ width: '100%', padding: '10px 12px', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.5, resize: 'vertical', outline: 'none' }}
+                className="bg-surface-sunken border border-border-strong text-text-primary text-body-sm rounded-sm w-full px-3 py-2.5 box-border leading-normal resize-y outline-none"
+                style={{ fontFamily: 'inherit' }}
               />
               <div style={{ marginTop: 12 }}>
                 <div className="text-caption font-bold text-text-tertiary leading-none" style={{ marginBottom: 6 }}>조치 사진 (최대 5장)</div>
