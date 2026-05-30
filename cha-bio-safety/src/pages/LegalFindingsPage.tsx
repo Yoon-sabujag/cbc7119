@@ -295,8 +295,7 @@ export default function LegalFindingsPage() {
             onClick={() => navigate(-1)}
             className="w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary border-0 cursor-pointer flex items-center justify-center shrink-0"
           ><ChevronLeft size={20} /></button>
-          <span className="flex-1 text-title font-semibold text-text-primary text-center">{headerTitle}</span>
-          <div className="w-7 shrink-0" />
+          <span className="flex-1 text-title font-semibold text-text-primary ml-2">{headerTitle}</span>
         </header>
       )}
 

@@ -152,7 +152,7 @@ export default function LegalFindingDetailPage() {
             onClick={() => navigate(-1)}
             className="w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary border-0 cursor-pointer flex items-center justify-center shrink-0"
           ><ChevronLeft size={20} /></button>
-          <span className="flex-1 text-title font-semibold text-text-primary text-center">지적 상세</span>
+          <span className="flex-1 text-title font-semibold text-text-primary ml-2">지적 상세</span>
           {staff?.role === 'admin' && finding ? (
             <button
               aria-label="다운로드"

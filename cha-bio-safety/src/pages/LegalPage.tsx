@@ -1300,8 +1300,7 @@ export default function LegalPage() {
           onClick={() => navigate(-1)}
           className="w-7 h-7 rounded-[7px] bg-surface-sunken text-text-secondary border-0 cursor-pointer flex items-center justify-center shrink-0"
         ><ChevronLeft size={20} /></button>
-        <span className="flex-1 text-title font-semibold text-text-primary text-center">소방 점검 관리</span>
-        <div className="w-7 shrink-0" />
+        <span className="flex-1 text-title font-semibold text-text-primary ml-2">소방 점검 관리</span>
       </header>
 
       {/* 필터 */}
