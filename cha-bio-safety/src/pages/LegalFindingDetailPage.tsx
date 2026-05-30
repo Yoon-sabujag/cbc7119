@@ -176,7 +176,7 @@ export default function LegalFindingDetailPage() {
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className={`bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm h-[36px] px-4 ${downloading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
+              className={`bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm h-9 px-4 ${downloading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
             >
               {downloading ? '다운로드 중...' : '다운로드'}
             </button>
@@ -242,7 +242,7 @@ export default function LegalFindingDetailPage() {
                 onChange={e => setMemo(e.target.value)}
                 placeholder="조치 내용을 입력하세요"
                 rows={3}
-                className="bg-surface-sunken border border-border-strong text-text-primary text-body-sm rounded-sm w-full px-3 py-[10px] box-border leading-[1.5] resize-y outline-none"
+                className="bg-surface-sunken border border-border-strong text-text-primary text-body-sm rounded-sm w-full px-3 py-2.5 box-border leading-normal resize-y outline-none"
                 style={{ fontFamily: 'inherit' }}
               />
               <div className="mt-3">

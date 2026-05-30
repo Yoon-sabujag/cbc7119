@@ -205,7 +205,7 @@ export default function LegalFindingsPage() {
       <select
         value={effectiveSelectedResult}
         onChange={e => setSelectedResult(e.target.value)}
-        className="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-sm px-3 py-[6px] appearance-none cursor-pointer"
+        className="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-sm px-3 py-1.5 appearance-none cursor-pointer"
       >
         <option value="">결과 미입력</option>
         <option value="pass">적합</option>
@@ -215,25 +215,25 @@ export default function LegalFindingsPage() {
       <button
         onClick={handleSaveResult}
         disabled={savingResult}
-        className={`bg-accent text-text-on-accent text-caption font-bold leading-none rounded-sm h-[36px] px-3 border-0 flex-shrink-0 ${savingResult ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'}`}
+        className={`bg-accent text-text-on-accent text-caption font-bold leading-none rounded-sm h-9 px-3 border-0 flex-shrink-0 ${savingResult ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'}`}
       >결과 저장</button>
       <input ref={reportInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleReportUpload} />
       {round.reportFileKey ? (
         <button
           onClick={() => window.open('/api/uploads/' + round.reportFileKey, '_blank')}
-          className="bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm h-[36px] px-3 cursor-pointer flex-shrink-0"
+          className="bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm h-9 px-3 cursor-pointer flex-shrink-0"
         >보고서 보기</button>
       ) : (
         <button
           onClick={() => reportInputRef.current?.click()}
           disabled={uploadingReport}
-          className={`bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm h-[36px] px-3 flex-shrink-0 ${uploadingReport ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'}`}
+          className={`bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm h-9 px-3 flex-shrink-0 ${uploadingReport ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'}`}
         >{uploadingReport ? '업로드 중...' : '보고서 업로드'}</button>
       )}
       <button
         onClick={handleZipDownload}
         disabled={!!zipLoading || !findings?.length}
-        className={`bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm h-[36px] px-3 flex-shrink-0 whitespace-nowrap ${(zipLoading || !findings?.length) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'}`}
+        className={`bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm h-9 px-3 flex-shrink-0 whitespace-nowrap ${(zipLoading || !findings?.length) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'}`}
       >{zipLoading || '일괄 다운로드'}</button>
     </div>
   ) : null
@@ -248,7 +248,7 @@ export default function LegalFindingsPage() {
       <div className="flex items-center justify-between gap-2">
         <span className="text-body-sm text-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{finding.description}</span>
         <span
-          className={`text-caption font-bold leading-none rounded-sm px-2 py-[2px] flex-shrink-0 ${finding.status === 'open' ? 'bg-fire-bg text-fire' : 'bg-safe-bg text-safe'}`}
+          className={`text-caption font-bold leading-none rounded-sm px-2 py-0.5 flex-shrink-0 ${finding.status === 'open' ? 'bg-fire-bg text-fire' : 'bg-safe-bg text-safe'}`}
         >{finding.status === 'open' ? '미조치' : '완료'}</span>
       </div>
       <div className="text-caption leading-none text-text-secondary">{finding.location ?? '위치 미지정'}</div>
@@ -258,11 +258,11 @@ export default function LegalFindingsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={(e) => { e.stopPropagation(); setEditingFinding(finding) }}
-              className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-[2px]"
+              className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-0.5"
             >수정</button>
             <button
               onClick={(e) => handleDeleteFinding(e, finding)}
-              className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-[2px]"
+              className="text-caption leading-none text-text-tertiary bg-transparent border-0 cursor-pointer px-1 py-0.5"
             >삭제</button>
           </div>
         )}
