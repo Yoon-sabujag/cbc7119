@@ -329,7 +329,7 @@ export default function DashboardPage() {
                             {m.doubleCycle ? (
                               <Donut
                                 pct={m.pct}
-                                color={progressColor(m.pct)}
+                                color={progressColor(m.pct > 100 ? m.pct - 100 : m.pct)}
                                 size={76}
                                 doubleCycle={{
                                   earlyPct: m.early_pct ?? 0,
@@ -678,7 +678,7 @@ export default function DashboardPage() {
                   {m.doubleCycle ? (
                     <Donut
                       pct={m.pct}
-                      color={progressColor(m.pct)}
+                      color={progressColor(m.pct > 100 ? m.pct - 100 : m.pct)}
                       size={44}
                       doubleCycle={{
                         earlyPct: m.early_pct ?? 0,

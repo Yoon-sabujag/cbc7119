@@ -209,7 +209,7 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
         <div style={{
           position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
           fontFamily:'JetBrains Mono, monospace', fontSize:10, fontWeight:600,
-          color: allZero ? 'var(--t3)' : 'var(--t2)', whiteSpace:'nowrap',
+          color: allZero ? 'var(--t3)' : color, whiteSpace:'nowrap',
         }}>
           {pct}%
         </div>
