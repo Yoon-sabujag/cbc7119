@@ -618,7 +618,7 @@ export default function ElevatorPage() {
           <button
             onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
             className="inline-flex items-center gap-1.5 h-7 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
-            style={{ background: 'linear-gradient(135deg,#854d0e,#eab308)' }}
+            style={{ background: 'linear-gradient(135deg, var(--accent-active), var(--accent))' }}
           >
             <Wrench size={14} />
             수리 기록
@@ -2493,7 +2493,7 @@ function CertViewerModal({ certKey, onClose }: { certKey:string; onClose:()=>voi
           <span className="text-body-sm font-bold text-text-primary">검사성적서</span>
           <div className="flex gap-2">
             <a href={url} target="_blank" rel="noopener" className="text-[11px] font-bold text-accent px-3 py-1.5 rounded-md bg-[rgba(59,130,246,0.15)] border border-[rgba(59,130,246,0.3)] no-underline">새 탭 열기</a>
-            <button onClick={onClose} className="bg-none border-0 text-text-tertiary cursor-pointer text-[20px]">✕</button>
+            <button onClick={onClose} className="bg-transparent border-0 text-text-tertiary cursor-pointer flex items-center justify-center p-1"><X size={20} /></button>
           </div>
         </div>
         {/* 뷰어 영역 */}
@@ -3121,7 +3121,7 @@ function RepairImageViewer({ src, onClose }: { src: string; onClose: () => void 
   return (
     <div className="fixed inset-0 z-[300] bg-[rgba(0,0,0,0.95)] flex flex-col">
       <div className="shrink-0 flex justify-end px-4 pt-[calc(12px+var(--sat,44px))] pb-3">
-        <button onClick={onClose} className="bg-none border-0 text-white text-[24px] cursor-pointer">✕</button>
+        <button onClick={onClose} className="bg-transparent border-0 text-white cursor-pointer flex items-center justify-center p-1"><X size={22} /></button>
       </div>
       <div
         onTouchStart={e => {
@@ -3443,7 +3443,7 @@ function MinwonFindingsPanel({ elevatorId, year, order, repairs }: { elevatorId:
             <span className={`text-[9px] font-bold px-1.5 py-px rounded ${f.status === 'resolved' ? 'bg-[rgba(34,197,94,0.12)] text-safe-bar' : 'bg-[rgba(239,68,68,0.12)] text-danger-bar'}`}>
               {f.status === 'resolved' ? '조치완료' : '미조치'}
             </span>
-            <button onClick={() => handleDelete(f.id)} className="bg-none border-0 text-text-tertiary text-caption cursor-pointer p-0">✕</button>
+            <button onClick={() => handleDelete(f.id)} className="bg-transparent border-0 text-text-tertiary cursor-pointer flex items-center justify-center p-0"><X size={14} /></button>
           </div>
 
           {f.status === 'resolved' && f.repair_item && (
