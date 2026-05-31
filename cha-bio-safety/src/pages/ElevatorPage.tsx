@@ -619,7 +619,7 @@ export default function ElevatorPage() {
           <button
             onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
             className="inline-flex items-center gap-1.5 h-7 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
-            style={{ background: 'linear-gradient(135deg,#854d0e,#eab308)' }}
+            style={{ background: 'linear-gradient(135deg, var(--accent-active), var(--accent))' }}
           >
             <Wrench size={14} />
             수리 기록
@@ -2487,7 +2487,7 @@ function CertViewerModal({ certKey, onClose }: { certKey:string; onClose:()=>voi
           <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>검사성적서</span>
           <div style={{ display:'flex', gap:8 }}>
             <a href={url} target="_blank" rel="noopener" style={{ fontSize:11, fontWeight:700, color:'var(--acl)', padding:'6px 12px', borderRadius:8, background:'rgba(59,130,246,.15)', border:'1px solid rgba(59,130,246,.3)', textDecoration:'none' }}>새 탭 열기</a>
-            <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:20 }}>✕</button>
+            <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:4 }}><X size={20} /></button>
           </div>
         </div>
         {/* 뷰어 영역 */}
@@ -3118,7 +3118,7 @@ function RepairImageViewer({ src, onClose }: { src: string; onClose: () => void 
   return (
     <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.95)', display:'flex', flexDirection:'column' }}>
       <div style={{ flexShrink:0, display:'flex', justifyContent:'flex-end', padding:'12px 16px', paddingTop:'calc(12px + var(--sat, 44px))' }}>
-        <button onClick={onClose} style={{ background:'none', border:'none', color:'#fff', fontSize:24, cursor:'pointer' }}>✕</button>
+        <button onClick={onClose} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:4 }}><X size={22} /></button>
       </div>
       <div
         onTouchStart={e => {
@@ -3441,7 +3441,7 @@ function MinwonFindingsPanel({ elevatorId, year, order, repairs }: { elevatorId:
             <span style={{ fontSize:9, fontWeight:700, padding:'1px 6px', borderRadius:4, background: f.status === 'resolved' ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)', color: f.status === 'resolved' ? 'var(--safe)' : 'var(--danger)' }}>
               {f.status === 'resolved' ? '조치완료' : '미조치'}
             </span>
-            <button onClick={() => handleDelete(f.id)} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:12, cursor:'pointer', padding:0 }}>✕</button>
+            <button onClick={() => handleDelete(f.id)} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}><X size={14} /></button>
           </div>
 
           {f.status === 'resolved' && f.repair_item && (
