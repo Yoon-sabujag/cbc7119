@@ -209,7 +209,7 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
         </svg>
         <div
           className="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-semibold whitespace-nowrap"
-          style={{ color: allZero ? 'var(--t3)' : 'var(--t2)' }}
+          style={{ color: allZero ? 'var(--t3)' : color }}
         >
           {pct}%
         </div>
