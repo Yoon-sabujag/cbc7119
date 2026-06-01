@@ -272,3 +272,16 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
 > This section is managed by `generate-claude-profile` -- do not edit manually.
 <!-- GSD:profile-end -->
+
+## Console scope
+
+**이 콘솔(working dir `~/Documents/20260328`)은 production 전용입니다.** cbc7119 / cha-bio-db / cha-bio-storage / branch=`production` 만 조작.
+
+데이터 룰 / 스키마 / 카테고리 entry / API 검증 등 사전 검증이 필요한 변경은 **이 콘솔에서 직접 prod 에 적용하지 않습니다.** staging 콘솔로 분리:
+
+- staging 폴더: `~/Documents/cbc7119-data/` (별도 git repo, 별도 Pages/D1/R2)
+- staging 콘솔 부팅: `cd ~/Documents/cbc7119-data && claude`
+- 흐름: staging 에서 적용 → 사용자가 staging 도메인에서 검증 → OK 면 이 콘솔(prod) 에서 동일 변경 적용
+
+상세 룰은 staging 폴더 안의 `CLAUDE.md` 와 메모리 `project_cbc7119_data_staging.md` 참조.
+
