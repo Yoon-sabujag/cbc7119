@@ -529,12 +529,14 @@ function DesktopWorkList({
                 <tr>
                   <th style={TH}>항목명</th>
                   <th style={TH}>아이디</th>
-                  <th style={{ ...TH, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <span>비밀번호</span>
-                    <button onClick={() => setRevealAll(v => !v)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center' }}>
-                      {revealAll ? <EyeOff size={12} /> : <Eye size={12} />}
-                    </button>
+                  <th style={TH}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      비밀번호
+                      <button onClick={() => setRevealAll(v => !v)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center' }}>
+                        {revealAll ? <EyeOff size={12} /> : <Eye size={12} />}
+                      </button>
+                    </span>
                   </th>
                   <th style={TH}>메모</th>
                   <th style={TH}>작성자</th>
