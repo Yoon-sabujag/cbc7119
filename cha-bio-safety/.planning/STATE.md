@@ -105,6 +105,7 @@ Recent decisions affecting current work:
 | 260502-hgx | 클라 [접근불가] useEffect 두 개 제거 (cron 단일화) + 5/2 잘못 들어간 14건 admin 삭제 + production 배포 | 2026-05-02 | 09fbc75 | [260502-hgx-useeffect-cron-5-2-14-admin](./quick/260502-hgx-useeffect-cron-5-2-14-admin/) |
 | 260504-mwn | 업무수행기록표 엑셀 출력 깨짐 수정 (firstSheet dangling pointer + AA셀 \n 이중 이스케이프) + production 배포 | 2026-05-04 | 4edeb94 | [260504-mwn-fix-worklog-excel-firstsheet-pointer-aa-](./quick/260504-mwn-fix-worklog-excel-firstsheet-pointer-aa-/) |
 | 260513-lz1 | 소방점검관리 종합정밀 카드 지적사항에 수정 기능 추가 (FindingFormSheet 공유 컴포넌트 + PUT admin 게이트 제거 + 모바일/데스크톱 수정 버튼) | 2026-05-13 | 11a5be6 | [260513-lz1-legal-finding-edit-feature](./quick/260513-lz1-legal-finding-edit-feature/) |
+| 260602-3p6 | 소화기 점검표 공개 페이지(ExtinguisherPublicPage) page 박스 width:100% — flex-column 부모+margin auto shrink-to-fit 으로 표가 좌우 눌리던 버그 수정 | 2026-06-01 | daf3828 | [260602-3p6-extinguisherpublicpage-width-fix](./quick/260602-3p6-extinguisherpublicpage-width-fix/) |
 
 ## Session Continuity
 
