@@ -119,6 +119,38 @@ function getCatBarClass(total: number, doneCnt: number): string {
   return 'bg-safe-bar'
 }
 
+// 카테고리 1개의 완료 집계 — 모바일 그리드/데스크톱 카드 공유 단일 경로.
+// 완료 단일 진실원천(isCpCompleted)을 따르는 computeCardCompletion / 유도등 마커 /
+// DIV·컴프 반월 사이클을 그대로 캡슐화한다. 드리프트 0 보장.
+function computeCategoryCounts(
+  g: { categories: string[] },
+  ctx: {
+    allCheckpoints: CheckPoint[]
+    scheduleItems: ScheduleItem[]
+    markerRecords: Record<string, CheckResult>
+    monthRecordDates: Record<string, string[]>
+    glMarkerCount: number
+    today: string
+  }
+): { total: number; doneCnt: number } {
+  const isGL = g.categories.includes('유도등')
+  const cps  = ctx.allCheckpoints.filter(cp => g.categories.includes(cp.category))
+  const total = isGL ? ctx.glMarkerCount : cps.length
+  let doneCnt: number
+  if (isGL) {
+    const glSchedDone = ctx.scheduleItems.some(s =>
+      s.category === 'inspect' &&
+      s.inspectionCategory === '유도등' &&
+      s.status === 'done'
+    )
+    doneCnt = glSchedDone ? total : Object.keys(ctx.markerRecords).length
+  } else {
+    // 260427-1dc: DIV/컴프레셔만 월 반반 분할 (1~15 / 16~말, computeCardCompletion 안에서)
+    doneCnt = computeCardCompletion({ cps, monthRecordDates: ctx.monthRecordDates, today: ctx.today })
+  }
+  return { total, doneCnt }
+}
+
 // 점검 결과 입력용 (정상/주의/불량만 — 미조치는 별도 조치 스텝에서 처리)
 // `icon` 필드는 § 7.1 enforce (260527-gql) 로 제거됨 — Lucide RESULT_ICONS 매핑이 단일 진실 원천.
 const INSPECT_RESULT_OPTIONS: { value:CheckResult; label:string; color:string; bg:string }[] = [
@@ -5161,25 +5193,11 @@ export default function InspectionPage() {
                 const _n = new Date()
                 const _todayForCycle = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`
                 return CATEGORY_GROUPS.map((g, idx) => {
-                const isGL    = g.categories.includes('유도등')
-                const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
-                const total   = isGL ? glMarkerCount : cps.length
-                // 카드 완료 판정은 대시보드와 동일 기준 (DISTINCT checkpoint_id + 자동완료).
-                // 유도등은 당월 inspect 일정 중 status='done' 이 하나라도 있으면 100%
-                // 바이패스(scheduleItems 는 useQuery 로 당월치만 로드됨), 아니면
-                // markerRecords 기반 카운트.
-                let doneCnt: number
-                if (isGL) {
-                  const glSchedDone = scheduleItems.some(s =>
-                    s.category === 'inspect' &&
-                    s.inspectionCategory === '유도등' &&
-                    s.status === 'done'
-                  )
-                  doneCnt = glSchedDone ? total : Object.keys(markerRecords).length
-                } else {
-                  // 260427-1dc: DIV/컴프레셔만 월 반반 분할 (1~15 / 16~말, computeCardCompletion 안에서)
-                  doneCnt = computeCardCompletion({ cps, monthRecordDates, today: _todayForCycle })
-                }
+                const isGL = g.categories.includes('유도등')
+                const { total, doneCnt } = computeCategoryCounts(g, {
+                  allCheckpoints, scheduleItems, markerRecords, monthRecordDates, glMarkerCount,
+                  today: _todayForCycle,
+                })
                 const allDone = total > 0 && doneCnt >= total
                 const hasItems = total > 0 || g.categories.includes('화재수신반')
                 const Icon = CATEGORY_ICONS[idx]
