@@ -5008,6 +5008,11 @@ export default function InspectionPage() {
       setRecordId={setDesktopRecordId}
       dateFilter={desktopDateFilter}
       setDateFilter={setDesktopDateFilter}
+      allCheckpoints={allCheckpoints}
+      scheduleItems={scheduleItems}
+      markerRecords={markerRecords}
+      monthRecordDates={monthRecordDates}
+      glMarkerCount={glMarkerCount}
     />
   }
 
@@ -5747,6 +5752,7 @@ ${issueRecs.length > 0 ? `
 // ── 데스크톱 점검 관리 뷰 (좌=카테고리 카드 / 우=내역 또는 상세) ─────
 function DesktopInspectionView({
   categoryIdx, setCategoryIdx, recordId, setRecordId, dateFilter, setDateFilter,
+  allCheckpoints, scheduleItems, markerRecords, monthRecordDates, glMarkerCount,
 }: {
   categoryIdx: number | null
   setCategoryIdx: (idx: number | null) => void
@@ -5754,6 +5760,11 @@ function DesktopInspectionView({
   setRecordId: (id: string | null) => void
   dateFilter: number
   setDateFilter: (d: number) => void
+  allCheckpoints: CheckPoint[]
+  scheduleItems: ScheduleItem[]
+  markerRecords: Record<string, CheckResult>
+  monthRecordDates: Record<string, string[]>
+  glMarkerCount: number
 }) {
   const navigate = useNavigate()
 
@@ -5773,19 +5784,22 @@ function DesktopInspectionView({
 
   // 카테고리 그룹별 카운트 (점검 완료 + 이슈)
   const groupCounts = useMemo(() => {
+    const _n = new Date()
+    const today = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`
     return CATEGORY_GROUPS.map(g => {
+      const { total, doneCnt } = computeCategoryCounts(g, {
+        allCheckpoints, scheduleItems, markerRecords, monthRecordDates, glMarkerCount, today,
+      })
       const matches = allRecords.filter(r => g.categories.includes(r.category))
-      // 점검 완료 개소 = 고유 checkpoint 개수 (location+floor+category 조합)
-      const uniqueSites = new Set(matches.map(r => `${r.zone}|${r.floor}|${r.location}|${r.category}`))
       return {
-        total:    matches.length,
-        completed: uniqueSites.size,
-        bad:      matches.filter(r => r.result === 'bad').length,
-        caution:  matches.filter(r => r.result === 'caution').length,
-        open:     matches.filter(r => r.status === 'open').length,
+        total,                 // 막대 분모 = 모바일과 동일 (체크포인트/마커 단위)
+        completed: doneCnt,    // 표시 숫자 + 막대 분자 = 모바일과 동일
+        bad:      matches.filter(r => r.result === 'bad').length,      // 유지
+        caution:  matches.filter(r => r.result === 'caution').length,  // 유지
+        open:     matches.filter(r => r.status === 'open').length,     // 유지
       }
     })
-  }, [allRecords])
+  }, [allRecords, allCheckpoints, scheduleItems, markerRecords, monthRecordDates, glMarkerCount])
 
   // 선택된 카테고리의 레코드 (정상 제외 필터 적용)
   const categoryRecords = useMemo(() => {
