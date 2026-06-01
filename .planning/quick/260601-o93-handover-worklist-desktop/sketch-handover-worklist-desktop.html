@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>인수인계장·업무리스트 데스크톱 룰 정렬 시안</title>
+<style>
+  /* ── 디자인 토큰 (tokens.css dark 발췌) ── */
+  :root{
+    --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-sunken:#12161d;
+    --surface-active:#222831; --bg2:#1a1f27;
+    --text-primary:#e6eaf0; --text-secondary:#9aa4b2; --text-tertiary:#6b7280;
+    --border-default:rgba(255,255,255,.14); --border-strong:rgba(255,255,255,.24);
+    --accent:#3b82f6;
+    --status-safe:#4ade80; --status-warning:#fbbf24; --status-danger:#f87171;
+    --status-safe-bar:#22c55e; --status-warning-bar:#f59e0b; --status-danger-bar:#ef4444;
+    --status-safe-bg:rgba(34,197,94,.16); --status-warning-bg:rgba(245,158,11,.16); --status-danger-bg:rgba(239,68,68,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#05070a;color:var(--text-primary);font-family:-apple-system,'Pretendard',sans-serif;font-size:14px;line-height:1.5}
+  .frame{display:flex;height:100vh}
+  /* 사이드바 (맥락용 — 실제 DesktopSidebar 대역) */
+  .sidebar{width:240px;flex:0 0 240px;background:var(--surface-raised);border-right:1px solid var(--border-default);padding:16px 12px}
+  .sidebar .logo{font-weight:800;font-size:15px;margin-bottom:18px;color:var(--text-primary)}
+  .sidebar .nav{font-size:13px;color:var(--text-secondary);padding:8px 10px;border-radius:8px;margin-bottom:2px}
+  .sidebar .nav.active{background:var(--accent);color:#fff;font-weight:700}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  /* 상단 헤더 (App.tsx 데스크톱 헤더 대역) */
+  .topbar{height:48px;flex-shrink:0;border-bottom:1px solid var(--border-default);display:flex;align-items:center;padding:0 20px;font-size:18px;font-weight:600}
+  .page{flex:1;overflow:auto;background:var(--surface-page)}
+
+  /* ── 툴바 ── */
+  .toolbar{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border-default);flex-shrink:0}
+  .search{position:relative;flex:0 0 280px}
+  .search input{width:100%;height:36px;padding:0 10px 0 32px;border-radius:8px;border:1px solid var(--border-default);background:var(--surface-sunken);color:var(--text-primary);font-size:13px}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%)}
+  .tabs{display:flex;gap:4px}
+  .tab{height:36px;padding:0 16px;border-radius:8px;border:none;cursor:pointer;background:var(--surface-active);color:var(--text-secondary);font-size:13px;font-weight:700}
+  .tab.active{background:var(--accent);color:#fff}
+  .btn-accent{height:36px;padding:0 14px;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700}
+  .icon-btn{height:36px;width:36px;border-radius:8px;background:var(--surface-active);color:var(--text-secondary);border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+  .ml-auto{margin-left:auto}
+
+  /* ── 인수인계장 카드 그리드 (★ 변경 핵심) ── */
+  .grid-wrap{padding:20px}
+  .grid-inner{max-width:1200px;margin:0 auto}          /* ★ 추가: 폭 상한 + 가운데 정렬 */
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .card{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:12px;padding:10px 12px 10px 16px;position:relative;overflow:hidden;cursor:pointer}
+  .card:hover{border-color:var(--border-strong)}
+  .card .bar{position:absolute;left:0;top:0;bottom:0;width:3px}
+  .bar-safe{background:var(--status-safe-bar)}
+  .bar-warn{background:var(--status-warning-bar)}
+  .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;font-size:12px;font-weight:700;line-height:1}
+  .badge-safe{background:var(--status-safe-bg);color:var(--status-safe-bar)}     /* 완료 = 토큰 */
+  .badge-wait{background:var(--status-warning-bg);color:var(--status-warning-bar)} /* 대기 = warning 통일 */
+  .card .title{font-size:16px;font-weight:700;color:var(--text-primary);margin:6px 0 2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .body{font-size:14px;color:var(--text-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .card .meta{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--text-tertiary)}
+  .pin{position:absolute;top:8px;right:8px;color:var(--text-tertiary)}
+
+  /* ── 업무리스트 테이블 (형식 유지 · 색만 토큰화) ── */
+  table{width:100%;border-collapse:collapse}
+  thead th{padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:var(--text-secondary);border-bottom:1px solid var(--border-default);white-space:nowrap;background:var(--surface-raised)}
+  tbody td{padding:10px 12px;font-size:13px;color:var(--text-primary);border-bottom:1px solid var(--border-default);vertical-align:middle}
+  .mono{font-family:'JetBrains Mono',monospace;color:var(--text-secondary)}
+  .row-chip{height:26px;padding:0 8px;border-radius:13px;border:1px solid var(--border-default);background:transparent;color:var(--text-secondary);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .row-chip.danger{border-color:var(--status-danger-bar);color:var(--status-danger-bar)}
+  .section-label{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-tertiary);padding:18px 20px 6px}
+  .diff{background:var(--status-warning-bg);color:var(--status-warning-bar);font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:8px;text-transform:none;letter-spacing:0}
+</style>
+</head>
+<body>
+
+<div class="section-label">① 인수인계장 (HandoverPage) — 데스크톱 <span class="diff">변경: max-width 1200 가운데 정렬 + 상태색 토큰화</span></div>
+<div class="frame" style="height:560px">
+  <aside class="sidebar">
+    <div class="logo">CHA 방재</div>
+    <div class="nav">대시보드</div>
+    <div class="nav">근무표</div>
+    <div class="nav active">인수 인계장</div>
+    <div class="nav">업무 관련 리스트</div>
+    <div class="nav">소방시설 점검</div>
+  </aside>
+  <div class="main">
+    <div class="topbar">인수 인계장</div>
+    <div class="page">
+      <div class="toolbar">
+        <div class="search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="제목/본문/작성자 검색">
+        </div>
+        <div class="tabs">
+          <button class="tab active">전체</button>
+          <button class="tab">대기</button>
+          <button class="tab">완료</button>
+        </div>
+        <button class="btn-accent ml-auto">+ 새 글</button>
+      </div>
+      <div class="grid-wrap">
+        <div class="grid-inner">
+          <div class="grid">
+            <div class="card">
+              <div class="bar bar-warn"></div>
+              <div class="pin"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></div>
+              <span class="badge badge-wait">대기</span>
+              <div class="title">B동 지하 2층 스프링클러 알람밸브 점검 요청</div>
+              <div class="body">어제 야간에 압력계 수치가 평소보다 낮게 표시됨. 주간 근무자가 1차 확인 후 이상 시 협력업체 연락 바랍니다.</div>
+              <div class="meta">김주임 · 06-01 08:12 · <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>2</div>
+            </div>
+            <div class="card">
+              <div class="bar bar-safe"></div>
+              <span class="badge badge-safe"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>완료</span>
+              <div class="title">소화기 월점검 (3~7층) 완료</div>
+              <div class="body">압력 정상, 안전핀 이상 없음. 7층 복도 1기 위치 표지 보수 처리함.</div>
+              <div class="meta">이반장 · 05-31 17:40</div>
+            </div>
+            <div class="card">
+              <div class="bar bar-warn"></div>
+              <span class="badge badge-wait">대기</span>
+              <div class="title">옥상 배연창 수동개방 레버 뻑뻑함</div>
+              <div class="body">2번 레버 작동 시 저항 큼. 주유 또는 부품 교체 검토 필요.</div>
+              <div class="meta">박주임 · 05-31 09:05</div>
+            </div>
+            <div class="card">
+              <div class="bar bar-safe"></div>
+              <span class="badge badge-safe"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>완료</span>
+              <div class="title">방재실 수신기 예비전원 시험</div>
+              <div class="body">정전 모의시험 정상. 절체 시간 이상 없음.</div>
+              <div class="meta">최팀장 · 05-30 14:20</div>
+            </div>
+            <div class="card">
+              <div class="bar bar-warn"></div>
+              <span class="badge badge-wait">대기</span>
+              <div class="title">엘리베이터 3호기 정기검사 일정 공유</div>
+              <div class="body">6/15 공단 검사 예정. 당일 운행 정지 안내문 게시 필요.</div>
+              <div class="meta">김주임 · 05-30 10:00</div>
+            </div>
+            <div class="card">
+              <div class="bar bar-safe"></div>
+              <span class="badge badge-safe"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>완료</span>
+              <div class="title">제연댐퍼 동작시험 (저층부)</div>
+              <div class="body">전 구역 정상 동작 확인.</div>
+              <div class="meta">이반장 · 05-29 16:10</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">② 업무 관련 리스트 (WorkListPage) — 데스크톱 <span class="diff">변경: 상태/액션 색 토큰화 (테이블 형식·전체폭 유지)</span></div>
+<div class="frame" style="height:420px">
+  <aside class="sidebar">
+    <div class="logo">CHA 방재</div>
+    <div class="nav">대시보드</div>
+    <div class="nav">근무표</div>
+    <div class="nav">인수 인계장</div>
+    <div class="nav active">업무 관련 리스트</div>
+    <div class="nav">소방시설 점검</div>
+  </aside>
+  <div class="main">
+    <div class="topbar">업무 관련 리스트</div>
+    <div class="page">
+      <div class="toolbar">
+        <div class="tabs">
+          <button class="tab active">비밀번호</button>
+          <button class="tab">연락처</button>
+        </div>
+        <div class="search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="항목명/아이디/메모/작성자 검색">
+        </div>
+        <button class="icon-btn" title="비밀번호 보기"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="btn-accent ml-auto">+ 추가</button>
+      </div>
+      <table>
+        <thead><tr><th>항목명</th><th>아이디</th><th>비밀번호</th><th>메모</th><th>작성자</th><th style="width:100px">액션</th></tr></thead>
+        <tbody>
+          <tr><td>방재실 출입 도어락</td><td>—</td><td class="mono">••••••••</td><td>야간 변경 주의</td><td>이반장</td><td><button class="row-chip">이력</button></td></tr>
+          <tr><td>수신기 관리자 모드</td><td class="mono">admin</td><td class="mono">••••••••</td><td>—</td><td>최팀장</td><td><button class="row-chip">이력</button> <button class="row-chip danger">삭제</button></td></tr>
+          <tr><td>CCTV NVR 웹</td><td class="mono">cha_fire</td><td class="mono">••••••••</td><td>분기별 변경</td><td>김주임</td><td><button class="row-chip">이력</button></td></tr>
+          <tr><td>방송장비 콘솔</td><td>—</td><td class="mono">••••••••</td><td>—</td><td>박주임</td><td><button class="row-chip">이력</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

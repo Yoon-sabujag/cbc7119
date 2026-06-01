@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { workListApi, type WorkListItem } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
+import { useIsDesktop } from '../hooks/useIsDesktop'
+import type { Staff } from '../types'
 import { Search, Plus, Trash2, History, X, RotateCcw, Edit3, Eye, EyeOff } from 'lucide-react'
 
 type TabKey = 'password' | 'contact'
@@ -36,6 +38,22 @@ export default function WorkListPage() {
     }),
     staleTime: 10_000,
   })
+
+  const isDesktop = useIsDesktop()
+  if (isDesktop) return (
+    <DesktopWorkList
+      tab={tab} setTab={setTab}
+      searchInput={searchInput} setSearchInput={setSearchInput}
+      searchQ={searchQ} setSearchQ={setSearchQ}
+      showDeleted={showDeleted} setShowDeleted={setShowDeleted}
+      composeOpen={composeOpen} setComposeOpen={setComposeOpen}
+      editingId={editingId} setEditingId={setEditingId}
+      historyId={historyId} setHistoryId={setHistoryId}
+      revealAll={revealAll} setRevealAll={setRevealAll}
+      items={items} isLoading={isLoading}
+      me={me}
+    />
+  )
 
   return (
     <div className="flex flex-col h-full bg-surface-page" style={{ overflow: 'hidden' }}>
@@ -196,7 +214,7 @@ function WorkListCard({ item, tab, isMine, editing, revealAll, onStartEdit, onCa
   return (
     <div style={CARD(isDeleted)}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        {isDeleted && <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(239,68,68,.15)', color: 'var(--status-danger)' }}>삭제됨</span>}
+        {isDeleted && <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--status-danger-bg)', color: 'var(--status-danger-bar)' }}>삭제됨</span>}
         <span className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
       </div>
 
@@ -412,6 +430,296 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       </div>
     </div>
   )
+}
+
+// ── 데스크톱 뷰 ──────────────────────────────────────────────────────────────
+function DesktopWorkList({
+  tab, setTab,
+  searchInput, setSearchInput,
+  searchQ, setSearchQ,
+  showDeleted, setShowDeleted,
+  composeOpen, setComposeOpen,
+  editingId, setEditingId,
+  historyId, setHistoryId,
+  revealAll, setRevealAll,
+  items, isLoading,
+  me,
+}: {
+  tab: TabKey; setTab: (t: TabKey) => void
+  searchInput: string; setSearchInput: (v: string) => void
+  searchQ: string; setSearchQ: (v: string) => void
+  showDeleted: boolean; setShowDeleted: (v: boolean) => void
+  composeOpen: boolean; setComposeOpen: (v: boolean) => void
+  editingId: string | null; setEditingId: (v: string | null) => void
+  historyId: string | null; setHistoryId: (v: string | null) => void
+  revealAll: boolean; setRevealAll: (fn: (v: boolean) => boolean) => void
+  items: WorkListItem[]; isLoading: boolean
+  me: Staff | null
+}) {
+  const qc = useQueryClient()
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col bg-surface-page">
+      {/* ── 툴바 ── */}
+      <div className="px-5 py-3 flex items-center gap-3 border-b border-border-default" style={{ flexShrink: 0 }}>
+        <div className="flex gap-1">
+          {([
+            { k: 'password' as const, l: '비밀번호' },
+            { k: 'contact'  as const, l: '연락처' },
+          ]).map(t => (
+            <button key={t.k} onClick={() => { setTab(t.k); setEditingId(null) }}
+              style={{ height: 36, padding: '0 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: tab === t.k ? 'var(--accent)' : 'var(--surface-active)',
+                color: tab === t.k ? '#fff' : 'var(--text-secondary)',
+                fontSize: 13, fontWeight: 700 }}>
+              {t.l}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ position: 'relative', flex: '0 0 280px' }}>
+          <Search size={14} color="var(--text-tertiary)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            placeholder={tab === 'password' ? '항목명/아이디/메모/작성자 검색' : '회사·이름·직책/번호/메모 검색'}
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && setSearchQ(searchInput.trim())}
+            style={{ width: '100%', height: 36, paddingLeft: 32, paddingRight: searchInput ? 32 : 10, borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', fontSize: 13 }}
+          />
+          {searchInput && (
+            <button onClick={() => { setSearchInput(''); setSearchQ('') }}
+              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+              <X size={14} color="var(--text-tertiary)" />
+            </button>
+          )}
+        </div>
+
+        {tab === 'password' && (
+          <button onClick={() => setRevealAll(v => !v)}
+            title={revealAll ? '비밀번호 가리기' : '비밀번호 보기'}
+            style={{ height: 36, width: 36, borderRadius: 8, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            {revealAll ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+        )}
+
+        {searchQ && (
+          <label className="flex items-center gap-2 text-caption" style={{ color: 'var(--text-secondary)' }}>
+            <input type="checkbox" checked={showDeleted} onChange={e => setShowDeleted(e.target.checked)} />
+            삭제된 항목 포함
+          </label>
+        )}
+
+        <button onClick={() => setComposeOpen(true)} style={{ marginLeft: 'auto', height: 36, padding: '0 14px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <Plus size={14} /><span style={{ fontSize: 13, fontWeight: 700 }}>추가</span>
+        </button>
+      </div>
+
+      {/* ── 테이블 ── */}
+      <div className="flex-1 overflow-auto">
+        {isLoading && <div className="text-body-sm text-text-tertiary text-center py-10">불러오는 중…</div>}
+        {!isLoading && items.length === 0 && (
+          <div className="text-body-sm text-text-tertiary text-center py-10">
+            {searchQ ? '검색 결과가 없습니다' : (tab === 'password' ? '등록된 비밀번호가 없습니다' : '등록된 연락처가 없습니다')}
+          </div>
+        )}
+        {!isLoading && items.length > 0 && (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 1 }} className="bg-surface-raised">
+              {tab === 'password' ? (
+                <tr>
+                  <th style={TH}>항목명</th>
+                  <th style={TH}>아이디</th>
+                  <th style={{ ...TH, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span>비밀번호</span>
+                    <button onClick={() => setRevealAll(v => !v)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center' }}>
+                      {revealAll ? <EyeOff size={12} /> : <Eye size={12} />}
+                    </button>
+                  </th>
+                  <th style={TH}>메모</th>
+                  <th style={TH}>작성자</th>
+                  <th style={{ ...TH, width: 100 }}>액션</th>
+                </tr>
+              ) : (
+                <tr>
+                  <th style={TH}>항목명</th>
+                  <th style={TH}>이름</th>
+                  <th style={TH}>직책</th>
+                  <th style={TH}>전화번호</th>
+                  <th style={TH}>메모</th>
+                  <th style={TH}>작성자</th>
+                  <th style={{ ...TH, width: 100 }}>액션</th>
+                </tr>
+              )}
+            </thead>
+            <tbody>
+              {items.map(item => {
+                const isMine = !!me && item.createdBy === me.id
+                const isDeleted = !!item.deletedAt
+                return (
+                  <DesktopWorkListRow
+                    key={item.id}
+                    item={item}
+                    tab={tab}
+                    isMine={isMine}
+                    isDeleted={isDeleted}
+                    revealAll={revealAll}
+                    editing={editingId === item.id}
+                    onStartEdit={() => setEditingId(item.id)}
+                    onCancelEdit={() => setEditingId(null)}
+                    onSaved={() => { setEditingId(null); qc.invalidateQueries({ queryKey: ['work-list'] }) }}
+                    onShowHistory={() => setHistoryId(item.id)}
+                    onDeleted={() => qc.invalidateQueries({ queryKey: ['work-list'] })}
+                  />
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {composeOpen && (
+        <ComposeModal type={tab} onClose={() => setComposeOpen(false)} onSaved={() => {
+          qc.invalidateQueries({ queryKey: ['work-list'] })
+          setComposeOpen(false)
+        }} />
+      )}
+
+      {historyId && (
+        <WorkListHistoryModal itemId={historyId} onClose={() => setHistoryId(null)} />
+      )}
+    </div>
+  )
+}
+
+const TH: React.CSSProperties = {
+  padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 700,
+  color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)',
+  whiteSpace: 'nowrap',
+}
+const TD: React.CSSProperties = {
+  padding: '10px 12px', fontSize: 13, color: 'var(--text-primary)',
+  borderBottom: '1px solid var(--border-default)', verticalAlign: 'middle',
+}
+
+function DesktopWorkListRow({ item, tab, isMine, isDeleted, revealAll, editing, onStartEdit, onCancelEdit, onSaved, onShowHistory, onDeleted }: {
+  item: WorkListItem; tab: TabKey; isMine: boolean; isDeleted: boolean; revealAll: boolean
+  editing: boolean
+  onStartEdit: () => void; onCancelEdit: () => void; onSaved: () => void
+  onShowHistory: () => void; onDeleted: () => void
+}) {
+  const [revealed, setRevealed] = useState(false)
+  const [label, setLabel] = useState(item.label)
+  const [value, setValue] = useState(item.value)
+  const [affiliation, setAffiliation] = useState(item.affiliation ?? '')
+  const [extra, setExtra] = useState(item.extra ?? '')
+  const [memo, setMemo] = useState(item.memo ?? '')
+  const qc = useQueryClient()
+
+  const showValue = revealAll || revealed || tab === 'contact'
+
+  const updateMutation = useMutation({
+    mutationFn: () => workListApi.update(item.id, { label, value, affiliation, extra: tab === 'contact' ? extra : null, memo }),
+    onSuccess: () => { toast.success('수정되었습니다'); onSaved() },
+    onError: (e: any) => toast.error(e?.message || '수정 실패'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => workListApi.delete(item.id),
+    onSuccess: () => { toast.success('삭제되었습니다'); qc.invalidateQueries({ queryKey: ['work-list'] }); onDeleted() },
+    onError: (e: any) => toast.error(e?.message || '삭제 실패'),
+  })
+
+  if (editing) {
+    const colSpan = tab === 'password' ? 6 : 7
+    return (
+      <tr style={{ background: 'var(--surface-active)' }}>
+        <td colSpan={colSpan} style={{ padding: '10px 12px' }}>
+          {tab === 'password' ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input style={{ ...INLINE_INPUT, flex: '1 1 140px' }} placeholder="항목명" value={label} onChange={e => setLabel(e.target.value)} />
+              <input style={{ ...INLINE_INPUT, flex: '1 1 140px' }} placeholder="아이디 (선택)" value={affiliation} onChange={e => setAffiliation(e.target.value)} />
+              <input style={{ ...INLINE_INPUT, flex: '1 1 140px' }} placeholder="비밀번호" value={value} onChange={e => setValue(e.target.value)} />
+              <input style={{ ...INLINE_INPUT, flex: '1 1 200px' }} placeholder="메모 (선택)" value={memo} onChange={e => setMemo(e.target.value)} />
+              <button onClick={() => updateMutation.mutate()} disabled={!label.trim() || !value.trim() || updateMutation.isPending} style={{ height: 32, padding: '0 12px', borderRadius: 6, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>저장</button>
+              <button onClick={() => { setLabel(item.label); setValue(item.value); setAffiliation(item.affiliation ?? ''); setMemo(item.memo ?? ''); onCancelEdit() }} style={{ height: 32, padding: '0 12px', borderRadius: 6, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>취소</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input style={{ ...INLINE_INPUT, flex: '1 1 140px' }} placeholder="항목명 (회사/소속)" value={label} onChange={e => setLabel(e.target.value)} />
+              <input style={{ ...INLINE_INPUT, flex: '1 1 120px' }} placeholder="이름" value={affiliation} onChange={e => setAffiliation(e.target.value)} />
+              <input style={{ ...INLINE_INPUT, flex: '1 1 100px' }} placeholder="직책/직급 (선택)" value={extra} onChange={e => setExtra(e.target.value)} />
+              <input style={{ ...INLINE_INPUT, flex: '1 1 140px' }} placeholder="전화번호" value={value} onChange={e => setValue(e.target.value)} />
+              <input style={{ ...INLINE_INPUT, flex: '1 1 180px' }} placeholder="메모 (선택)" value={memo} onChange={e => setMemo(e.target.value)} />
+              <button onClick={() => updateMutation.mutate()} disabled={!label.trim() || !value.trim() || !affiliation.trim() || updateMutation.isPending} style={{ height: 32, padding: '0 12px', borderRadius: 6, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>저장</button>
+              <button onClick={() => { setLabel(item.label); setValue(item.value); setAffiliation(item.affiliation ?? ''); setExtra(item.extra ?? ''); setMemo(item.memo ?? ''); onCancelEdit() }} style={{ height: 32, padding: '0 12px', borderRadius: 6, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>취소</button>
+            </div>
+          )}
+        </td>
+      </tr>
+    )
+  }
+
+  return (
+    <tr style={{ opacity: isDeleted ? 0.55 : 1 }} className="hover:bg-surface-active border-b border-border-default">
+      <td style={TD}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {isDeleted && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: 'var(--status-danger-bg)', color: 'var(--status-danger-bar)' }}>삭제됨</span>}
+          <span style={{ fontWeight: 700 }}>{item.label}</span>
+        </div>
+      </td>
+      {tab === 'password' ? (
+        <>
+          <td style={TD}><span style={{ color: 'var(--text-secondary)' }}>{item.affiliation ?? '—'}</span></td>
+          <td style={TD}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }}>{showValue ? item.value : '••••••••'}</span>
+              <button onClick={() => setRevealed(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center' }}>
+                {showValue ? <EyeOff size={12} /> : <Eye size={12} />}
+              </button>
+            </div>
+          </td>
+          <td style={{ ...TD, maxWidth: 200 }}>
+            <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-tertiary)', fontSize: 12 }}>{item.memo ?? ''}</span>
+          </td>
+        </>
+      ) : (
+        <>
+          <td style={TD}><span style={{ color: 'var(--text-secondary)' }}>{item.affiliation ?? '—'}</span></td>
+          <td style={TD}><span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{item.extra ?? '—'}</span></td>
+          <td style={TD}><span style={{ color: 'var(--text-secondary)' }}>{item.value}</span></td>
+          <td style={{ ...TD, maxWidth: 200 }}>
+            <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-tertiary)', fontSize: 12 }}>{item.memo ?? ''}</span>
+          </td>
+        </>
+      )}
+      <td style={{ ...TD, fontSize: 12, color: 'var(--text-tertiary)' }}>{item.createdByName}</td>
+      <td style={TD}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button onClick={onShowHistory} title="이력" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center' }}>
+            <History size={14} />
+          </button>
+          {isMine && !isDeleted && (
+            <>
+              <button onClick={onStartEdit} title="수정" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center' }}>
+                <Edit3 size={14} />
+              </button>
+              <button onClick={() => { if (confirm('이 항목을 삭제하시겠습니까?\n(이력은 보존)')) deleteMutation.mutate() }}
+                title="삭제" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--status-danger)', display: 'inline-flex', alignItems: 'center' }}>
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+const INLINE_INPUT: React.CSSProperties = {
+  height: 32, background: 'var(--surface-sunken)', border: '1px solid var(--border-default)',
+  borderRadius: 6, padding: '0 10px', fontSize: 13, color: 'var(--text-primary)',
+  boxSizing: 'border-box', outline: 'none', minWidth: 0,
 }
 
 const INPUT_S: React.CSSProperties = {
