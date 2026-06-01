@@ -204,9 +204,9 @@ function HandoverCard({ h, isMine, editing, onStartEdit, onCancelEdit, onShowHis
     <div style={CARD(isDeleted)}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         {h.status === 'done'
-          ? <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(34,197,94,.15)', color: '#16a34a' }}>✓ 완료</span>
-          : <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(59,130,246,.15)', color: 'var(--accent)' }}>대기</span>}
-        {isDeleted && <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(239,68,68,.15)', color: 'var(--status-danger)' }}>삭제됨</span>}
+          ? <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--status-safe-bg)', color: 'var(--status-safe-bar)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Check size={12} />완료</span>
+          : <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--status-warning-bg)', color: 'var(--status-warning-bar)' }}>대기</span>}
+        {isDeleted && <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--status-danger-bg)', color: 'var(--status-danger-bar)' }}>삭제됨</span>}
         <span className="text-caption" style={{ color: 'var(--text-tertiary)' }}>
           {h.staffName} · {fmtTime(h.createdAt)}
           {h.updatedAt !== h.createdAt && <> · 수정 {fmtTime(h.updatedAt)}</>}
@@ -559,7 +559,8 @@ function DesktopHandover({
             {searchQ ? '검색 결과가 없습니다' : '등록된 인수 인계가 없습니다'}
           </div>
         )}
-        <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
           {items.map(h => {
             const isDeleted = !!h.deletedAt
             const barClass = h.status === 'done' ? 'bg-safe-bar' : 'bg-warning-bar'
@@ -578,9 +579,9 @@ function DesktopHandover({
                 )}
                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                   {h.status === 'done'
-                    ? <span className="text-caption font-bold leading-none" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(34,197,94,.15)', color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Check size={10} />완료</span>
-                    : <span className="text-caption font-bold leading-none" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(59,130,246,.15)', color: 'var(--accent)' }}>대기</span>}
-                  {isDeleted && <span className="text-caption font-bold leading-none" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(239,68,68,.15)', color: 'var(--status-danger)' }}>삭제됨</span>}
+                    ? <span className="text-caption font-bold leading-none" style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--status-safe-bg)', color: 'var(--status-safe-bar)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Check size={10} />완료</span>
+                    : <span className="text-caption font-bold leading-none" style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--status-warning-bg)', color: 'var(--status-warning-bar)' }}>대기</span>}
+                  {isDeleted && <span className="text-caption font-bold leading-none" style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--status-danger-bg)', color: 'var(--status-danger-bar)' }}>삭제됨</span>}
                 </div>
                 {h.title?.trim() && (
                   <div className="text-body font-bold line-clamp-2" style={{ color: 'var(--text-primary)', marginBottom: 2 }}>{h.title}</div>
@@ -597,6 +598,7 @@ function DesktopHandover({
               </div>
             )
           })}
+        </div>
         </div>
       </div>
 
