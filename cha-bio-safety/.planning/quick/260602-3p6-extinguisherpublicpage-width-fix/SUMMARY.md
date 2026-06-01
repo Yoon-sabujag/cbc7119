@@ -27,7 +27,7 @@ The page box was shrink-to-fitting to ~260px because its flex-column parent comb
 
 ## Commit
 
-- Hash: __COMMIT_HASH__
+- Hash: 3614304
 - Files: src/pages/ExtinguisherPublicPage.tsx, plan + summary under .planning/quick/260602-3p6-extinguisherpublicpage-width-fix/
 
 ## Deploy
