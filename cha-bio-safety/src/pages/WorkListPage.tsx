@@ -214,7 +214,7 @@ function WorkListCard({ item, tab, isMine, editing, revealAll, onStartEdit, onCa
   return (
     <div style={CARD(isDeleted)}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        {isDeleted && <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(239,68,68,.15)', color: 'var(--status-danger)' }}>삭제됨</span>}
+        {isDeleted && <span className="text-caption font-bold" style={{ padding: '2px 6px', borderRadius: 4, background: 'var(--status-danger-bg)', color: 'var(--status-danger-bar)' }}>삭제됨</span>}
         <span className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
       </div>
 
@@ -664,7 +664,7 @@ function DesktopWorkListRow({ item, tab, isMine, isDeleted, revealAll, editing, 
     <tr style={{ opacity: isDeleted ? 0.55 : 1 }} className="hover:bg-surface-active border-b border-border-default">
       <td style={TD}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {isDeleted && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: 'rgba(239,68,68,.15)', color: 'var(--status-danger)' }}>삭제됨</span>}
+          {isDeleted && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: 'var(--status-danger-bg)', color: 'var(--status-danger-bar)' }}>삭제됨</span>}
           <span style={{ fontWeight: 700 }}>{item.label}</span>
         </div>
       </td>
