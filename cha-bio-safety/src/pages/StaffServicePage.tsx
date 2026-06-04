@@ -393,16 +393,53 @@ export default function StaffServicePage() {
       // 석식: "석식" 헤더 ~ 석식 SALAD 시작 (석식SALAD/SNACK 제외)
       // 공휴일은 식당 미운영 → 추출 단계에서 스킵 (PDF 컬럼이 비어있어도 인접 컬럼 텍스트가
       // x-range 어긋남으로 새어들어오는 케이스 방지)
-      const menus = colRanges
+      // 공휴일 제외 모든 컬럼의 메뉴를 먼저 추출 (빈칸 필터 적용 전 — 가드 판정용)
+      const WEEKDAY_DOWS = ['월', '화', '수', '목', '금']
+      const extracted = colRanges
         .filter(col => !holidayMap[col.ymd])
         .map(col => ({
           date: col.ymd,
+          dow: col.dow,
           lunch_a: collectTexts(col.xMin, col.xMax, lunchTopY ?? lunchAY, lunchBTopY ?? lunchBY),
           lunch_b: collectTexts(col.xMin, col.xMax, lunchBTopY ?? lunchBY, plusY ?? dinnerY!),
           dinner: collectTexts(col.xMin, col.xMax, dinnerY!, dinnerSaladY ?? snackY ?? dinnerY! - 200),
         }))
+
+      const menus = extracted
         // 모두 비어있으면 저장 안 함 — PDF 에 해당 날짜 컬럼이 있어도 메뉴가 없는 경우 차단
         .filter(m => m.lunch_a || m.lunch_b || m.dinner)
+        .map(({ date, lunch_a, lunch_b, dinner }) => ({ date, lunch_a, lunch_b, dinner }))
+
+      // 6.5) 비정상 파싱 감지 가드 — 깨진 데이터가 정상 데이터를 조용히 덮어쓰는 것 방지.
+      // 정상 PDF 는 통과, 이상 신호 감지 시에만 upsert 차단 + 한글 toast 경고.
+      // ① 비-공휴일 평일(월~금)인데 중식A·중식B·석식이 전부 공란
+      const emptyWeekdays = extracted
+        .filter(m => WEEKDAY_DOWS.includes(m.dow) && !m.lunch_a && !m.lunch_b && !m.dinner)
+        .map(m => m.date)
+      if (emptyWeekdays.length > 0) {
+        throw new Error(`비정상 파싱 감지: 평일인데 메뉴가 비어 있습니다 (${emptyWeekdays.join(', ')}). 양식이 바뀌었거나 열이 밀렸을 수 있어 저장을 중단합니다.`)
+      }
+
+      // ② 정상 저장될 일수가 기대 운영일수(평일·공휴일 제외)보다 적음
+      const expectedDays = colRanges.filter(
+        col => WEEKDAY_DOWS.includes(col.dow) && !holidayMap[col.ymd]
+      ).length
+      if (menus.length < expectedDays) {
+        throw new Error(`비정상 파싱 감지: 운영일 ${expectedDays}일 중 ${menus.length}일분만 인식되었습니다. 일부 날짜가 누락되어 저장을 중단합니다.`)
+      }
+
+      // ③ 날짜 헤더 x 간격 불균등 — 한 칸이 중앙값의 ~1.8배↑ (열 헤더가 통째로 빠진 신호)
+      const headerXs = weekdayCols.map(c => c.x)
+      const gaps = headerXs.slice(1).map((x, i) => x - headerXs[i])
+      if (gaps.length >= 2) {
+        const sorted = [...gaps].sort((a, b) => a - b)
+        const mid = sorted.length % 2
+          ? sorted[(sorted.length - 1) / 2]
+          : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+        if (mid > 0 && gaps.some(g => g >= mid * 1.8)) {
+          throw new Error('비정상 파싱 감지: 날짜 헤더 간격이 불균등합니다 (열이 통째로 누락된 것으로 의심). 저장을 중단합니다.')
+        }
+      }
 
       // 7) R2에 PDF 업로드
       const fd = new FormData()
