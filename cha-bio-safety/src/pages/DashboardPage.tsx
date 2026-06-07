@@ -311,17 +311,21 @@ export default function DashboardPage() {
               {monthly.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center text-body-sm text-text-tertiary">이번 달 점검 일정 없음</div>
               ) : (
-                <div className="px-6 py-5 flex flex-col gap-8 flex-1 justify-center overflow-y-auto">
+                <div className="px-6 py-5 flex flex-col gap-4 flex-1 justify-center overflow-y-auto">
                   {(() => {
-                    // 한 줄당 최대 7개 — 2줄에 균등 분배 (n≤7: 1줄, n≤14: 2줄, n>14: 3줄)
+                    // 한 줄당 최대 7개 — 행을 균등 분배하되 나머지는 가운데 줄부터 바깥쪽으로 배치 (n=19 → 6·7·6)
                     const rows: MonthlyItem[][] = []
                     const n = monthly.length
                     const cols = 7
                     const numRows = Math.max(1, Math.ceil(n / cols))
-                    const perRow = Math.ceil(n / numRows)
-                    for (let i = 0; i < numRows; i++) {
-                      rows.push(monthly.slice(i * perRow, (i + 1) * perRow))
-                    }
+                    const base = Math.floor(n / numRows)
+                    const counts = new Array(numRows).fill(base)
+                    const rem = n - base * numRows
+                    const mid = (numRows - 1) / 2
+                    const order = [...counts.keys()].sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid) || a - b)
+                    for (let k = 0; k < rem; k++) counts[order[k]]++
+                    let off = 0
+                    for (let i = 0; i < numRows; i++) { rows.push(monthly.slice(off, off + counts[i])); off += counts[i] }
                     return rows.map((row, ri) => (
                       <div key={ri} className="flex justify-evenly gap-2">
                         {row.map((m, i) => (
