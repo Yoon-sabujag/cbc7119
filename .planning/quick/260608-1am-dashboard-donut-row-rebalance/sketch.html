@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>대시보드 데스크톱 · 이번 달 점검 현황 도넛 배치 시안 (260608-1am)</title>
+<style>
+  :root{
+    --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-active:#2c333d;
+    --border-default:rgba(255,255,255,.14);
+    --t1:#e6edf3; --t2:#adb6c0; --t3:#8b949e; --safe:#22c55e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--surface-page); color:var(--t1);
+    font-family:'Noto Sans KR','Apple SD Gothic Neo',system-ui,sans-serif;
+    padding:28px 24px 60px;
+  }
+  h1{font-size:18px;font-weight:700;margin:0 0 4px;}
+  .sub{font-size:13px;color:var(--t2);margin:0 0 22px;line-height:1.6;}
+  .legend{font-size:12px;color:var(--t3);margin:0 0 26px;line-height:1.7;}
+  .legend b{color:var(--t2);}
+  .row2{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;}
+  .col{flex:1;min-width:560px;}
+  .col h2{font-size:13px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px;}
+  .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;}
+  .tag.now{background:rgba(239,68,68,.13);color:#ef4444;}
+  .tag.new{background:rgba(34,197,94,.13);color:var(--safe);}
+  .note{font-size:11px;color:var(--t3);margin-top:8px;line-height:1.6;}
+
+  /* ── 실제 PWA 박스 재현 ── */
+  .box{
+    background:var(--surface-raised); border:1px solid var(--border-default);
+    border-radius:8px; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .box-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px; border-bottom:1px solid var(--border-default); flex:0 0 auto;
+  }
+  .box-head .title{font-size:14px;font-weight:700;color:var(--t1);}
+  .box-head .year{font-size:11px;color:var(--t3);}
+  /* 박스 본문 — 실제: flex-1 + justify-center + overflow. 여기선 클리핑 비교용 고정 높이 */
+  .box-body{
+    padding:20px 24px; display:flex; flex-direction:column;
+    justify-content:center; overflow:hidden; height:var(--bodyH,500px);
+  }
+  .drow{display:flex; justify-content:space-evenly; gap:8px;}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;}
+  .cell .label{font-size:12px;line-height:1.5;color:var(--t2);text-align:center;word-break:keep-all;}
+  .cell .count{font-size:12px;line-height:1.5;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--t3);}
+  .cell .count.done{color:var(--safe);}
+  .clipline{position:relative;}
+  .clipline::before,.clipline::after{
+    content:''; position:absolute; left:0; right:0; height:0;
+    border-top:1px dashed rgba(239,68,68,.55);
+  }
+</style>
+</head>
+<body>
+  <h1>대시보드 데스크톱 · "이번 달 점검 현황" 도넛 배치 시안</h1>
+  <p class="sub">
+    19개 카테고리 기준. 왼쪽이 <b>현재(7·7·5, 행 간격 32px)</b> — 행 간격이 넓어 도넛이 박스 상·하단에서 잘림.<br>
+    오른쪽이 <b>변경안(6·7·6, 행 간격 16px)</b> — 가운데 줄을 가장 길게 균등 분배 + 행 간격 축소로 클리핑 해소.
+  </p>
+  <p class="legend">
+    도넛 색은 실제 앱과 동일: <b style="color:#22c55e">초록 100%↑</b> · <b style="color:#3b82f6">파랑 50~99%</b> ·
+    <b style="color:#f59e0b">주황 1~49%</b> · <b style="color:#8b949e">회색 0%</b> ·
+    DIV/컴프레셔는 0~200% two-lap(안쪽=월초·바깥=월말). 도넛 크기·라벨·개수 표기 모두 실제와 동일.<br>
+    아래 두 박스는 <b>같은 높이(500px)</b>로 맞춰 잘림 차이를 비교 — 실제 박스 높이는 화면 해상도/창 크기에 따라 다르므로, 최종 잘림 여부는 배포 후 실기기에서 확인합니다.
+  </p>
+
+  <div class="row2">
+    <div class="col">
+      <h2><span class="tag now">현재</span> 7 · 7 · 5 &nbsp;/&nbsp; 행 간격 32px</h2>
+      <div class="box">
+        <div class="box-head"><span class="title">이번 달 점검 현황</span><span class="year">2026년 6월</span></div>
+        <div class="box-body" id="bodyNow" style="--bodyH:500px;gap:32px;"></div>
+      </div>
+      <p class="note">↑ 위/아래 도넛의 개수 텍스트·도넛 상단이 박스 경계에서 잘리는 상태(상·하단).</p>
+    </div>
+
+    <div class="col">
+      <h2><span class="tag new">변경안</span> 6 · 7 · 6 &nbsp;/&nbsp; 행 간격 16px</h2>
+      <div class="box">
+        <div class="box-head"><span class="title">이번 달 점검 현황</span><span class="year">2026년 6월</span></div>
+        <div class="box-body" id="bodyNew" style="--bodyH:500px;gap:16px;"></div>
+      </div>
+      <p class="note">↑ 가운데 줄 7개 · 위아래 6개씩, 행 간격 좁혀 박스 안에 여유 있게 들어감.</p>
+    </div>
+  </div>
+
+  <script>
+    // ── 실제 앱 로직 그대로 ──
+    function progressColor(pct){
+      const p = Number.isFinite(pct)?pct:0;
+      if(p>=100) return '#22c55e';
+      if(p>=50)  return '#3b82f6';
+      if(p>=1)   return '#f59e0b';
+      return '#8b949e';
+    }
+    // 19개 카테고리 (시각 확인용 현실값)
+    const ITEMS = [
+      {label:'유도등',        pct:100},
+      {label:'소화기',        pct:100},
+      {label:'옥내소화전',    pct:83},
+      {label:'자동화재탐지',  pct:50},
+      {label:'스프링클러',    pct:100},
+      {label:'제연설비',      pct:67},
+      {label:'방화셔터',      pct:25},
+      {label:'청정소화약제',  pct:0},
+      {label:'특별피난계단',  pct:100},
+      {label:'배연창',        pct:42},
+      {label:'비상콘센트',    pct:100},
+      {label:'연결송수관',    pct:60},
+      {label:'전실제연댐퍼',  pct:33},
+      {label:'소방펌프',      pct:100},
+      {label:'완강기',        pct:50},
+      {label:'비상조명등',    pct:75},
+      {label:'자동확산소화기',pct:20},
+      {label:'DIV',  pct:150, dbl:{early:100, late:50}},
+      {label:'컴프레셔', pct:120, dbl:{early:100, late:20}},
+    ];
+    ITEMS.forEach(m=>{ const t=12; m.total=t; m.done=Math.min(t, Math.round(Math.min(m.pct,100)/100*t)); });
+
+    // 단일 arc 도넛 (size 76, sw 5)
+    function donutSingle(pct){
+      const size=76, sw=5, r=(size-sw*2)/2, circ=2*Math.PI*r, cx=size/2;
+      const zero = pct===0;
+      const col = zero ? '#8b949e' : progressColor(pct);
+      const dash=(Math.min(pct,100)/100)*circ;
+      const arc = zero ? '' :
+        `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash.toFixed(2)} ${(circ-dash).toFixed(2)}"/>`;
+      return `<div style="position:relative;width:${size}px;height:${size}px">
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg)">
+          <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="#2c333d" stroke-width="${sw}"/>${arc}
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:${col}">${pct}%</div>
+      </div>`;
+    }
+    // two-lap 도넛 (DIV/컴프)
+    function donutDouble(pct, dbl){
+      const size=76, sw=5, cx=size/2;
+      const ringStroke=Math.max(2,Math.round(sw*0.55));  // 3
+      const ringGap=Math.max(1,Math.round(sw*0.25));      // 1
+      const outerR=(size-ringStroke*2)/2;                 // 35
+      const innerR=outerR-ringStroke-ringGap;             // 31
+      const outerCirc=2*Math.PI*outerR, innerCirc=2*Math.PI*innerR;
+      const earlyDash=(Math.min(dbl.early,100)/100)*innerCirc;
+      const lateDash=(Math.min(dbl.late,100)/100)*outerCirc;
+      const earlyCol=progressColor(dbl.early), lateCol=progressColor(dbl.late);
+      const within = pct>100 ? pct-100 : pct;
+      const centerCol = (dbl.early===0 && dbl.late===0) ? '#8b949e' : progressColor(within);
+      return `<div style="position:relative;width:${size}px;height:${size}px">
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg)">
+          <circle cx="${cx}" cy="${cx}" r="${outerR}" fill="none" stroke="#2c333d" stroke-width="${ringStroke}"/>
+          <circle cx="${cx}" cy="${cx}" r="${outerR}" fill="none" stroke="${lateCol}" stroke-width="${ringStroke}" stroke-linecap="round" stroke-dasharray="${lateDash.toFixed(2)} ${(outerCirc-lateDash).toFixed(2)}"/>
+          <circle cx="${cx}" cy="${cx}" r="${innerR}" fill="none" stroke="#2c333d" stroke-width="${ringStroke}"/>
+          <circle cx="${cx}" cy="${cx}" r="${innerR}" fill="none" stroke="${earlyCol}" stroke-width="${ringStroke}" stroke-linecap="round" stroke-dasharray="${earlyDash.toFixed(2)} ${(innerCirc-earlyDash).toFixed(2)}"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:${centerCol}">${pct}%</div>
+      </div>`;
+    }
+    function cell(m){
+      const donut = m.dbl ? donutDouble(m.pct,m.dbl) : donutSingle(m.pct);
+      const doneCls = (m.total>0 && m.done>=m.total) ? ' done' : '';
+      return `<div class="cell">${donut}<div class="label">${m.label}</div><div class="count${doneCls}">${m.done}/${m.total}</div></div>`;
+    }
+
+    // ── 현재 분배: greedy perRow = ceil(n/numRows) → 7·7·5 ──
+    function distCurrent(items){
+      const n=items.length, cols=7;
+      const numRows=Math.max(1,Math.ceil(n/cols));
+      const perRow=Math.ceil(n/numRows);
+      const rows=[];
+      for(let i=0;i<numRows;i++) rows.push(items.slice(i*perRow,(i+1)*perRow));
+      return rows;
+    }
+    // ── 변경안: 균등 분배 + 나머지는 가운데 줄부터 바깥쪽으로 → 6·7·6 ──
+    function distProposed(items){
+      const n=items.length, cols=7;
+      const numRows=Math.max(1,Math.ceil(n/cols));
+      const base=Math.floor(n/numRows);
+      const counts=new Array(numRows).fill(base);
+      let rem=n-base*numRows;
+      const mid=(numRows-1)/2;
+      const order=[...counts.keys()].sort((a,b)=>Math.abs(a-mid)-Math.abs(b-mid)||a-b);
+      for(let k=0;k<rem;k++) counts[order[k]]++;
+      const rows=[]; let off=0;
+      for(let i=0;i<numRows;i++){ rows.push(items.slice(off,off+counts[i])); off+=counts[i]; }
+      return rows;
+    }
+    function render(elId, rows){
+      document.getElementById(elId).innerHTML =
+        rows.map(r=>`<div class="drow">${r.map(cell).join('')}</div>`).join('');
+    }
+    render('bodyNow', distCurrent(ITEMS));
+    render('bodyNew', distProposed(ITEMS));
+  </script>
+</body>
+</html>
