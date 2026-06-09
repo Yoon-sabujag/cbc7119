@@ -98,7 +98,7 @@ None — plan executed exactly as written. staging a9791e9 코드 verbatim 적�
 | §5-2 빌드 | `npm run build` (tsc 0 errors + vite, precache 83 entries) | ✅ 완료 (메인 Claude) |
 | §5-3 배포 | `wrangler pages deploy dist --project-name=cbc7119 --branch=production` → Functions bundle 업로드, Worker compile 성공 | ✅ 완료 — https://63fffa24.cbc7119.pages.dev (메인 Claude) |
 | §5-4 prod 데이터 점검 | `cha-bio-db` 진단 결과 staging 과 동일 stray 2건 발견 — CP-FE-0104 label `58510`, CP-FE-0105 label `71958` (둘 다 cp/ext location 은 정상). **사용자 승인 후** `label=location` UPDATE (changes=2). 재검증 stray 0건, 3-store 정렬 확인 | ✅ 완료 (메인 Claude, 사용자 승인) |
-| §5-5 UI E2E 검증 | 마커 모달 소화기 개소명 변경 → 일반점검 목록 + 소화기 관리 목록 둘 다 반영. 점검개소 편집기 소화기 개소명 변경 → 소화기 관리 목록 반영. 비-소화기 마커 무회귀 | ⏳ 사용자 검증 대기 (PWA 캐시면 앱 새로고침/재설치) |
+| §5-5 UI E2E 검증 | 마커 모달 소화기 개소명 변경 → 일반점검 목록 + 소화기 관리 목록 둘 다 반영. 점검개소 편집기 소화기 개소명 변경 → 소화기 관리 목록 반영. 비-소화기 마커 무회귀 | ✅ 완료 — 사용자 앱 확인: 개소명 정상 반영 (2026-06-09) |
 
 ## Self-Check: PASSED
 
