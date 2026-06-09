@@ -52,6 +52,15 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
         env.DB.prepare('DELETE FROM extinguishers WHERE check_point_id=?').bind(id),
         env.DB.prepare('DELETE FROM floor_plan_markers WHERE check_point_id=?').bind(id),
       ])
+    } else if (isExtCp && body.location !== undefined) {
+      // 개소명(location) 동기 가드 — 사고 260608-b6f 와 동일 종류 divergence.
+      // 이 편집기 PUT 은 check_points.location 만 갱신하고 extinguishers.location 엔
+      // 전파하지 않아, 소화기 관리 목록이 옛 이름으로 남던 문제를 막는다.
+      // 마커 모달 PUT(floorplan-markers/[id].ts) 가드와 대칭. CP-FE-% 개소만 해당.
+      await env.DB
+        .prepare("UPDATE extinguishers SET location=?, updated_at=datetime('now','+9 hours') WHERE check_point_id=?")
+        .bind(body.location, id)
+        .run()
     }
 
     const updated = await env.DB.prepare(
