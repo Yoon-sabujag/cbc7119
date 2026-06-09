@@ -32,9 +32,55 @@ export const onRequestPut: PagesFunction<Env> = async ({ params, request, env })
   sets.push("updated_at=datetime('now','+9 hours')")
   binds.push(id)
 
-  await env.DB.prepare(
-    `UPDATE floor_plan_markers SET ${sets.join(', ')} WHERE id=?`
-  ).bind(...binds).run()
+  // ── 개소명(label) 동기 가드 (사고 260608-b6f 재발 방지) ──────────────────
+  // 소화기 개소명은 D1 3곳에 중복 저장된다:
+  //   check_points.location   (일반점검 목록·도면 마커 이름[cp_location 우선]·QR)
+  //   extinguishers.location  (소화기 관리 목록 — CP-FE-% 개소에만 행 존재)
+  //   floor_plan_markers.label(이 모달 "개소명" 입력칸)
+  // 기존 PUT 은 label 만 갱신 → 모달에서 개소명을 바꿔도 마커 라벨만 바뀌고
+  // 다른 두 화면은 옛 이름 그대로 → "한 개소가 화면마다 다르게" 보이던 버그.
+  // 이제 같은 batch 로 check_points.location / extinguishers.location 까지 전파한다.
+  //
+  // 범위: 소화기(CP-FE-%) 개소만. 소화전(-SH)·완강기(-WK)·DIV 는 extinguishers 행이
+  //       없고, DIV 는 구조적 이름·컴프 페어링 룰이 있어 제외한다 (사고 260528 참고).
+  // 가드: label 이 빈 문자열/undefined 면 동기하지 않는다 (기존 동작 유지).
+  //       이 모달 PUT body 에는 check_point_id 가 없으므로 마커 행에서 조회해 쓴다.
+  const newLabel =
+    body.label !== undefined && body.label !== null && body.label.trim() !== ''
+      ? body.label.trim()
+      : null
+
+  let cpId: string | null = body.check_point_id ?? null
+  if (newLabel && cpId === null) {
+    const m = await env.DB
+      .prepare('SELECT check_point_id FROM floor_plan_markers WHERE id=?')
+      .bind(id)
+      .first<{ check_point_id: string | null }>()
+    cpId = m?.check_point_id ?? null
+  }
+
+  // 마커 UPDATE 를 항상 batch 의 첫 statement 로 둔다 — 뒤 동기 statement 가 실패해도
+  // 사용자가 본 마커 라벨은 저장되고(기존 동작과 동일) 동기만 누락된다 (악화 방지).
+  const stmts = [
+    env.DB.prepare(`UPDATE floor_plan_markers SET ${sets.join(', ')} WHERE id=?`).bind(...binds),
+  ]
+
+  if (newLabel && cpId && cpId.startsWith('CP-FE-')) {
+    stmts.push(
+      env.DB.prepare('UPDATE check_points SET location=? WHERE id=?').bind(newLabel, cpId),
+    )
+    stmts.push(
+      env.DB
+        .prepare("UPDATE extinguishers SET location=?, updated_at=datetime('now','+9 hours') WHERE check_point_id=?")
+        .bind(newLabel, cpId),
+    )
+  }
+
+  if (stmts.length === 1) {
+    await stmts[0].run()
+  } else {
+    await env.DB.batch(stmts)
+  }
 
   return Response.json({ success: true })
 }
