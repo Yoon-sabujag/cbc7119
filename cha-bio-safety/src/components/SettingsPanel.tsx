@@ -542,6 +542,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
         const json = await res.json() as any
         if (!json.success) throw new Error(json.error || '복원 실패')
         toast.success(`복원 완료 (${json.data.executed}개 실행, ${json.data.errors}개 오류)`)
+        if (json.data.warning) toast(json.data.warning, { icon: '⚠️', duration: 8000 })
       } catch (e: any) {
         toast.error(e.message || '복원 실패')
       } finally {
