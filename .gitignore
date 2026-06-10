@@ -19,3 +19,8 @@ cha-bio-safety/docs/redesign-context/**/*.zip
 
 # user-supplied screenshots dropped into sketch dirs
 cha-bio-safety/docs/redesign-context/**/스크린샷*.png
+
+# DB/R2 백업 파일 (재해 복구 자산 — 수십~수백 MB, git 추적/commit 금지. auto-push hook 환경 사고 방지)
+cha-bio-safety_*.sql
+cha-bio-r2_*.zip
+cha-bio-r2_delta_*.zip
