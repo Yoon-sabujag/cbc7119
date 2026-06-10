@@ -1,6 +1,7 @@
 // functions/api/elevators/koelsa.ts
 // 한국승강기안전공단 자체점검결과 조회 — DB 캐시 우선, 없으면 공단 API 호출 후 저장
 import type { Env } from '../../_middleware'
+import { fetchKoelsaXml } from './_koelsa-common'
 
 const KOELSA_BASE = 'https://apis.data.go.kr/B553664/ElevatorSelfCheckService/getSelfCheckList'
 const SERVICE_KEY = 'bb8deaf60d1322e149801cc367cb94a2aa6ffa700a2d0635e8399c8a3a9f0b00'
@@ -106,42 +107,56 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   try {
-    // ── DB 캐시 확인 ──
-    if (!forceRefresh) {
-      const cached = await env.DB.prepare(
-        'SELECT * FROM koelsa_self_checks WHERE elevator_no = ? AND yyyymm = ?'
-      ).bind(elevatorNo, yyyymm).first()
+    // 캐시 행은 항상 읽어둔다 — TTL 판단과 공단 장애 시 stale 응답 양쪽에 필요
+    const cached = await env.DB.prepare(
+      'SELECT * FROM koelsa_self_checks WHERE elevator_no = ? AND yyyymm = ?'
+    ).bind(elevatorNo, yyyymm).first()
 
-      if (cached) {
-        const ttl = isCurrentMonth(yyyymm) ? CURRENT_MONTH_TTL : PAST_MONTH_TTL
-        const age = Date.now() - new Date(cached.fetched_at as string).getTime()
-        if (age < ttl) {
-          return Response.json({ success: true, data: buildResponseData(cached) })
-        }
+    // ── DB 캐시 확인 ──
+    if (!forceRefresh && cached) {
+      const ttl = isCurrentMonth(yyyymm) ? CURRENT_MONTH_TTL : PAST_MONTH_TTL
+      const age = Date.now() - new Date(cached.fetched_at as string).getTime()
+      if (age < ttl) {
+        return Response.json({ success: true, data: buildResponseData(cached) })
       }
     }
 
     // ── 공단 API 호출 ──
-    const firstUrl = `${KOELSA_BASE}?serviceKey=${SERVICE_KEY}&pageNo=1&numOfRows=200&yyyymm=${yyyymm}&elevator_no=${elevatorNo}`
-    const firstRes = await fetch(firstUrl)
-    const firstXml = await firstRes.text()
+    let totalCount: number
+    let allItems: KoelsaItem[]
+    try {
+      // fetchKoelsaXml 이 HTTP 오류·에러 XML(쿼터 초과/점검 등)에서 throw — 페이지네이션 포함
+      const firstUrl = `${KOELSA_BASE}?serviceKey=${SERVICE_KEY}&pageNo=1&numOfRows=200&yyyymm=${yyyymm}&elevator_no=${elevatorNo}`
+      const firstXml = await fetchKoelsaXml(firstUrl)
 
-    if (firstXml.includes('Unexpected errors') || firstXml.includes('SERVICE_KEY_IS_NOT_REGISTERED')) {
-      return Response.json({ success: false, error: 'API 호출 실패' }, { status: 502 })
-    }
+      totalCount = parseTotalCount(firstXml)
+      allItems = parseXml(firstXml)
 
-    const totalCount = parseTotalCount(firstXml)
-    let allItems = parseXml(firstXml)
-
-    if (totalCount > 200) {
-      const pages = Math.ceil(totalCount / 200)
-      for (let p = 2; p <= pages; p++) {
-        const pageUrl = `${KOELSA_BASE}?serviceKey=${SERVICE_KEY}&pageNo=${p}&numOfRows=200&yyyymm=${yyyymm}&elevator_no=${elevatorNo}`
-        const pageRes = await fetch(pageUrl)
-        const pageXml = await pageRes.text()
-        allItems = allItems.concat(parseXml(pageXml))
+      if (totalCount > 200) {
+        const pages = Math.ceil(totalCount / 200)
+        for (let p = 2; p <= pages; p++) {
+          const pageUrl = `${KOELSA_BASE}?serviceKey=${SERVICE_KEY}&pageNo=${p}&numOfRows=200&yyyymm=${yyyymm}&elevator_no=${elevatorNo}`
+          const pageXml = await fetchKoelsaXml(pageUrl)
+          allItems = allItems.concat(parseXml(pageXml))
+        }
       }
+    } catch (apiError: any) {
+      // stale-while-error: 공단 장애 시 캐시를 덮지 않고 만료된 직전 캐시로 응답
+      console.error(`koelsa KOELSA error: ${apiError?.message}`)
+      if (cached) {
+        return Response.json({
+          success: true,
+          data: { ...buildResponseData(cached), stale: true, staleReason: String(apiError?.message ?? apiError).slice(0, 200) },
+        })
+      }
+      return Response.json(
+        { success: false, error: '공단 API 오류 (저장된 캐시 없음): ' + (apiError?.message ?? '알 수 없음') },
+        { status: 502 }
+      )
     }
+
+    // 부분 수신(페이지 일부 누락 등) — 불완전 데이터가 정상 캐시를 덮지 않게 캐시 저장만 생략
+    const partial = allItems.length < totalCount
 
     // 요약 정보
     const first = allItems[0]
@@ -173,8 +188,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         result: item.selChkResult,
       }))
 
-    // ── DB에 캐시 저장 (UPSERT) ──
-    if (allItems.length > 0) {
+    // ── DB에 캐시 저장 (UPSERT) ── 부분 수신이면 저장하지 않는다
+    if (allItems.length > 0 && !partial) {
       await env.DB.prepare(`
         INSERT INTO koelsa_self_checks (elevator_no, yyyymm, inspect_date, start_time, end_time,
           inspector_name, sub_inspector_name, company_name, overall_result, confirm_date, regist_date,
@@ -208,6 +223,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         totalItems: totalCount,
         summary, resultCounts, issues,
         items: allItems,
+        ...(partial ? { partial: true } : {}),
       }
     })
   } catch (e: any) {

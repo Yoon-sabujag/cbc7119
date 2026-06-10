@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { fetchKoelsaXml } from './_koelsa-common'
 
 // 승강기 안전관리자 조회 — DB 캐시 우선 (17건 API 호출 방지)
 // GET /api/elevators/safety-manager?refresh=1
@@ -75,6 +76,75 @@ function calcEducation(managerInfo: KoelsaManagerItem) {
   }
 }
 
+// 캐시 행 기반 응답 — TTL 유효 경로와 공단 장애 시 stale 경로가 공유
+async function respondFromCache(
+  env: Env,
+  elevators: Array<{ id: string; number: number; type: string; cert_no: string }>,
+  cachedRows: Record<string, unknown>[],
+  extra: Record<string, unknown> = {},
+) {
+  const registeredIds: string[] = []
+  const unregisteredIds: string[] = []
+  let managerInfo: KoelsaManagerItem | null = null
+
+  for (const ev of elevators) {
+    const no = ev.cert_no.replace(/-/g, '')
+    const cached = cachedRows.find(r => r.elevator_no === no)
+    if (cached && cached.is_registered) {
+      registeredIds.push(ev.id)
+      if (!managerInfo && cached.manager_name) {
+        managerInfo = {
+          elevatorNo: no,
+          shuttleMngrNm: cached.manager_name as string,
+          appointDt: cached.appoint_date as string,
+          smEduDt: cached.edu_date as string,
+          valdStrDt: cached.valid_start as string,
+          valdEndDt: cached.valid_end as string,
+        }
+      }
+    } else {
+      unregisteredIds.push(ev.id)
+    }
+  }
+
+  let matchedStaff: { id: string; name: string } | null = null
+  if (managerInfo) {
+    const { results: staffList } = await env.DB.prepare(
+      'SELECT id, name FROM staff WHERE active = 1'
+    ).all<{ id: string; name: string }>()
+    for (const s of staffList ?? []) {
+      if (matchMaskedName(managerInfo.shuttleMngrNm, s.name)) {
+        matchedStaff = s
+        break
+      }
+    }
+  }
+
+  return Response.json({
+    success: true,
+    data: {
+      manager: managerInfo ? {
+        maskedName: managerInfo.shuttleMngrNm,
+        realName: matchedStaff?.name ?? null,
+        staffId: matchedStaff?.id ?? null,
+        appointedAt: managerInfo.appointDt,
+        eduDate: managerInfo.smEduDt,
+        eduValidFrom: managerInfo.valdStrDt,
+        eduValidTo: managerInfo.valdEndDt,
+      } : null,
+      education: managerInfo ? calcEducation(managerInfo) : { newEdu: { deadline: null, daysLeft: null }, refreshEdu: { deadline: null, daysLeft: null } },
+      registration: {
+        total: elevators.length,
+        registered: registeredIds.length,
+        registeredIds,
+        unregisteredIds,
+      },
+      cached: true,
+      ...extra,
+    }
+  })
+}
+
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url)
   const forceRefresh = url.searchParams.get('refresh') === '1'
@@ -84,78 +154,19 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       'SELECT id, number, type, cert_no FROM elevators WHERE cert_no IS NOT NULL ORDER BY number'
     ).all<{ id: string; number: number; type: string; cert_no: string }>()
 
+    // 캐시는 항상 읽어둔다 — TTL 판단과 공단 장애 시 stale 응답 양쪽에 필요
+    const { results: cachedRows } = await env.DB.prepare(
+      'SELECT * FROM koelsa_safety_managers ORDER BY elevator_no'
+    ).all()
+
     // ── DB 캐시 확인 ──
-    if (!forceRefresh) {
-      const { results: cachedRows } = await env.DB.prepare(
-        'SELECT * FROM koelsa_safety_managers ORDER BY elevator_no'
-      ).all()
+    if (!forceRefresh && cachedRows && cachedRows.length > 0) {
+      const oldest = cachedRows.reduce((min, r) =>
+        new Date(r.fetched_at as string).getTime() < min ? new Date(r.fetched_at as string).getTime() : min, Date.now())
+      const age = Date.now() - oldest
 
-      if (cachedRows && cachedRows.length > 0) {
-        const oldest = cachedRows.reduce((min, r) =>
-          new Date(r.fetched_at as string).getTime() < min ? new Date(r.fetched_at as string).getTime() : min, Date.now())
-        const age = Date.now() - oldest
-
-        if (age < CACHE_TTL) {
-          const registeredIds: string[] = []
-          const unregisteredIds: string[] = []
-          let managerInfo: KoelsaManagerItem | null = null
-
-          for (const ev of elevators ?? []) {
-            const no = ev.cert_no.replace(/-/g, '')
-            const cached = cachedRows.find(r => r.elevator_no === no)
-            if (cached && cached.is_registered) {
-              registeredIds.push(ev.id)
-              if (!managerInfo && cached.manager_name) {
-                managerInfo = {
-                  elevatorNo: no,
-                  shuttleMngrNm: cached.manager_name as string,
-                  appointDt: cached.appoint_date as string,
-                  smEduDt: cached.edu_date as string,
-                  valdStrDt: cached.valid_start as string,
-                  valdEndDt: cached.valid_end as string,
-                }
-              }
-            } else {
-              unregisteredIds.push(ev.id)
-            }
-          }
-
-          let matchedStaff: { id: string; name: string } | null = null
-          if (managerInfo) {
-            const { results: staffList } = await env.DB.prepare(
-              'SELECT id, name FROM staff WHERE active = 1'
-            ).all<{ id: string; name: string }>()
-            for (const s of staffList ?? []) {
-              if (matchMaskedName(managerInfo.shuttleMngrNm, s.name)) {
-                matchedStaff = s
-                break
-              }
-            }
-          }
-
-          return Response.json({
-            success: true,
-            data: {
-              manager: managerInfo ? {
-                maskedName: managerInfo.shuttleMngrNm,
-                realName: matchedStaff?.name ?? null,
-                staffId: matchedStaff?.id ?? null,
-                appointedAt: managerInfo.appointDt,
-                eduDate: managerInfo.smEduDt,
-                eduValidFrom: managerInfo.valdStrDt,
-                eduValidTo: managerInfo.valdEndDt,
-              } : null,
-              education: managerInfo ? calcEducation(managerInfo) : { newEdu: { deadline: null, daysLeft: null }, refreshEdu: { deadline: null, daysLeft: null } },
-              registration: {
-                total: (elevators ?? []).length,
-                registered: registeredIds.length,
-                registeredIds,
-                unregisteredIds,
-              },
-              cached: true,
-            }
-          })
-        }
+      if (age < CACHE_TTL) {
+        return respondFromCache(env, elevators ?? [], cachedRows)
       }
     }
 
@@ -165,34 +176,57 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     let managerInfo: KoelsaManagerItem | null = null
     const nowIso = new Date().toISOString()
 
-    for (const ev of elevators ?? []) {
-      const no = ev.cert_no.replace(/-/g, '')
-      const res = await fetch(`${KOELSA_BASE}?serviceKey=${SERVICE_KEY}&pageNo=1&numOfRows=5&elevator_no=${no}`)
-      const xml = await res.text()
-      const items = parseXmlItems(xml)
+    const upserts: D1PreparedStatement[] = []
+    try {
+      for (const ev of elevators ?? []) {
+        const no = ev.cert_no.replace(/-/g, '')
+        // fetchKoelsaXml 이 HTTP 오류·에러 XML·비정상 envelope 에서 throw → 캐시 기록에
+        // 도달하지 않으므로 장애가 is_registered=0 으로 기록되는 일이 없다 (오염 차단).
+        // is_registered=0 은 공단이 정상 응답(resultCode 00)인데 진짜 0건일 때만 기록된다.
+        const xml = await fetchKoelsaXml(`${KOELSA_BASE}?serviceKey=${SERVICE_KEY}&pageNo=1&numOfRows=5&elevator_no=${no}`)
+        const items = parseXmlItems(xml)
 
-      if (items.length > 0) {
-        registeredElevators.push(ev.id)
-        if (!managerInfo) managerInfo = items[0]
+        if (items.length > 0) {
+          registeredElevators.push(ev.id)
+          if (!managerInfo) managerInfo = items[0]
 
-        // DB 캐시 저장
-        await env.DB.prepare(`
-          INSERT INTO koelsa_safety_managers (elevator_no, manager_name, appoint_date, edu_date, valid_start, valid_end, is_registered, fetched_at)
-          VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-          ON CONFLICT(elevator_no) DO UPDATE SET
-            manager_name=excluded.manager_name, appoint_date=excluded.appoint_date,
-            edu_date=excluded.edu_date, valid_start=excluded.valid_start, valid_end=excluded.valid_end,
-            is_registered=1, fetched_at=excluded.fetched_at
-        `).bind(no, items[0].shuttleMngrNm, items[0].appointDt, items[0].smEduDt, items[0].valdStrDt, items[0].valdEndDt, nowIso).run()
-      } else {
-        unregisteredElevators.push(ev.id)
+          upserts.push(env.DB.prepare(`
+            INSERT INTO koelsa_safety_managers (elevator_no, manager_name, appoint_date, edu_date, valid_start, valid_end, is_registered, fetched_at)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+            ON CONFLICT(elevator_no) DO UPDATE SET
+              manager_name=excluded.manager_name, appoint_date=excluded.appoint_date,
+              edu_date=excluded.edu_date, valid_start=excluded.valid_start, valid_end=excluded.valid_end,
+              is_registered=1, fetched_at=excluded.fetched_at
+          `).bind(no, items[0].shuttleMngrNm, items[0].appointDt, items[0].smEduDt, items[0].valdStrDt, items[0].valdEndDt, nowIso))
+        } else {
+          unregisteredElevators.push(ev.id)
 
-        await env.DB.prepare(`
-          INSERT INTO koelsa_safety_managers (elevator_no, is_registered, fetched_at)
-          VALUES (?, 0, ?)
-          ON CONFLICT(elevator_no) DO UPDATE SET is_registered=0, fetched_at=excluded.fetched_at
-        `).bind(no, nowIso).run()
+          upserts.push(env.DB.prepare(`
+            INSERT INTO koelsa_safety_managers (elevator_no, is_registered, fetched_at)
+            VALUES (?, 0, ?)
+            ON CONFLICT(elevator_no) DO UPDATE SET is_registered=0, fetched_at=excluded.fetched_at
+          `).bind(no, nowIso))
+        }
       }
+
+      // 전 호기 fetch 가 성공한 뒤에만 캐시를 기록 (단일 batch) — 루프 중간 실패가
+      // "일부 호기만 fresh" 인 캐시로 굳어 TTL 동안 누락 호기를 미등록으로 보이게
+      // 만드는 것을 방지. 실패 시 캐시는 한 줄도 변하지 않는다.
+      if (upserts.length > 0) await env.DB.batch(upserts)
+    } catch (apiError: any) {
+      // stale-while-error: 공단 장애 시 캐시를 덮지 않고 직전 캐시로 응답.
+      // 호출 전에 읽어둔 cachedRows(일관된 스냅샷)를 사용한다.
+      console.error(`safety-manager KOELSA error: ${apiError?.message}`)
+      if (cachedRows && cachedRows.length > 0) {
+        return respondFromCache(env, elevators ?? [], cachedRows, {
+          stale: true,
+          staleReason: String(apiError?.message ?? apiError).slice(0, 200),
+        })
+      }
+      return Response.json(
+        { success: false, error: '공단 API 오류 (저장된 캐시 없음): ' + (apiError?.message ?? '알 수 없음') },
+        { status: 502 }
+      )
     }
 
     // 직원 매칭

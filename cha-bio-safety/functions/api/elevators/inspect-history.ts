@@ -335,8 +335,30 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       }
     }
 
-    // 동기화 후 DB 재조회
-    await syncOne(env, elevatorNo)
+    // 동기화 후 DB 재조회 — 공단 장애 시엔 직전 캐시로 응답 (stale-while-error)
+    try {
+      await syncOne(env, elevatorNo)
+    } catch (apiError) {
+      const loaded = await loadFromDb(env, elevatorNo)
+      if (loaded.historyCount > 0) {
+        const latestFetch = await env.DB.prepare(
+          'SELECT MAX(fetched_at) as fetched_at FROM elevator_inspect_history WHERE elevator_no=?'
+        ).bind(elevatorNo).first<{ fetched_at: string | null }>()
+        return Response.json({
+          success: true,
+          data: {
+            elevatorNo,
+            certNo: certNo!,
+            ...loaded,
+            cached: true,
+            stale: true,
+            staleReason: String((apiError as Error).message ?? apiError).slice(0, 200),
+            lastFetchedAt: latestFetch?.fetched_at ?? null,
+          },
+        })
+      }
+      throw apiError // 캐시 없음 → 기존 502 경로
+    }
     const loaded = await loadFromDb(env, elevatorNo)
 
     return Response.json({

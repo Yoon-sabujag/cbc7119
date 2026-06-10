@@ -6,6 +6,22 @@ import type { Env } from '../../_middleware'
 // 캐시 유효 시간: 7일 (검사결과는 거의 변경 안 됨)
 const CACHE_TTL = 7 * 24 * 3600_000
 
+// 캐시 행 → 응답 데이터 — TTL 유효 경로와 민원24 장애 시 stale 경로가 공유
+function buildCachedData(cached: Record<string, unknown>) {
+  return {
+    buildingName: cached.building_name,
+    address: cached.address,
+    inspectInstitution: cached.inspect_institution,
+    inspectKind: cached.inspect_kind,
+    inspectCount: cached.inspect_count,
+    inspectResultSummary: cached.inspect_result_summary,
+    totalFee: cached.total_fee,
+    elevators: JSON.parse(cached.elevators_json as string || '[]'),
+    report: JSON.parse(cached.report_json as string || '{}'),
+    cached: true,
+  }
+}
+
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url)
   const cstmr = url.searchParams.get('cstmr')
@@ -21,42 +37,50 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   try {
-    // ── DB 캐시 확인 ──
-    if (!forceRefresh) {
-      const cached = await env.DB.prepare(
-        'SELECT * FROM koelsa_inspections WHERE cstmr = ? AND recptn = ?'
-      ).bind(cstmr, recptn).first()
+    // 캐시 행은 항상 읽어둔다 — TTL 판단과 민원24 장애 시 stale 응답 양쪽에 필요
+    const cached = await env.DB.prepare(
+      'SELECT * FROM koelsa_inspections WHERE cstmr = ? AND recptn = ?'
+    ).bind(cstmr, recptn).first()
 
-      if (cached) {
-        const age = Date.now() - new Date(cached.fetched_at as string).getTime()
-        if (age < CACHE_TTL) {
-          return Response.json({
-            success: true,
-            data: {
-              buildingName: cached.building_name,
-              address: cached.address,
-              inspectInstitution: cached.inspect_institution,
-              inspectKind: cached.inspect_kind,
-              inspectCount: cached.inspect_count,
-              inspectResultSummary: cached.inspect_result_summary,
-              totalFee: cached.total_fee,
-              elevators: JSON.parse(cached.elevators_json as string || '[]'),
-              report: JSON.parse(cached.report_json as string || '{}'),
-              cached: true,
-            }
-          })
-        }
+    // ── DB 캐시 확인 ──
+    if (!forceRefresh && cached) {
+      const age = Date.now() - new Date(cached.fetched_at as string).getTime()
+      if (age < CACHE_TTL) {
+        return Response.json({ success: true, data: buildCachedData(cached) })
       }
     }
 
     // ── 민원24 API 호출 ──
-    const res = await fetch('https://minwon.koelsa.or.kr/selectLiftResultView.do', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0' },
-      body: `CSTMR_GUIDANCE_NO=${cstmr}&RECPTN_NO=${recptn}`,
-    })
+    let json: any
+    try {
+      const res = await fetch('https://minwon.koelsa.or.kr/selectLiftResultView.do', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0' },
+        body: `CSTMR_GUIDANCE_NO=${cstmr}&RECPTN_NO=${recptn}`,
+      })
+      if (!res.ok) throw new Error(`민원24 HTTP ${res.status}`)
 
-    const json = await res.json() as any
+      // 점검/장애 시 JSON 대신 에러 HTML 이 올 수 있다 — 파싱 실패는 장애로 취급
+      const text = await res.text()
+      try {
+        json = JSON.parse(text)
+      } catch {
+        throw new Error('민원24 응답이 JSON 형식이 아닙니다 (서버 점검/장애 가능): ' + text.slice(0, 120))
+      }
+    } catch (apiError: any) {
+      // stale-while-error: 민원24 장애 시 캐시를 덮지 않고 만료된 직전 캐시로 응답
+      console.error(`koelsa-inspect minwon error: ${apiError?.message}`)
+      if (cached) {
+        return Response.json({
+          success: true,
+          data: { ...buildCachedData(cached), stale: true, staleReason: String(apiError?.message ?? apiError).slice(0, 200) },
+        })
+      }
+      return Response.json(
+        { success: false, error: '민원24 오류 (저장된 캐시 없음): ' + (apiError?.message ?? '알 수 없음') },
+        { status: 502 }
+      )
+    }
 
     if (!json.dataList || json.dataList.length === 0) {
       return Response.json({ success: false, error: '조회 결과 없음 (번호를 확인해주세요)' })

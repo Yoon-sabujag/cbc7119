@@ -1,4 +1,5 @@
 import { api } from './api'
+import toast from 'react-hot-toast'
 
 export interface InspectFailItem {
   failDesc: string | null
@@ -43,5 +44,8 @@ export interface InspectHistoryResponse {
  */
 export async function fetchInspectHistory(certNo: string): Promise<InspectHistoryResponse> {
   const q = encodeURIComponent(certNo)
-  return api.get<InspectHistoryResponse>(`/elevators/inspect-history?cert_no=${q}`)
+  const data = await api.get<InspectHistoryResponse & { stale?: boolean }>(`/elevators/inspect-history?cert_no=${q}`)
+  // 공단 장애로 서버가 직전 캐시(stale)를 반환한 경우 — 고정 id 로 토스트 1개만
+  if (data?.stale) toast('공단 서버 응답 지연 — 최근 저장된 정보 표시', { id: 'koelsa-stale', icon: '⚠️' })
+  return data
 }

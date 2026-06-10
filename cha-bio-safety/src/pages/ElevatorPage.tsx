@@ -262,6 +262,9 @@ async function fetchKoelsaInspection(elevatorNo: string, yyyymm: string): Promis
   try {
     const res = await fetch(`/api/elevators/koelsa?elevator_no=${elevatorNo}&yyyymm=${yyyymm}`, { headers: authHeader() })
     const json = await res.json() as any
+    // 고정 id — 호기별 병렬 호출이 stale 이어도 토스트는 1개만
+    if (json.data?.stale) toast('공단 서버 응답 지연 — 최근 저장된 정보 표시', { id: 'koelsa-stale', icon: '⚠️' })
+    if (json.data?.partial) toast('공단 응답 불완전 — 일부 항목만 표시될 수 있음', { id: 'koelsa-partial', icon: '⚠️' })
     if (!json.success || !json.data?.summary) return null
     return json.data as KoelsaInspection
   } catch { return null }
@@ -490,6 +493,7 @@ export default function ElevatorPage() {
     queryFn: async () => {
       const res = await fetch('/api/elevators/safety-manager', { headers: authHeader() })
       const json = await res.json() as any
+      if (json.data?.stale) toast('공단 서버 응답 지연 — 최근 저장된 정보 표시', { id: 'koelsa-stale', icon: '⚠️' })
       return json.success ? json.data : null
     },
     staleTime: 30 * 60_000,

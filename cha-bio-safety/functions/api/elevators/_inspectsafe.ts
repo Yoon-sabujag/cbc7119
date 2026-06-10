@@ -7,6 +7,8 @@
 //
 // Cloudflare Workers 런타임: fs/path/xml2js 등 Node 모듈 사용 불가. fetch + 정규식만 사용.
 
+import { fetchKoelsaXml } from './_koelsa-common'
+
 export const INSPECTSAFE_SERVICE_KEY = 'bb8deaf60d1322e149801cc367cb94a2aa6ffa700a2d0635e8399c8a3a9f0b00'
 const BASE = 'https://apis.data.go.kr/B553664/ElevatorInspectsafeService'
 
@@ -63,17 +65,7 @@ function parseTotalCount(xml: string): number {
   return m ? parseInt(m[1], 10) : 0
 }
 
-function checkError(xml: string): void {
-  if (
-    xml.includes('Unexpected errors') ||
-    xml.includes('SERVICE_KEY_IS_NOT_REGISTERED') ||
-    xml.includes('API not found') ||
-    xml.includes('SERVICE ERROR')
-  ) {
-    const snippet = xml.slice(0, 200)
-    throw new Error('Inspectsafe API 오류: ' + snippet)
-  }
-}
+// 에러 XML 검출은 _koelsa-common 의 checkError/fetchKoelsaXml 로 통일
 
 // ── 공용 유틸 ────────────────────────────────────────────────────────────
 
@@ -114,9 +106,7 @@ export async function fetchInspectHistory(elevatorNo: string): Promise<InspectHi
   const buildUrl = (pageNo: number) =>
     `${BASE}/getInspectsafeList?serviceKey=${INSPECTSAFE_SERVICE_KEY}&pageNo=${pageNo}&numOfRows=100&elevator_no=${elevatorNo}`
 
-  const firstRes = await fetch(buildUrl(1))
-  const firstXml = await firstRes.text()
-  checkError(firstXml)
+  const firstXml = await fetchKoelsaXml(buildUrl(1))
 
   const totalCount = parseTotalCount(firstXml)
   const firstDicts = parseItems(firstXml)
@@ -125,9 +115,7 @@ export async function fetchInspectHistory(elevatorNo: string): Promise<InspectHi
   if (totalCount > 100) {
     const pages = Math.ceil(totalCount / 100)
     for (let p = 2; p <= pages; p++) {
-      const res = await fetch(buildUrl(p))
-      const xml = await res.text()
-      checkError(xml)
+      const xml = await fetchKoelsaXml(buildUrl(p))
       allDicts = allDicts.concat(parseItems(xml))
     }
   }
@@ -143,9 +131,7 @@ export async function fetchFailDetails(failCd: string): Promise<FailItem[]> {
   const buildUrl = (pageNo: number) =>
     `${BASE}/getInspectFailList?serviceKey=${INSPECTSAFE_SERVICE_KEY}&pageNo=${pageNo}&numOfRows=100&fail_cd=${encodeURIComponent(failCd)}`
 
-  const firstRes = await fetch(buildUrl(1))
-  const firstXml = await firstRes.text()
-  checkError(firstXml)
+  const firstXml = await fetchKoelsaXml(buildUrl(1))
 
   const totalCount = parseTotalCount(firstXml)
   let allDicts: Array<Record<string, string>> = parseItems(firstXml)
@@ -153,9 +139,7 @@ export async function fetchFailDetails(failCd: string): Promise<FailItem[]> {
   if (totalCount > 100) {
     const pages = Math.ceil(totalCount / 100)
     for (let p = 2; p <= pages; p++) {
-      const res = await fetch(buildUrl(p))
-      const xml = await res.text()
-      checkError(xml)
+      const xml = await fetchKoelsaXml(buildUrl(p))
       allDicts = allDicts.concat(parseItems(xml))
     }
   }
