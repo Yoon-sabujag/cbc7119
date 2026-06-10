@@ -32,6 +32,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params, request })
   const key = (params.path as string[]).join('/')
   if (!key) return new Response('Not Found', { status: 404 })
 
+  // backups/ 는 자동 백업(DB 덤프 등) 보관 경로 — 이 엔드포인트는 미인증 공개라
+  // 날짜 키로 추측 가능한 백업이 외부 노출되지 않게 차단. (백업은 admin 게이트가 있는
+  // r2-download 로만 접근하며 SettingsPanel 도 그쪽을 사용한다.)
+  if (key.startsWith('backups/')) return new Response('Not Found', { status: 404 })
+
   const obj = await env.STORAGE.get(key)
   if (!obj) return new Response('Not Found', { status: 404 })
 

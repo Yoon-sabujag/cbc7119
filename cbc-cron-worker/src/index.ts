@@ -2,6 +2,7 @@ import { buildPushPayload } from '@block65/webcrypto-web-push'
 
 export interface Env {
   DB: D1Database
+  STORAGE: R2Bucket
   VAPID_PUBLIC_KEY: string
   VAPID_PRIVATE_KEY: string
 }
@@ -590,6 +591,119 @@ async function sendPushToOwner(env: Env, title: string, body: string): Promise<v
   }
 }
 
+// ── DB 자동 백업 (매일 KST 03:32) ─────────────────────
+// 앱의 backup.ts(신버전, 260610-bkr)와 동일 포맷으로 D1 전체를 .sql 직렬화 → R2 backups/db/ 저장.
+// 신버전 restore.ts 토크나이저로 복원 가능. 14일 보존(오래된 백업 자동 삭제).
+// backups/ 는 uploads 미인증 경로에서 차단됨 — admin r2-download 로만 접근.
+function kstDateStr(): string {
+  return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
+}
+
+async function buildDbBackupSql(env: Env): Promise<{ sql: string; oversized: string[] }> {
+  const { results: tables } = await env.DB.prepare(
+    `SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'd1_%' ORDER BY name`
+  ).all<{ name: string; sql: string }>()
+
+  const lines: string[] = []
+  lines.push(`-- CHA Bio Safety DB Backup`)
+  lines.push(`-- Date: ${new Date().toISOString()}`)
+  lines.push(`-- Tables: ${tables.length}`)
+  lines.push('')
+
+  const enc = new TextEncoder()
+  const oversized: string[] = []
+
+  for (const table of tables) {
+    lines.push(`-- ── ${table.name} ──`)
+    lines.push(`DROP TABLE IF EXISTS ${table.name};`)
+    lines.push(`${table.sql};`)
+    lines.push('')
+
+    const { results: rows } = await env.DB.prepare(`SELECT * FROM ${table.name}`).all()
+    if (rows.length === 0) {
+      lines.push(`-- (no data)`)
+      lines.push('')
+      continue
+    }
+
+    const columns = Object.keys(rows[0] as Record<string, unknown>)
+    for (const row of rows) {
+      const r = row as Record<string, unknown>
+      const values = columns.map(c => {
+        const v = r[c]
+        if (v === null || v === undefined) return 'NULL'
+        if (typeof v === 'number') return String(v)
+        return `'${String(v).replace(/'/g, "''")}'`
+      })
+      const stmt = `INSERT INTO ${table.name} (${columns.join(', ')}) VALUES (${values.join(', ')});`
+      if (stmt.length > 30000 && enc.encode(stmt).length > 95000)
+        oversized.push(`${table.name} (${columns[0]}=${String(r[columns[0]]).slice(0, 40)})`)
+      lines.push(stmt)
+    }
+    lines.push('')
+  }
+
+  // standalone 인덱스/뷰/트리거 — DROP TABLE 이 부속 객체를 지우므로 백업에 없으면 복원 후 소실.
+  const { results: objects } = await env.DB.prepare(
+    `SELECT type, name, sql FROM sqlite_master
+     WHERE type IN ('index','view','trigger') AND sql IS NOT NULL
+       AND name NOT LIKE 'sqlite_%' AND tbl_name NOT LIKE '_cf_%' AND tbl_name NOT LIKE 'd1_%'
+     ORDER BY CASE type WHEN 'index' THEN 0 WHEN 'view' THEN 1 ELSE 2 END, name`
+  ).all<{ type: string; name: string; sql: string }>()
+
+  if (objects.length > 0) {
+    lines.push(`-- ── indexes / views / triggers ──`)
+    for (const o of objects) {
+      lines.push(`DROP ${o.type.toUpperCase()} IF EXISTS ${o.name};`)
+      lines.push(`${o.sql};`)
+    }
+    lines.push('')
+  }
+
+  return { sql: lines.join('\n'), oversized }
+}
+
+async function handleDbBackup(env: Env): Promise<void> {
+  const date = kstDateStr()
+  const key = `backups/db/${date}.sql`
+  try {
+    const { sql, oversized } = await buildDbBackupSql(env)
+    if (oversized.length > 0) {
+      // 100KB 초과 행이면 복원 불가능한 백업이라 저장하지 않고 알린다 (앱 backup.ts 와 동일 정책).
+      await logTelemetry(env, 'cron-backup-db-oversize', {
+        detail: `복원 불가(100KB 초과 행) — 백업 중단: ${oversized.slice(0, 5).join(', ')}`,
+      })
+      await sendPushToOwner(env, '⚠ DB 자동백업 중단', '100KB 초과 행으로 복원 불가능한 백업 — 해당 행 텍스트 축소 필요')
+      return
+    }
+
+    await env.STORAGE.put(key, sql, { httpMetadata: { contentType: 'application/sql; charset=utf-8' } })
+
+    // 14일 보존: backups/db/ 중 날짜가 14일보다 오래된 .sql 삭제.
+    const cutoff = new Date(Date.now() + 9 * 3600 * 1000 - 14 * 86400 * 1000).toISOString().slice(0, 10)
+    const toDelete: string[] = []
+    let cursor: string | undefined
+    do {
+      const listed = await env.STORAGE.list({ prefix: 'backups/db/', cursor, limit: 500 })
+      for (const obj of listed.objects) {
+        const d = obj.key.replace('backups/db/', '').replace('.sql', '')
+        if (d < cutoff) toDelete.push(obj.key)
+      }
+      cursor = listed.truncated ? listed.cursor : undefined
+    } while (cursor)
+    for (const k of toDelete) await env.STORAGE.delete(k)
+
+    await logTelemetry(env, 'cron-backup-db-ok', {
+      detail: `${key} ${sql.length}B, 보존정리 ${toDelete.length}건 삭제`,
+    })
+  } catch (e: any) {
+    await logTelemetry(env, 'cron-backup-db-error', {
+      detail: String(e?.message ?? e).slice(0, 500),
+    })
+    await sendPushToOwner(env, '⚠ DB 자동백업 실패', String(e?.message ?? e).slice(0, 200))
+  }
+}
+
 // ── Main export ──────────────────────────────────────
 export default {
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -602,6 +716,9 @@ export default {
         break
       case '0 6 * * *':
         ctx.waitUntil(handleAccessBlockedAutoComplete(env))
+        break
+      case '32 18 * * *':
+        ctx.waitUntil(handleDbBackup(env))
         break
     }
   },

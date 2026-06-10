@@ -8,6 +8,13 @@ binding = "DB"
 database_name = "cha-bio-db"
 database_id = "b12b88e7-fc41-4186-8f35-ee9cbaf994c7"
 
+# 자동 DB 백업 저장용 (prod R2). 앱과 동일 버킷의 backups/db/ prefix 만 사용.
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "cha-bio-storage"
 
+
+# "32 18 * * *" = UTC 18:32 = KST 03:32 (새벽, 트래픽 적음) — 매일 DB 백업.
+# 분 32 는 */5 와 겹치지 않게 비배수 선택.
 [triggers]
-crons = ["45 23 * * *", "*/5 * * * *", "0 6 * * *"]
+crons = ["45 23 * * *", "*/5 * * * *", "0 6 * * *", "32 18 * * *"]
