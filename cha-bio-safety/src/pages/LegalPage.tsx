@@ -6,7 +6,7 @@ import { ChevronLeft, Camera, Loader2, Check, X, Lock, Save } from 'lucide-react
 import { legalApi } from '../utils/api'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useAuthStore } from '../stores/authStore'
-import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
+import { useMultiPhotoUpload, PhotoUploadFailedError } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
 import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { FindingEditModal } from '../components/FindingEditModal'
@@ -827,7 +827,7 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
   const navigate = useNavigate()
   const [memo, setMemo] = useState('')
   const staff = useAuthStore(s => s.staff)
-  const resPhotos = useMultiPhotoUpload()
+  const resPhotos = useMultiPhotoUpload('legal-finding-resolution')
   const [downloading, setDownloading] = useState(false)
 
   const { data: finding, isLoading } = useQuery({
@@ -853,7 +853,14 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
       resPhotos.reset()
       setMemo('')
     },
-    onError: () => toast.error('조치 처리 실패'),
+    onError: (err) => {
+      // 사진 업로드 부분 실패 — 저장은 차단됐고 성공분은 슬롯에 남아 재시도 시 재업로드되지 않음
+      if (err instanceof PhotoUploadFailedError) {
+        toast.error(err.message)
+        return
+      }
+      toast.error('조치 처리 실패')
+    },
   })
 
   async function handleDownload() {
@@ -923,7 +930,7 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
             <div className="text-caption leading-none font-bold text-text-tertiary mb-1.5">조치 사진 (최대 5장)</div>
             <input ref={resPhotos.cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={resPhotos.handleFiles} />
             <input ref={resPhotos.albumRef} type="file" accept="image/*" multiple className="hidden" onChange={resPhotos.handleFiles} />
-            <PhotoSourceModal open={resPhotos.showPicker} onClose={resPhotos.closePicker} onCamera={resPhotos.pickCamera} onAlbum={resPhotos.pickAlbum} />
+            <PhotoSourceModal open={resPhotos.showPicker} onClose={resPhotos.closePicker} onCamera={resPhotos.pickCamera} onAlbum={resPhotos.pickAlbum} restoreCount={resPhotos.vaultPendingCount} onRestore={resPhotos.restoreFromVault} />
             <div className="flex gap-2 flex-wrap">
               {resPhotos.slots.map((slot, i) => (
                 <div key={i} className="relative">

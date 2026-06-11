@@ -93,19 +93,26 @@ export async function generateMonthlyPlan(
   const ym = `${year}-${String(month).padStart(2, '0')}`
   const items = await scheduleApi.getByMonth(ym)
 
-  // 날짜별 카테고리 매핑
+  const daysInMonth = new Date(year, month, 0).getDate()
+
+  // 날짜별 카테고리 매핑 — 월 경계에 걸친 일정은 대상 월 범위로 클램프 (stats.ts 캘린더와 동일 패턴).
+  // 끝 2자리(day)만 잘라 비교하면 5/30~6/2 일정이 startDay=30 > endDay=2 가 되어 양쪽 달 모두 누락된다.
+  const monthStart = `${ym}-01`
+  const monthEnd = `${ym}-${String(daysInMonth).padStart(2, '0')}`
   const dayCatMap: Record<number, Set<string>> = {}
   for (const item of items) {
     if (!item.inspectionCategory) continue
-    const startDay = parseInt(item.date.split('-')[2])
-    const endDay = item.endDate ? parseInt(item.endDate.split('-')[2]) : startDay
+    const sd = item.date < monthStart ? monthStart : item.date
+    const edRaw = item.endDate ?? item.date
+    const ed = edRaw > monthEnd ? monthEnd : edRaw
+    if (sd > ed) continue // 이 달과 겹치지 않는 범위 (방어)
+    const startDay = Number(sd.slice(8, 10))
+    const endDay = Number(ed.slice(8, 10))
     for (let d = startDay; d <= endDay; d++) {
       if (!dayCatMap[d]) dayCatMap[d] = new Set()
       dayCatMap[d].add(item.inspectionCategory)
     }
   }
-
-  const daysInMonth = new Date(year, month, 0).getDate()
   const firstDow = new Date(year, month - 1, 1).getDay()
 
   // 3) 시트 XML 패치

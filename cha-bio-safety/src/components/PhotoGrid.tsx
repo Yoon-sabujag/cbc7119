@@ -132,7 +132,7 @@ export function PhotoGrid({ photoUrls, hook, label = '사진 첨부' }: PhotoGri
         <>
           <input ref={hook.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={hook.handleFiles} />
           <input ref={hook.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={hook.handleFiles} />
-          <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} />
+          <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} restoreCount={hook.vaultPendingCount} onRestore={hook.restoreFromVault} />
         </>
       )}
 

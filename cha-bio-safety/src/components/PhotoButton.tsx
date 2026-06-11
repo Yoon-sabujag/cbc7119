@@ -8,7 +8,7 @@ export function PhotoButton({ hook, label = '사진 첨부', noCapture }: { hook
     <div>
       <input ref={hook.cameraRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={hook.handleFile} />
       <input ref={hook.albumRef} type="file" accept="image/*" style={{ display:'none' }} onChange={hook.handleFile} />
-      <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} />
+      <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} restoreCount={hook.vaultPendingCount} onRestore={hook.restoreFromVault} />
       {hook.photoPreview ? (
         <div style={{ position:'relative', display:'inline-block' }}>
           <img src={hook.photoPreview} alt="첨부사진" style={{ width:72, height:72, objectFit:'cover', borderRadius:10, border:'1px solid var(--border-default)', display:'block' }} />

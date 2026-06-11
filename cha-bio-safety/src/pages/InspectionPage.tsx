@@ -9,7 +9,7 @@ import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
-import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime } from '../utils/datetime'
+import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime, todayKstYmd } from '../utils/datetime'
 import { DIV_POINTS as DIV_PTS, type DivPoint as DivPt } from '../constants/divPoints'
 import { InspectionRevisitPopup } from '../components/InspectionRevisitPopup'
 import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
@@ -304,7 +304,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
   onClose:        () => void
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
 }) {
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection')
   const navigate = useNavigate()
   const [selectedSW,  setSelectedSW]  = useState<number | null>(null)
   const [floorResults, setFloorResults] = useState<Record<string, CheckResult>>({})
@@ -354,6 +354,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       // 사진은 계단실 단위 메타에 가깝다. 모든 층 record 에 동일 photoKey 를 박으면
       // 상세 진입 시 전층이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 층,
       // 없으면 첫 층 1건에만 attach.
@@ -572,7 +573,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
   onClose:        () => void
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
 }) {
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection')
   const navigate = useNavigate()
   const [dvrResults,  setDvrResults]  = useState<Record<string, CheckResult>>({})
   const [memo,        setMemo]        = useState('')
@@ -614,6 +615,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       // DVR 13대 일괄 점검이라 사진 1장이 의도. 모든 record 에 같은 photoKey 를 박으면
       // 상세 진입 시 전 DVR 이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 cp,
       // 없으면 첫 cp 1건에만 attach.
@@ -775,7 +777,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
   onClose:        () => void
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
 }) {
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection')
   const navigate = useNavigate()
   const [zone,        setZone]        = useState<BYZone | null>(null)
   const [selFloor,    setSelFloor]    = useState<Floor | null>(null)
@@ -846,6 +848,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       await onSave(selectedCP.id, result, memo, photoKey ?? undefined)
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
@@ -1330,7 +1333,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
   const [drain,  setDrain]  = useState<'none'|'yes'>('none')
   const [result, setResult] = useState<CheckResult>('normal')
   const [memo,   setMemo]   = useState('')
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection')
   const [showCompressor, setShowCompressor] = useState(false)
 
   // ── 이전 기록 & 자동 판단 ──
@@ -1434,6 +1437,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
       const hdrs  = { 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }
       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) { toast.error('사진 업로드 실패 — 다시 시도해주세요'); return }
 
       const pressureRes = await fetch('/api/div/pressure', {
         method:'POST', headers: hdrs,
@@ -1922,7 +1926,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
   scheduleItems: ScheduleItem[]
 }) {
   const staff = useAuthStore(s => s.staff)
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection')
   const navigate = useNavigate()
 
   const initPt = initialLocationNo ? DIV_PTS.find(p => p.id === initialLocationNo) : null
@@ -2012,6 +2016,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       const hdrs  = { 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }
       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) { toast.error('사진 업로드 실패 — 다시 시도해주세요'); return }
 
       await fetch('/api/div/comp-inspection', {
         method:'POST', headers: hdrs,
@@ -2319,7 +2324,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
   onClose:        () => void
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
 }) {
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection')
   const navigate = useNavigate()
   const [zone,        setZone]        = useState<PPZone | null>(null)
   const [pickerIdx,   setPickerIdx]   = useState<number>(0)
@@ -2373,6 +2378,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       await onSave(selectedCP.id, result, memo, photoKey ?? undefined)
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
@@ -2571,7 +2577,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
   onClose:        () => void
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
 }) {
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection')
   const navigate = useNavigate()
   const [item,        setItem]        = useState<'주차장비'|'회전문'|null>(null)
   const [subItem,     setSubItem]     = useState<'북문'|'남문'|null>(null)
@@ -2625,6 +2631,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       await onSave(cpId, result, memo, photoKey ?? undefined)
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
@@ -2818,7 +2825,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
   initialCpId?:   string
 }) {
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection')
   const navigate = useNavigate()
   // QR에서 넘어온 경우 초기 항목 자동 선택
   const initCp = initialCpId ? allCheckpoints.find(cp => cp.id === initialCpId) : null
@@ -2951,6 +2958,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       // 계단전실 한 동을 층별로 일괄 점검. 사진은 stair 단위 메타에 가까우므로
       // 모든 층 record 에 동일 photoKey 가 박혀 상세 전 record 가 같은 사진을 표시하지 않도록,
       // caution/bad 가 있으면 그 첫 층, 없으면 첫 층 1건에만 attach.
@@ -2987,6 +2995,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       // 댐퍼 증상 피커 — 전실제연댐퍼 equip 모드 + result !== 'normal' 시만 적용.
       // 연결송수관(yscp)은 별개 소화설비 (탭으로만 묶임) — 증상 피커 패턴 적용 X.
       const finalMemo = (item === '전실제연댐퍼' && result !== 'normal')
@@ -3414,8 +3423,8 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   const navigate = useNavigate()
   const isGuideLight = group.categories.includes('유도등')
   const [glMarkers, setGlMarkers] = useState<FloorPlanMarker[]>([])
-  const photo   = usePhotoUpload()
-  const bcPhoto = usePhotoUpload()
+  const photo   = usePhotoUpload('inspection')
+  const bcPhoto = usePhotoUpload('inspection-bc')
   // ▶ groupCPs memoize — 이 참조가 안정돼야 피커가 리셋 안 됨
   const groupCPs       = useMemo(() => allCheckpoints.filter(cp => group.categories.includes(cp.category)), [allCheckpoints, group])
   const isSohwaGroup   = group.categories.includes('소화전') && group.categories.includes('비상콘센트')
@@ -3815,6 +3824,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       let finalMemo = memo
       let extra: { guide_light_type?: string; floor_plan_marker_id?: string } | undefined
       let cpIdToSave = selectedCP.id
@@ -3838,9 +3848,11 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       } else if (selectedCP?.category === '방화셔터' && result !== 'normal') {
         finalMemo = shutterSymptomPick === '직접 입력' ? memo.trim() : shutterSymptomPick
       }
+      // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
+      const bcPhotoKey = pairedBC ? await bcPhoto.upload() : null
+      if (pairedBC && bcPhoto.hasPhoto && bcPhotoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       await onSave(cpIdToSave, result, finalMemo, photoKey ?? undefined, extra)
       if (pairedBC) {
-        const bcPhotoKey = await bcPhoto.upload()
         await onSave(pairedBC.id, bcResult, bcMemo, bcPhotoKey ?? undefined)
       }
       photo.reset()
@@ -4560,7 +4572,7 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
   const [submitting,  setSubmitting]  = useState(false)
   const [error,       setError]       = useState<string | null>(null)
   const [visible,     setVisible]     = useState(false)
-  const photo         = usePhotoUpload()
+  const photo         = usePhotoUpload('inspection-resolution')
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -4569,7 +4581,9 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
     setError(null)
     try {
       const photoKey = await photo.upload()
+      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
       await onResolve(item.recordId, memo, photoKey ?? undefined)
+      photo.reset()
       onClose()
     } catch (e: any) {
       setError(e.message ?? '저장 오류')
@@ -4872,8 +4886,8 @@ export default function InspectionPage() {
 
   const ensureSession = async (): Promise<string> => {
     if (sessionId) return sessionId
-    const n = new Date()
-    const today = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`
+    // 세션 날짜는 KST 기준 (브라우저 타임존 무관) — UTC/로컬 getter 는 새벽 기록을 전날 세션에 귀속시킴
+    const today = todayKstYmd()
     try {
       const sessions = await inspectionApi.getSessions(today)
       const mine = sessions.find((s: any) => s.staff_id === staff?.id || s.staffId === staff?.id)
