@@ -7,7 +7,7 @@ import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, t
 import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
 import { todayKstYmd } from '../utils/datetime'
 import { useAuthStore } from '../stores/authStore'
-import { usePhotoUpload } from '../hooks/usePhotoUpload'
+import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { InspectionRevisitPopup, type RevisitVariant } from '../components/InspectionRevisitPopup'
@@ -1936,10 +1936,10 @@ export default function FloorPlanPage() {
                     if (sessions.length > 0) sid = sessions[0].id
                     else { const s = await inspectionApi.createSession({ date: today }); sid = s.id }
                     const photoKey = await inspectPhoto.upload()
-                    if (inspectPhoto.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+                    if (inspectPhoto.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(inspectPhoto.vaultBacked))
                     // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
                     const bcPhotoKey = pairedBC ? await inspectBcPhoto.upload() : null
-                    if (pairedBC && inspectBcPhoto.hasPhoto && bcPhotoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+                    if (pairedBC && inspectBcPhoto.hasPhoto && bcPhotoKey === null) throw new Error(photoUploadFailMsg(inspectBcPhoto.vaultBacked))
 
                     let cpId = selected.check_point_id ?? ''
                     let finalMemo = inspectMemo
@@ -2214,7 +2214,7 @@ export default function FloorPlanPage() {
                   setResolveSubmitting(true)
                   try {
                     const photoKey = await resolvePhoto.upload()
-                    if (resolvePhoto.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+                    if (resolvePhoto.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(resolvePhoto.vaultBacked))
                     await api.post(`/inspections/records/${selected.last_record_id}/resolve`, {
                       resolution_memo: finalMemo,
                       resolution_photo_key: photoKey,

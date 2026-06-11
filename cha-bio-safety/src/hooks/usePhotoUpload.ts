@@ -2,6 +2,14 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { compressImage } from '../utils/imageUtils'
 import { vaultPut, vaultDelete, vaultList, vaultClaim, vaultRelease, isVaultClaimed } from '../utils/photoVault'
 
+/** 업로드 실패 안내 문구 — 보관함 백업 여부에 따라 분기 (단일/다중 훅 공용) */
+export function photoUploadFailMsg(vaultBacked: boolean, failedCount?: number): string {
+  const head = failedCount != null ? `사진 ${failedCount}장 업로드 실패` : '사진 업로드 실패'
+  return vaultBacked
+    ? `${head} — 기기에 임시저장됨. 다시 시도해 주세요`
+    : `${head} — 다시 시도해 주세요`
+}
+
 // ── 사진 업로드 훅 ─────────────────────────────────────
 // upload() 는 사진 미첨부 시에도 null 을 반환하므로, 호출부는
 // `hook.hasPhoto && key === null` 로 "업로드 실패"와 "미첨부(정상)" 를 구분해야 한다.
@@ -90,6 +98,10 @@ export function usePhotoUpload(vaultScope?: string) {
       const key = json.success ? json.data!.key : null
       if (key) uploadedRef.current = { blob: photoBlob, key, vaultId: vid }
       return key
+    } catch {
+      // 기내모드(fetch TypeError)·CF 5xx HTML 응답(JSON 파싱 실패)도 throw 하지 않고 null —
+      // 호출부의 `hasPhoto && key === null` 가드가 일관된 문구로 처리
+      return null
     } finally {
       setUploading(false)
     }
@@ -126,5 +138,9 @@ export function usePhotoUpload(vaultScope?: string) {
     refreshVaultCount()
   }, [photoPreview, refreshVaultCount])
 
-  return { cameraRef, albumRef, showPicker, openPicker, closePicker, pickCamera, pickAlbum, photoPreview, uploading, handleFile, removePhoto, upload, reset, hasPhoto: !!photoBlob, vaultPendingCount, restoreFromVault }
+  // 현재 첨부가 보관함에 실제 저장됐는지 — 실패 문구 분기용.
+  // handleFile/restoreFromVault 가 ref 설정 후 setPhotoBlob 으로 리렌더를 일으키므로 render 시점 값이 신선하다.
+  const vaultBacked = !!vaultIdRef.current
+
+  return { cameraRef, albumRef, showPicker, openPicker, closePicker, pickCamera, pickAlbum, photoPreview, uploading, handleFile, removePhoto, upload, reset, hasPhoto: !!photoBlob, vaultPendingCount, restoreFromVault, vaultBacked }
 }

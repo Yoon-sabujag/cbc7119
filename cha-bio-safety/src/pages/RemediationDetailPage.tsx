@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { remediationApi, api } from '../utils/api'
-import { usePhotoUpload } from '../hooks/usePhotoUpload'
+import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useAuthStore } from '../stores/authStore'
 import toast from 'react-hot-toast'
@@ -40,7 +40,7 @@ export default function RemediationDetailPage() {
   const [materialName, setMaterialName] = useState('')
   const [materialCount, setMaterialCount] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
-  const photo = usePhotoUpload()
+  const photo = usePhotoUpload('inspection-resolution')
   const isAdmin = useAuthStore(s => s.staff?.role === 'admin')
 
   const GL_TYPE_LABEL: Record<string, string> = {
@@ -243,7 +243,7 @@ export default function RemediationDetailPage() {
       let photoKey: string | null = null
       if (photo.hasPhoto) {
         photoKey = await photo.upload()
-        if (photoKey === null) { toast.error('사진 업로드 실패'); return }
+        if (photoKey === null) { toast.error(photoUploadFailMsg(photo.vaultBacked)); return }
       }
       const materialsString = materialName.trim()
         ? `${materialName.trim()} ${materialCount || 1}ea`
@@ -257,6 +257,7 @@ export default function RemediationDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['remediation-detail'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('조치 완료')
+      photo.reset()
       navigate(-1)
     } catch {
       toast.error('조치 처리 실패')

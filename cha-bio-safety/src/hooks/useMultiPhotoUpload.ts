@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { compressImage } from '../utils/imageUtils'
 import { useAuthStore } from '../stores/authStore'
 import { vaultPut, vaultDelete, vaultList, vaultClaim, vaultRelease, isVaultClaimed } from '../utils/photoVault'
+import { photoUploadFailMsg } from './usePhotoUpload'
 
 // ── 다중 사진 업로드 훅 ────────────────────────────────────
 const MAX_PHOTOS = 5
@@ -18,8 +19,8 @@ export interface PhotoSlot {
 /** uploadAll 부분 실패 — 저장 API 호출 전에 mutation 을 중단시키기 위해 throw 된다. */
 export class PhotoUploadFailedError extends Error {
   failedCount: number
-  constructor(failedCount: number) {
-    super(`사진 ${failedCount}장 업로드 실패 — 다시 시도해 주세요`)
+  constructor(failedCount: number, vaultBacked = false) {
+    super(photoUploadFailMsg(vaultBacked, failedCount))
     this.name = 'PhotoUploadFailedError'
     this.failedCount = failedCount
   }
@@ -149,8 +150,11 @@ export function useMultiPhotoUpload(vaultScope?: string) {
       slotsRef.current = merged
       setSlots(merged)
 
-      const failedCount = merged.filter(s => !s.key).length
-      if (failedCount > 0) throw new PhotoUploadFailedError(failedCount)
+      const failedSlots = merged.filter(s => !s.key)
+      if (failedSlots.length > 0) {
+        // 실패분 중 하나라도 보관함에 백업돼 있으면 '기기에 임시저장됨' 문구
+        throw new PhotoUploadFailedError(failedSlots.length, failedSlots.some(s => !!s.vaultId))
+      }
       return merged.map(s => s.key as string)
     })()
     // 업로드 동안 들어오는 handleFiles/restore 는 완료 후로 직렬화
