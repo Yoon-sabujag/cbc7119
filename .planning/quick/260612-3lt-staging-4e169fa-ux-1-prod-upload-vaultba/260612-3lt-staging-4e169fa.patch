@@ -1,0 +1,289 @@
+commit 4e169faa6640856fab3a7c1110b17346b1aa93fe
+Author: jongyupyoon's Mac mini <jongyupyoon@jongyupyoonsui-Macmini.local>
+Date:   Fri Jun 12 01:45:33 2026 +0900
+
+    feat(사진UX-1단계): 업로드 실패 무던짐(null)화 + 보관함 백업 여부 문구 분기 + 조치상세 편입
+    
+    - usePhotoUpload.upload(): 기내모드(fetch TypeError)·CF 5xx HTML(JSON 파싱 실패)도
+      throw 대신 null — 호출부 raw 문구 노출 제거. null 의미·finally uploading 보존
+    - photoUploadFailMsg(vaultBacked, failedCount?) 헬퍼 + 훅 vaultBacked 노출
+    - 가드 16곳(InspectionPage 12 + FloorPlanPage 3 + RemediationDetailPage 1) 문구 분기:
+      보관함 백업 시 '기기에 임시저장됨. 다시 시도해 주세요'
+    - PhotoUploadFailedError 도 동일 분기(실패 슬롯 중 vaultId 보유 시)
+    - RemediationDetailPage: scope 'inspection-resolution' + 저장 성공 시 photo.reset()
+      (보관함 정리) — f5bb1db 의도적 제외분 편입. 복구 버튼은 PhotoButton 자동 연결
+    범위 밖: 폼 입력값 임시저장(2단계 보류), 승강기/인수인계 자체 픽커
+
+diff --git a/src/hooks/useMultiPhotoUpload.ts b/src/hooks/useMultiPhotoUpload.ts
+index acf9cf5..363df7d 100644
+--- a/src/hooks/useMultiPhotoUpload.ts
++++ b/src/hooks/useMultiPhotoUpload.ts
+@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
+ import { compressImage } from '../utils/imageUtils'
+ import { useAuthStore } from '../stores/authStore'
+ import { vaultPut, vaultDelete, vaultList, vaultClaim, vaultRelease, isVaultClaimed } from '../utils/photoVault'
++import { photoUploadFailMsg } from './usePhotoUpload'
+ 
+ // ── 다중 사진 업로드 훅 ────────────────────────────────────
+ const MAX_PHOTOS = 5
+@@ -18,8 +19,8 @@ export interface PhotoSlot {
+ /** uploadAll 부분 실패 — 저장 API 호출 전에 mutation 을 중단시키기 위해 throw 된다. */
+ export class PhotoUploadFailedError extends Error {
+   failedCount: number
+-  constructor(failedCount: number) {
+-    super(`사진 ${failedCount}장 업로드 실패 — 다시 시도해 주세요`)
++  constructor(failedCount: number, vaultBacked = false) {
++    super(photoUploadFailMsg(vaultBacked, failedCount))
+     this.name = 'PhotoUploadFailedError'
+     this.failedCount = failedCount
+   }
+@@ -149,8 +150,11 @@ export function useMultiPhotoUpload(vaultScope?: string) {
+       slotsRef.current = merged
+       setSlots(merged)
+ 
+-      const failedCount = merged.filter(s => !s.key).length
+-      if (failedCount > 0) throw new PhotoUploadFailedError(failedCount)
++      const failedSlots = merged.filter(s => !s.key)
++      if (failedSlots.length > 0) {
++        // 실패분 중 하나라도 보관함에 백업돼 있으면 '기기에 임시저장됨' 문구
++        throw new PhotoUploadFailedError(failedSlots.length, failedSlots.some(s => !!s.vaultId))
++      }
+       return merged.map(s => s.key as string)
+     })()
+     // 업로드 동안 들어오는 handleFiles/restore 는 완료 후로 직렬화
+diff --git a/src/hooks/usePhotoUpload.ts b/src/hooks/usePhotoUpload.ts
+index 9ed1fcd..6fe9d62 100644
+--- a/src/hooks/usePhotoUpload.ts
++++ b/src/hooks/usePhotoUpload.ts
+@@ -2,6 +2,14 @@ import { useState, useCallback, useRef, useEffect } from 'react'
+ import { compressImage } from '../utils/imageUtils'
+ import { vaultPut, vaultDelete, vaultList, vaultClaim, vaultRelease, isVaultClaimed } from '../utils/photoVault'
+ 
++/** 업로드 실패 안내 문구 — 보관함 백업 여부에 따라 분기 (단일/다중 훅 공용) */
++export function photoUploadFailMsg(vaultBacked: boolean, failedCount?: number): string {
++  const head = failedCount != null ? `사진 ${failedCount}장 업로드 실패` : '사진 업로드 실패'
++  return vaultBacked
++    ? `${head} — 기기에 임시저장됨. 다시 시도해 주세요`
++    : `${head} — 다시 시도해 주세요`
++}
++
+ // ── 사진 업로드 훅 ─────────────────────────────────────
+ // upload() 는 사진 미첨부 시에도 null 을 반환하므로, 호출부는
+ // `hook.hasPhoto && key === null` 로 "업로드 실패"와 "미첨부(정상)" 를 구분해야 한다.
+@@ -90,6 +98,10 @@ export function usePhotoUpload(vaultScope?: string) {
+       const key = json.success ? json.data!.key : null
+       if (key) uploadedRef.current = { blob: photoBlob, key, vaultId: vid }
+       return key
++    } catch {
++      // 기내모드(fetch TypeError)·CF 5xx HTML 응답(JSON 파싱 실패)도 throw 하지 않고 null —
++      // 호출부의 `hasPhoto && key === null` 가드가 일관된 문구로 처리
++      return null
+     } finally {
+       setUploading(false)
+     }
+@@ -126,5 +138,9 @@ export function usePhotoUpload(vaultScope?: string) {
+     refreshVaultCount()
+   }, [photoPreview, refreshVaultCount])
+ 
+-  return { cameraRef, albumRef, showPicker, openPicker, closePicker, pickCamera, pickAlbum, photoPreview, uploading, handleFile, removePhoto, upload, reset, hasPhoto: !!photoBlob, vaultPendingCount, restoreFromVault }
++  // 현재 첨부가 보관함에 실제 저장됐는지 — 실패 문구 분기용.
++  // handleFile/restoreFromVault 가 ref 설정 후 setPhotoBlob 으로 리렌더를 일으키므로 render 시점 값이 신선하다.
++  const vaultBacked = !!vaultIdRef.current
++
++  return { cameraRef, albumRef, showPicker, openPicker, closePicker, pickCamera, pickAlbum, photoPreview, uploading, handleFile, removePhoto, upload, reset, hasPhoto: !!photoBlob, vaultPendingCount, restoreFromVault, vaultBacked }
+ }
+diff --git a/src/pages/FloorPlanPage.tsx b/src/pages/FloorPlanPage.tsx
+index 8bb8fd2..728796c 100644
+--- a/src/pages/FloorPlanPage.tsx
++++ b/src/pages/FloorPlanPage.tsx
+@@ -7,7 +7,7 @@ import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, t
+ import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
+ import { todayKstYmd } from '../utils/datetime'
+ import { useAuthStore } from '../stores/authStore'
+-import { usePhotoUpload } from '../hooks/usePhotoUpload'
++import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
+ import { PhotoButton } from '../components/PhotoButton'
+ import { useIsDesktop } from '../hooks/useIsDesktop'
+ import { InspectionRevisitPopup, type RevisitVariant } from '../components/InspectionRevisitPopup'
+@@ -1931,10 +1931,10 @@ export default function FloorPlanPage() {
+                     if (sessions.length > 0) sid = sessions[0].id
+                     else { const s = await inspectionApi.createSession({ date: today }); sid = s.id }
+                     const photoKey = await inspectPhoto.upload()
+-                    if (inspectPhoto.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++                    if (inspectPhoto.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(inspectPhoto.vaultBacked))
+                     // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
+                     const bcPhotoKey = pairedBC ? await inspectBcPhoto.upload() : null
+-                    if (pairedBC && inspectBcPhoto.hasPhoto && bcPhotoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++                    if (pairedBC && inspectBcPhoto.hasPhoto && bcPhotoKey === null) throw new Error(photoUploadFailMsg(inspectBcPhoto.vaultBacked))
+ 
+                     let cpId = selected.check_point_id ?? ''
+                     let finalMemo = inspectMemo
+@@ -2209,7 +2209,7 @@ export default function FloorPlanPage() {
+                   setResolveSubmitting(true)
+                   try {
+                     const photoKey = await resolvePhoto.upload()
+-                    if (resolvePhoto.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++                    if (resolvePhoto.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(resolvePhoto.vaultBacked))
+                     await api.post(`/inspections/records/${selected.last_record_id}/resolve`, {
+                       resolution_memo: finalMemo,
+                       resolution_photo_key: photoKey,
+diff --git a/src/pages/InspectionPage.tsx b/src/pages/InspectionPage.tsx
+index 39067c1..041e194 100644
+--- a/src/pages/InspectionPage.tsx
++++ b/src/pages/InspectionPage.tsx
+@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+ import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, type ExtinguisherDetail, type FloorPlanMarker } from '../utils/api'
+ import toast from 'react-hot-toast'
+ import type { CheckPoint, CheckResult, Floor } from '../types'
+-import { usePhotoUpload } from '../hooks/usePhotoUpload'
++import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
+ import { PhotoButton } from '../components/PhotoButton'
+ import { useIsDesktop } from '../hooks/useIsDesktop'
+ import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime, todayKstYmd } from '../utils/datetime'
+@@ -322,7 +322,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       // 사진은 계단실 단위 메타에 가깝다. 모든 층 record 에 동일 photoKey 를 박으면
+       // 상세 진입 시 전층이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 층,
+       // 없으면 첫 층 1건에만 attach.
+@@ -583,7 +583,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       // DVR 13대 일괄 점검이라 사진 1장이 의도. 모든 record 에 같은 photoKey 를 박으면
+       // 상세 진입 시 전 DVR 이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 cp,
+       // 없으면 첫 cp 1건에만 attach.
+@@ -816,7 +816,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       await onSave(selectedCP.id, result, memo, photoKey ?? undefined)
+       setJustSaved(true); setMemo(''); photo.reset()
+     } catch (e: any) {
+@@ -1405,7 +1405,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
+       const hdrs  = { 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }
+       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) { toast.error('사진 업로드 실패 — 다시 시도해주세요'); return }
++      if (photo.hasPhoto && photoKey === null) { toast.error(photoUploadFailMsg(photo.vaultBacked)); return }
+ 
+       const pressureRes = await fetch('/api/div/pressure', {
+         method:'POST', headers: hdrs,
+@@ -1984,7 +1984,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
+       const hdrs  = { 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }
+       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) { toast.error('사진 업로드 실패 — 다시 시도해주세요'); return }
++      if (photo.hasPhoto && photoKey === null) { toast.error(photoUploadFailMsg(photo.vaultBacked)); return }
+ 
+       await fetch('/api/div/comp-inspection', {
+         method:'POST', headers: hdrs,
+@@ -2346,7 +2346,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       await onSave(selectedCP.id, result, memo, photoKey ?? undefined)
+       setJustSaved(true); setMemo(''); photo.reset()
+     } catch (e: any) {
+@@ -2599,7 +2599,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       await onSave(cpId, result, memo, photoKey ?? undefined)
+       setJustSaved(true); setMemo(''); photo.reset()
+     } catch (e: any) {
+@@ -2926,7 +2926,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       // 계단전실 한 동을 층별로 일괄 점검. 사진은 stair 단위 메타에 가까우므로
+       // 모든 층 record 에 동일 photoKey 가 박혀 상세 전 record 가 같은 사진을 표시하지 않도록,
+       // caution/bad 가 있으면 그 첫 층, 없으면 첫 층 1건에만 attach.
+@@ -2963,7 +2963,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       // 댐퍼 증상 피커 — 전실제연댐퍼 equip 모드 + result !== 'normal' 시만 적용.
+       // 연결송수관(yscp)은 별개 소화설비 (탭으로만 묶임) — 증상 피커 패턴 적용 X.
+       const finalMemo = (item === '전실제연댐퍼' && result !== 'normal')
+@@ -3792,7 +3792,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
+     setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       let finalMemo = memo
+       let extra: { guide_light_type?: string; floor_plan_marker_id?: string } | undefined
+       let cpIdToSave = selectedCP.id
+@@ -3818,7 +3818,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
+       }
+       // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
+       const bcPhotoKey = pairedBC ? await bcPhoto.upload() : null
+-      if (pairedBC && bcPhoto.hasPhoto && bcPhotoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (pairedBC && bcPhoto.hasPhoto && bcPhotoKey === null) throw new Error(photoUploadFailMsg(bcPhoto.vaultBacked))
+       await onSave(cpIdToSave, result, finalMemo, photoKey ?? undefined, extra)
+       if (pairedBC) {
+         await onSave(pairedBC.id, bcResult, bcMemo, bcPhotoKey ?? undefined)
+@@ -4549,7 +4549,7 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
+     setError(null)
+     try {
+       const photoKey = await photo.upload()
+-      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+       await onResolve(item.recordId, memo, photoKey ?? undefined)
+       photo.reset()
+       onClose()
+diff --git a/src/pages/RemediationDetailPage.tsx b/src/pages/RemediationDetailPage.tsx
+index 3796365..928b75d 100644
+--- a/src/pages/RemediationDetailPage.tsx
++++ b/src/pages/RemediationDetailPage.tsx
+@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
+ import { useParams, useNavigate } from 'react-router-dom'
+ import { useQuery, useQueryClient } from '@tanstack/react-query'
+ import { remediationApi, api } from '../utils/api'
+-import { usePhotoUpload } from '../hooks/usePhotoUpload'
++import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
+ import { PhotoButton } from '../components/PhotoButton'
+ import { useAuthStore } from '../stores/authStore'
+ import toast from 'react-hot-toast'
+@@ -40,7 +40,7 @@ export default function RemediationDetailPage() {
+   const [materialName, setMaterialName] = useState('')
+   const [materialCount, setMaterialCount] = useState<string>('')
+   const [submitting, setSubmitting] = useState(false)
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection-resolution')
+   const isAdmin = useAuthStore(s => s.staff?.role === 'admin')
+ 
+   const GL_TYPE_LABEL: Record<string, string> = {
+@@ -243,7 +243,7 @@ export default function RemediationDetailPage() {
+       let photoKey: string | null = null
+       if (photo.hasPhoto) {
+         photoKey = await photo.upload()
+-        if (photoKey === null) { toast.error('사진 업로드 실패'); return }
++        if (photoKey === null) { toast.error(photoUploadFailMsg(photo.vaultBacked)); return }
+       }
+       const materialsString = materialName.trim()
+         ? `${materialName.trim()} ${materialCount || 1}ea`
+@@ -257,6 +257,7 @@ export default function RemediationDetailPage() {
+       queryClient.invalidateQueries({ queryKey: ['remediation-detail'] })
+       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+       toast.success('조치 완료')
++      photo.reset()
+       navigate(-1)
+     } catch {
+       toast.error('조치 처리 실패')

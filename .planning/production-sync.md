@@ -9,8 +9,8 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 최신: 안정성 3종 (①사진 업로드 실패 가드+IndexedDB 보관함 ③월 경계 일정 클램프 ④KST 세션 날짜). 배포 + tsc/build/grep/라이브 번들 검증 완료. ④ 과거 세션 5건 소급 보정 완료(사용자 승인, date=DATE(created_at), check_records 3917 불변)
-진행 작업:       없음
+상태:           작업중 (IN_PROGRESS) — staging cbc7119-data 4e169fa 사진 업로드 실패 UX 1단계 이관 (upload 무던짐화 + vaultBacked 문구 분기 16곳 + 조치상세 보관함 편입). 5파일 patch 사전 --check CLEAN (quick 260612-3lt)
+진행 작업:       260612-3lt — 적용 → tsc/build/grep verify → 메인 Claude 직접 배포 → 노트 갱신
 기준 production: `1dc8450` (fix: 안정성 3종, 260611-jo8) — staging cbc7119-data f5bb1db sync. 직후 0b2bf53(plan docs)+5c092c9(worktree merge)+docs. 직전 166a72d(캐시 오염 가드)
 마지막 동기화:   2026-06-11
 마지막 배포 URL: https://ec20706c.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
