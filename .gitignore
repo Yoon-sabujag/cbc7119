@@ -24,3 +24,6 @@ cha-bio-safety/docs/redesign-context/**/스크린샷*.png
 cha-bio-safety_*.sql
 cha-bio-r2_*.zip
 cha-bio-r2_delta_*.zip
+
+# wrangler 작업 캐시 (루트에서 wrangler d1/deploy 실행 시 생성 — 커밋 대상 아님)
+.wrangler/
