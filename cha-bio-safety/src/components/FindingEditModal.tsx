@@ -17,12 +17,12 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
   const [description, setDescription] = useState(finding.description)
   const [location, setLocation] = useState(finding.location ?? '')
   const [existingKeys, setExistingKeys] = useState<string[]>(finding.photoKeys ?? [])
-  const photos = useMultiPhotoUpload()
+  const photos = useMultiPhotoUpload('legal-finding')
 
   const isResolved = finding.status === 'resolved'
   const [resolutionMemo, setResolutionMemo] = useState(finding.resolutionMemo ?? '')
   const [existingResolutionKeys, setExistingResolutionKeys] = useState<string[]>(finding.resolutionPhotoKeys ?? [])
-  const resolutionPhotos = useMultiPhotoUpload()
+  const resolutionPhotos = useMultiPhotoUpload('legal-finding-resolution')
 
   const totalCount = existingKeys.length + photos.slots.length
   const canAddMore = totalCount < 5
@@ -66,6 +66,10 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
   const handleSubmit = () => {
     if (!description.trim()) {
       toast.error('지적 내용을 입력하세요')
+      return
+    }
+    if (totalCount > 5 || (isResolved && resolutionTotalCount > 5)) {
+      toast.error('사진은 최대 5장입니다')
       return
     }
     mutation.mutate()
@@ -131,7 +135,7 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
           <div style={lblStyle}>지적 사진 (최대 5장 · 현재 {totalCount}장)</div>
           <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={photos.handleFiles} />
           <input ref={photos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
-          <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} />
+          <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} restoreCount={photos.vaultPendingCount} onRestore={() => photos.restoreFromVault(Math.max(0, 5 - totalCount))} />
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
             {existingKeys.map((key) => (
               <div key={key} style={{ position: 'relative', flexShrink: 0 }}>
@@ -181,7 +185,7 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
               <div style={lblStyle}>조치 사진 (최대 5장 · 현재 {resolutionTotalCount}장)</div>
               <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
               <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
-              <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} />
+              <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} restoreCount={resolutionPhotos.vaultPendingCount} onRestore={() => resolutionPhotos.restoreFromVault(Math.max(0, 5 - resolutionTotalCount))} />
               <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
                 {existingResolutionKeys.map((key) => (
                   <div key={key} style={{ position: 'relative', flexShrink: 0 }}>

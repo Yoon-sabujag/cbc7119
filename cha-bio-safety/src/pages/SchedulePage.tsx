@@ -663,12 +663,20 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
   const DOW = ['일','월','화','수','목','금','토']
 
   // 날짜별 카테고리 매핑 — 멀티데이 범위는 주말·공휴일 제외
+  // 월 경계에 걸친 일정은 이 달 범위로 클램프 (stats.ts 캘린더와 동일 패턴) —
+  // 끝 2자리(day)만 잘라 비교하면 5/30~6/2 일정이 sd=30 > ed=2 가 되어 양쪽 달 모두 누락된다.
   const dayCatMap = useMemo(() => {
+    const monthStart = `${curMonth}-01`
+    const monthEnd = `${curMonth}-${String(daysInMonth).padStart(2, '0')}`
     const m: Record<number, Set<string>> = {}
     for (const item of items) {
       if (item.category !== 'inspect' || !item.inspectionCategory) continue
-      const sd = parseInt(item.date.split('-')[2])
-      const ed = item.endDate ? parseInt(item.endDate.split('-')[2]) : sd
+      const sdYmd = item.date < monthStart ? monthStart : item.date
+      const edRaw = item.endDate ?? item.date
+      const edYmd = edRaw > monthEnd ? monthEnd : edRaw
+      if (sdYmd > edYmd) continue // 이 달과 겹치지 않는 범위 (방어)
+      const sd = Number(sdYmd.slice(8, 10))
+      const ed = Number(edYmd.slice(8, 10))
       const isRange = !!item.endDate && item.endDate !== item.date
       for (let d = sd; d <= ed; d++) {
         if (isRange) {

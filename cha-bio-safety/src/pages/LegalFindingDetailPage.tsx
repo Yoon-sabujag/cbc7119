@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { ChevronLeft, Download, Loader2, Camera } from 'lucide-react'
 import { legalApi } from '../utils/api'
 import { useIsDesktop } from '../hooks/useIsDesktop'
-import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
+import { useMultiPhotoUpload, PhotoUploadFailedError } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
 import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { useAuthStore } from '../stores/authStore'
@@ -47,7 +47,7 @@ export default function LegalFindingDetailPage() {
   const [memo, setMemo] = useState('')
   const [downloading, setDownloading] = useState(false)
   const staff = useAuthStore(s => s.staff)
-  const resolutionPhotos = useMultiPhotoUpload()
+  const resolutionPhotos = useMultiPhotoUpload('legal-finding-resolution')
 
   const { data: finding, isLoading, error } = useQuery({
     queryKey: ['legal-finding', id, fid],
@@ -80,7 +80,12 @@ export default function LegalFindingDetailPage() {
       resolutionPhotos.reset()
       navigate(-1)
     },
-    onError: () => {
+    onError: (err) => {
+      // 사진 업로드 부분 실패 — 저장은 차단됐고 성공분은 슬롯에 남아 재시도 시 재업로드되지 않음
+      if (err instanceof PhotoUploadFailedError) {
+        toast.error(err.message)
+        return
+      }
       toast.error('조치 처리 실패')
     },
   })
@@ -251,7 +256,7 @@ export default function LegalFindingDetailPage() {
                 <div className="text-caption font-bold text-text-tertiary leading-none" style={{ marginBottom: 6 }}>조치 사진 (최대 5장)</div>
                 <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
                 <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
-                <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} />
+                <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} restoreCount={resolutionPhotos.vaultPendingCount} onRestore={resolutionPhotos.restoreFromVault} />
                 <div className="flex overflow-x-auto" style={{ gap: 8, paddingBottom: 4 }}>
                   {resolutionPhotos.slots.map((slot, i) => (
                     <div key={i} style={{ position: 'relative', flexShrink: 0 }}>

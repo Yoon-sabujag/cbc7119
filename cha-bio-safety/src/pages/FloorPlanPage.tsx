@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { ChevronLeft, X, CheckCircle2, AlertTriangle, XCircle, FlaskConical, Building2, TrainFront } from 'lucide-react'
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
+import { todayKstYmd } from '../utils/datetime'
 import { useAuthStore } from '../stores/authStore'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
@@ -358,9 +359,9 @@ export default function FloorPlanPage() {
   const [inspectSymptomPick, setInspectSymptomPick] = useState<string>('점등 이상')
   const [inspectSymptomCustom, setInspectSymptomCustom] = useState('')
   const [inspectSubmitting, setInspectSubmitting] = useState(false)
-  const inspectPhoto = usePhotoUpload()
+  const inspectPhoto = usePhotoUpload('inspection')
   // ── paired BC (소화전 마커일 때 같은 location_no 의 비상콘센트를 함께 점검) ──
-  const inspectBcPhoto = usePhotoUpload()
+  const inspectBcPhoto = usePhotoUpload('inspection-bc')
   const [inspectBcResult, setInspectBcResult] = useState<'normal' | 'caution' | 'bad'>('normal')
   const [inspectBcMemo, setInspectBcMemo] = useState('')
   const [pairedBC, setPairedBC] = useState<any | null>(null)
@@ -371,7 +372,7 @@ export default function FloorPlanPage() {
   const [resolveMaterialName, setResolveMaterialName] = useState('')
   const [resolveMaterialCount, setResolveMaterialCount] = useState<string>('1')
   const [resolveSubmitting, setResolveSubmitting] = useState(false)
-  const resolvePhoto = usePhotoUpload()
+  const resolvePhoto = usePhotoUpload('inspection-resolution')
   const [editLabel, setEditLabel] = useState('')
   const [editMarkerType, setEditMarkerType] = useState<MarkerType>('wall_exit')
   const [editZone, setEditZone] = useState<'research' | 'office' | 'basement' | 'common'>('research')
@@ -1235,10 +1236,7 @@ export default function FloorPlanPage() {
           })
           if (matches.length === 0) return null
 
-          const todayYmd = (() => {
-            const now = new Date()
-            return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
-          })()
+          const todayYmd = todayKstYmd()
           const activeMatch = matches.find(s => {
             const start = s.date
             const end   = s.endDate ?? s.date
@@ -1930,12 +1928,18 @@ export default function FloorPlanPage() {
                 onClick={async () => {
                   setInspectSubmitting(true)
                   try {
-                    const today = new Date().toISOString().slice(0, 10)
+                    // 세션 날짜는 KST 기준 (브라우저 타임존 무관) — toISOString() 은 UTC 라
+                    // KST 00:00~08:59 저장이 전날 세션에 귀속되는 버그가 있었음
+                    const today = todayKstYmd()
                     let sessions = await inspectionApi.getSessions(today)
                     let sid: string
                     if (sessions.length > 0) sid = sessions[0].id
                     else { const s = await inspectionApi.createSession({ date: today }); sid = s.id }
                     const photoKey = await inspectPhoto.upload()
+                    if (inspectPhoto.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+                    // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
+                    const bcPhotoKey = pairedBC ? await inspectBcPhoto.upload() : null
+                    if (pairedBC && inspectBcPhoto.hasPhoto && bcPhotoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
 
                     let cpId = selected.check_point_id ?? ''
                     let finalMemo = inspectMemo
@@ -1968,7 +1972,6 @@ export default function FloorPlanPage() {
                     // SH 저장이 throw 하면 catch 가 잡아서 이 블록은 자동 스킵.
                     // atomic 보장은 out-of-scope (서버 batch endpoint 별도 phase).
                     if (pairedBC) {
-                      const bcPhotoKey = await inspectBcPhoto.upload()
                       await inspectionApi.submitRecord(sid, {
                         checkpointId: pairedBC.id,
                         result: inspectBcResult,
@@ -1976,6 +1979,7 @@ export default function FloorPlanPage() {
                         photoKey: bcPhotoKey ?? undefined,
                       })
                     }
+                    inspectPhoto.reset()
                     inspectBcPhoto.reset()
                     setInspectBcResult('normal')
                     setInspectBcMemo('')
@@ -2210,12 +2214,14 @@ export default function FloorPlanPage() {
                   setResolveSubmitting(true)
                   try {
                     const photoKey = await resolvePhoto.upload()
+                    if (resolvePhoto.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
                     await api.post(`/inspections/records/${selected.last_record_id}/resolve`, {
                       resolution_memo: finalMemo,
                       resolution_photo_key: photoKey,
                       materials_used: materialsString,
                     })
                     toast.success('조치 완료')
+                    resolvePhoto.reset()
                     setResolveModal(false)
                     setSelected(null)
                     qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })

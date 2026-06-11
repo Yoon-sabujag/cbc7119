@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { legalApi } from '../utils/api'
-import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
+import { useMultiPhotoUpload, PhotoUploadFailedError } from '../hooks/useMultiPhotoUpload'
 import { PhotoSourceModal } from './PhotoSourceModal'
 import type { LegalFinding } from '../types'
 
@@ -113,7 +113,7 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
   const [existingKeys, setExistingKeys] = useState<string[]>(
     mode === 'edit' && finding ? [...finding.photoKeys] : []
   )
-  const photos = useMultiPhotoUpload()
+  const photos = useMultiPhotoUpload('legal-finding')
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -152,7 +152,12 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
       photos.reset()
       onClose()
     },
-    onError: () => {
+    onError: (err) => {
+      // 사진 업로드 부분 실패 — 저장은 차단됐고 성공분은 슬롯에 남아 재시도 시 재업로드되지 않음
+      if (err instanceof PhotoUploadFailedError) {
+        toast.error(err.message)
+        return
+      }
       toast.error(mode === 'edit'
         ? '수정에 실패했습니다. 다시 시도해 주세요.'
         : '등록에 실패했습니다. 다시 시도해 주세요.')
@@ -317,7 +322,7 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
             <div style={lblStyle}>지적 사진 (최대 5장)</div>
             <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={photos.handleFiles} />
             <input ref={photos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
-            <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} />
+            <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} restoreCount={photos.vaultPendingCount} onRestore={() => photos.restoreFromVault(Math.max(0, 5 - existingKeys.length - photos.slots.length))} />
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
               {/* 기존 사진 (edit mode) */}
               {existingKeys.map((k, i) => (

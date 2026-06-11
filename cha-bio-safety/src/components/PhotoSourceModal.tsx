@@ -1,16 +1,19 @@
 import { useEffect } from 'react'
-import { Camera, Image as ImageIcon } from 'lucide-react'
+import { Camera, Image as ImageIcon, RotateCcw } from 'lucide-react'
 
 interface Props {
   open: boolean
   onClose: () => void
   onCamera: () => void
   onAlbum: () => void
+  /** 보관함(IndexedDB)에 남아 있는 복구 가능 사진 수 — 0 이면 복구 버튼 숨김 */
+  restoreCount?: number
+  onRestore?: () => void
 }
 
 const btnClass = 'w-full flex items-center gap-3 px-4 py-[14px] mb-2 rounded-xl bg-[var(--surface-sunken)] text-[var(--text-primary)] text-[15px] font-semibold border-0 cursor-pointer hover:bg-[var(--surface-active)] transition-colors'
 
-export function PhotoSourceModal({ open, onClose, onCamera, onAlbum }: Props) {
+export function PhotoSourceModal({ open, onClose, onCamera, onAlbum, restoreCount, onRestore }: Props) {
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -41,6 +44,12 @@ export function PhotoSourceModal({ open, onClose, onCamera, onAlbum }: Props) {
           <ImageIcon size={20} />
           <span>앨범에서 선택</span>
         </button>
+        {onRestore && (restoreCount ?? 0) > 0 && (
+          <button onClick={() => { onRestore(); onClose() }} className={btnClass}>
+            <RotateCcw size={20} />
+            <span>저장 못한 사진 복구 ({restoreCount}장)</span>
+          </button>
+        )}
         <button
           onClick={onClose}
           className="w-full flex items-center justify-center px-4 py-[14px] mt-1 rounded-xl bg-[var(--surface-raised)] text-[var(--text-tertiary)] text-[15px] font-semibold border-0 cursor-pointer hover:bg-[var(--surface-active)] transition-colors"
