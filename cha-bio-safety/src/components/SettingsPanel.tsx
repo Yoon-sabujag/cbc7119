@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ChevronRight, X, Send, Loader2 } from 'lucide-react'
+import { ChevronRight, X, Send, Loader2, Download } from 'lucide-react'
 import JSZip from 'jszip'
 
 // ── Collapsible section header ────────────────────────
@@ -350,6 +350,10 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   const [r2BackingUp, setR2BackingUp] = useState(false)
   const [r2BackupProgress, setR2BackupProgress] = useState('')
   const [r2Restoring, setR2Restoring] = useState(false)
+  const [autoBackupOpen, setAutoBackupOpen] = useState(false)
+  const [autoBackupLoading, setAutoBackupLoading] = useState(false)
+  const [autoBackupList, setAutoBackupList] = useState<{ date: string; size: number; key: string }[]>([])
+  const [autoBackupDownloading, setAutoBackupDownloading] = useState<string | null>(null)
   const [testSending, setTestSending] = useState(false)
 
   const displayName = staff?.name ?? ''
@@ -518,6 +522,61 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
       toast.error(e.message || '백업 실패')
     } finally {
       setDbBackingUp(false)
+    }
+  }
+
+  async function fetchAutoBackups() {
+    setAutoBackupLoading(true)
+    try {
+      const token = useAuthStore.getState().token
+      const base = import.meta.env.VITE_API_BASE_URL || '/api'
+      const res = await fetch(`${base}/database/r2-list`, { headers: { Authorization: `Bearer ${token}` } })
+      const json = await res.json() as any
+      if (!json.success) throw new Error(json.error || '목록 조회 실패')
+      const keys = json.data.keys as { key: string; size: number; uploaded: string }[]
+      const filtered = keys
+        .filter(k => k.key.startsWith('backups/db/') && k.key.endsWith('.sql'))
+        .map(k => ({ date: k.key.replace('backups/db/', '').replace('.sql', ''), size: k.size, key: k.key }))
+        .sort((a, b) => b.date.localeCompare(a.date))
+      setAutoBackupList(filtered)
+    } catch (e: any) {
+      toast.error(e.message || '백업 목록을 불러오지 못했습니다')
+      setAutoBackupList([])
+    } finally {
+      setAutoBackupLoading(false)
+    }
+  }
+
+  function toggleAutoBackup() {
+    setAutoBackupOpen(prev => {
+      const next = !prev
+      if (next) fetchAutoBackups()
+      return next
+    })
+  }
+
+  async function downloadAutoBackup(item: { date: string; size: number; key: string }) {
+    if (autoBackupDownloading) return
+    setAutoBackupDownloading(item.key)
+    try {
+      const token = useAuthStore.getState().token
+      const base = import.meta.env.VITE_API_BASE_URL || '/api'
+      const res = await fetch(`${base}/database/r2-download?key=${encodeURIComponent(item.key)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error((j as any).error || '다운로드 실패') }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `cha-bio-safety_${item.date}.sql`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('백업 파일이 다운로드되었습니다')
+    } catch (e: any) {
+      toast.error(e.message || '다운로드 실패')
+    } finally {
+      setAutoBackupDownloading(null)
     }
   }
 
@@ -887,6 +946,50 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
                   <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                   {dbRestoring ? '복원 중...' : '업로드'}
                 </button>
+              </div>
+              {/* ── 자동백업 인라인 펼침 Row ─────────────────── */}
+              <div className="mb-2.5">
+                <div
+                  onClick={toggleAutoBackup}
+                  className="flex items-center justify-between cursor-pointer mb-2.5"
+                >
+                  <div>
+                    <div className="text-body font-medium text-text-primary">자동백업</div>
+                    <div className="text-caption text-text-tertiary mt-px">매일 03:32 생성 · 14일 보관</div>
+                  </div>
+                  <ChevronRight
+                    size={14}
+                    className={`text-text-tertiary transition-transform duration-150 ${autoBackupOpen ? 'rotate-90' : ''}`}
+                  />
+                </div>
+                {autoBackupOpen && (
+                  <div>
+                    {autoBackupLoading && (
+                      <div className="text-caption text-text-tertiary px-3 py-2">불러오는 중...</div>
+                    )}
+                    {!autoBackupLoading && autoBackupList.length === 0 && (
+                      <div className="text-caption text-text-tertiary px-3 py-2">자동백업 없음</div>
+                    )}
+                    {!autoBackupLoading && autoBackupList.map(item => (
+                      <div
+                        key={item.key}
+                        onClick={() => downloadAutoBackup(item)}
+                        className={`flex items-center justify-between px-3 py-2 bg-surface-sunken rounded-[9px] mb-[5px] ${
+                          autoBackupDownloading === item.key ? 'opacity-50 cursor-default' : 'cursor-pointer'
+                        }`}
+                      >
+                        <div>
+                          <span className="text-body font-medium text-text-primary">{item.date}</span>
+                          <span className="text-caption text-text-tertiary ml-2">{(item.size / 1048576).toFixed(1)}MB</span>
+                        </div>
+                        {autoBackupDownloading === item.key
+                          ? <Loader2 size={16} className="text-text-tertiary animate-spin" />
+                          : <Download size={16} className="text-text-tertiary" />
+                        }
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="text-caption text-text-tertiary mb-1">파일 (점검 사진 등)</div>
               <div className="flex gap-2">
