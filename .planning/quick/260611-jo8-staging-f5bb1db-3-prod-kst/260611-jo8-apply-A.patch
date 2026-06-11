@@ -1,0 +1,1125 @@
+commit f5bb1db7dafe2c931fc6d4d6d6d0179332be2412
+Author: jongyupyoon's Mac mini <jongyupyoon@jongyupyoonsui-Macmini.local>
+Date:   Thu Jun 11 12:53:28 2026 +0900
+
+    fix(안정성3종): 사진 업로드 실패 가드+디바이스 보관함, 월 경계 클램프, KST 세션 날짜
+    
+    ① 점검/조치 사진 조용한 누락 방지
+    - useMultiPhotoUpload.uploadAll: 부분 실패 시 PhotoUploadFailedError throw (저장 차단),
+      성공 슬롯 key 기록해 재시도 시 재업로드 skip, 뮤텍스 체결 + 라이브 슬롯 identity 머지
+    - usePhotoUpload: 호출부 가드용 null 의미 유지 + 동일 blob 재시도 시 key 재사용
+    - 호출부 가드 15곳: InspectionPage 12 (toast/throw), FloorPlanPage 3 (BC 선업로드 재배치 포함)
+    - 디바이스 보존: photoVault(IndexedDB) — 첨부 즉시 원본 캐싱, 저장 성공 시 정리,
+      PhotoSourceModal '저장 못한 사진 복구 (N장)', claim 레지스트리로 교차 오염 방지
+    - RemediationDetailPage 불변 (기존 가드 보존)
+    
+    ③ 월 경계 일정 클램프 (stats.ts:468 패턴 이식)
+    - generateMonthlyPlan.ts: day 끝 2자리 추출 → 월 범위 YMD 클램프
+    - SchedulePage MonthlyPlanPreview: 동일 클램프 (주말/공휴일 로직 보존)
+    
+    ④ 도면 점검 세션 KST 귀속
+    - FloorPlanPage:1928 UTC toISOString → todayKstYmd()
+    - InspectionPage ensureSession / FloorPlanPage:1233 인라인 getter 수렴
+
+diff --git a/src/components/FindingEditModal.tsx b/src/components/FindingEditModal.tsx
+index f9a2869..de9fdca 100644
+--- a/src/components/FindingEditModal.tsx
++++ b/src/components/FindingEditModal.tsx
+@@ -17,12 +17,12 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
+   const [description, setDescription] = useState(finding.description)
+   const [location, setLocation] = useState(finding.location ?? '')
+   const [existingKeys, setExistingKeys] = useState<string[]>(finding.photoKeys ?? [])
+-  const photos = useMultiPhotoUpload()
++  const photos = useMultiPhotoUpload('legal-finding')
+ 
+   const isResolved = finding.status === 'resolved'
+   const [resolutionMemo, setResolutionMemo] = useState(finding.resolutionMemo ?? '')
+   const [existingResolutionKeys, setExistingResolutionKeys] = useState<string[]>(finding.resolutionPhotoKeys ?? [])
+-  const resolutionPhotos = useMultiPhotoUpload()
++  const resolutionPhotos = useMultiPhotoUpload('legal-finding-resolution')
+ 
+   const totalCount = existingKeys.length + photos.slots.length
+   const canAddMore = totalCount < 5
+@@ -68,6 +68,10 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
+       toast.error('지적 내용을 입력하세요')
+       return
+     }
++    if (totalCount > 5 || (isResolved && resolutionTotalCount > 5)) {
++      toast.error('사진은 최대 5장입니다')
++      return
++    }
+     mutation.mutate()
+   }
+ 
+@@ -131,7 +135,7 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
+           <div style={lblStyle}>지적 사진 (최대 5장 · 현재 {totalCount}장)</div>
+           <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={photos.handleFiles} />
+           <input ref={photos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
+-          <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} />
++          <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} restoreCount={photos.vaultPendingCount} onRestore={() => photos.restoreFromVault(Math.max(0, 5 - totalCount))} />
+           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+             {existingKeys.map((key) => (
+               <div key={key} style={{ position: 'relative', flexShrink: 0 }}>
+@@ -181,7 +185,7 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
+               <div style={lblStyle}>조치 사진 (최대 5장 · 현재 {resolutionTotalCount}장)</div>
+               <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+               <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+-              <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} />
++              <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} restoreCount={resolutionPhotos.vaultPendingCount} onRestore={() => resolutionPhotos.restoreFromVault(Math.max(0, 5 - resolutionTotalCount))} />
+               <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                 {existingResolutionKeys.map((key) => (
+                   <div key={key} style={{ position: 'relative', flexShrink: 0 }}>
+diff --git a/src/components/FindingFormSheet.tsx b/src/components/FindingFormSheet.tsx
+index be8fb28..7dea6f1 100644
+--- a/src/components/FindingFormSheet.tsx
++++ b/src/components/FindingFormSheet.tsx
+@@ -2,7 +2,7 @@ import { useState } from 'react'
+ import { useMutation, useQueryClient } from '@tanstack/react-query'
+ import toast from 'react-hot-toast'
+ import { legalApi } from '../utils/api'
+-import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
++import { useMultiPhotoUpload, PhotoUploadFailedError } from '../hooks/useMultiPhotoUpload'
+ import { PhotoSourceModal } from './PhotoSourceModal'
+ import type { LegalFinding } from '../types'
+ 
+@@ -113,7 +113,7 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
+   const [existingKeys, setExistingKeys] = useState<string[]>(
+     mode === 'edit' && finding ? [...finding.photoKeys] : []
+   )
+-  const photos = useMultiPhotoUpload()
++  const photos = useMultiPhotoUpload('legal-finding')
+ 
+   const mutation = useMutation({
+     mutationFn: async () => {
+@@ -152,7 +152,12 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
+       photos.reset()
+       onClose()
+     },
+-    onError: () => {
++    onError: (err) => {
++      // 사진 업로드 부분 실패 — 저장은 차단됐고 성공분은 슬롯에 남아 재시도 시 재업로드되지 않음
++      if (err instanceof PhotoUploadFailedError) {
++        toast.error(err.message)
++        return
++      }
+       toast.error(mode === 'edit'
+         ? '수정에 실패했습니다. 다시 시도해 주세요.'
+         : '등록에 실패했습니다. 다시 시도해 주세요.')
+@@ -317,7 +322,7 @@ export function FindingFormSheet(props: FindingFormSheetProps) {
+             <div style={lblStyle}>지적 사진 (최대 5장)</div>
+             <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={photos.handleFiles} />
+             <input ref={photos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
+-            <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} />
++            <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} restoreCount={photos.vaultPendingCount} onRestore={() => photos.restoreFromVault(Math.max(0, 5 - existingKeys.length - photos.slots.length))} />
+             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+               {/* 기존 사진 (edit mode) */}
+               {existingKeys.map((k, i) => (
+diff --git a/src/components/PhotoButton.tsx b/src/components/PhotoButton.tsx
+index c28d111..f48a518 100644
+--- a/src/components/PhotoButton.tsx
++++ b/src/components/PhotoButton.tsx
+@@ -8,7 +8,7 @@ export function PhotoButton({ hook, label = '사진 첨부', noCapture }: { hook
+     <div>
+       <input ref={hook.cameraRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={hook.handleFile} />
+       <input ref={hook.albumRef} type="file" accept="image/*" style={{ display:'none' }} onChange={hook.handleFile} />
+-      <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} />
++      <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} restoreCount={hook.vaultPendingCount} onRestore={hook.restoreFromVault} />
+       {hook.photoPreview ? (
+         <div style={{ position:'relative', display:'inline-block' }}>
+           <img src={hook.photoPreview} alt="첨부사진" style={{ width:72, height:72, objectFit:'cover', borderRadius:10, border:'1px solid var(--border-default)', display:'block' }} />
+diff --git a/src/components/PhotoGrid.tsx b/src/components/PhotoGrid.tsx
+index 4577200..59edc1d 100644
+--- a/src/components/PhotoGrid.tsx
++++ b/src/components/PhotoGrid.tsx
+@@ -132,7 +132,7 @@ export function PhotoGrid({ photoUrls, hook, label = '사진 첨부' }: PhotoGri
+         <>
+           <input ref={hook.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={hook.handleFiles} />
+           <input ref={hook.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={hook.handleFiles} />
+-          <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} />
++          <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} restoreCount={hook.vaultPendingCount} onRestore={hook.restoreFromVault} />
+         </>
+       )}
+ 
+diff --git a/src/components/PhotoSourceModal.tsx b/src/components/PhotoSourceModal.tsx
+index 6ebd6c3..409c77f 100644
+--- a/src/components/PhotoSourceModal.tsx
++++ b/src/components/PhotoSourceModal.tsx
+@@ -1,16 +1,19 @@
+ import { useEffect } from 'react'
+-import { Camera, Image as ImageIcon } from 'lucide-react'
++import { Camera, Image as ImageIcon, RotateCcw } from 'lucide-react'
+ 
+ interface Props {
+   open: boolean
+   onClose: () => void
+   onCamera: () => void
+   onAlbum: () => void
++  /** 보관함(IndexedDB)에 남아 있는 복구 가능 사진 수 — 0 이면 복구 버튼 숨김 */
++  restoreCount?: number
++  onRestore?: () => void
+ }
+ 
+ const btnClass = 'w-full flex items-center gap-3 px-4 py-[14px] mb-2 rounded-xl bg-[var(--surface-sunken)] text-[var(--text-primary)] text-[15px] font-semibold border-0 cursor-pointer hover:bg-[var(--surface-active)] transition-colors'
+ 
+-export function PhotoSourceModal({ open, onClose, onCamera, onAlbum }: Props) {
++export function PhotoSourceModal({ open, onClose, onCamera, onAlbum, restoreCount, onRestore }: Props) {
+   useEffect(() => {
+     if (!open) return
+     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+@@ -41,6 +44,12 @@ export function PhotoSourceModal({ open, onClose, onCamera, onAlbum }: Props) {
+           <ImageIcon size={20} />
+           <span>앨범에서 선택</span>
+         </button>
++        {onRestore && (restoreCount ?? 0) > 0 && (
++          <button onClick={() => { onRestore(); onClose() }} className={btnClass}>
++            <RotateCcw size={20} />
++            <span>저장 못한 사진 복구 ({restoreCount}장)</span>
++          </button>
++        )}
+         <button
+           onClick={onClose}
+           className="w-full flex items-center justify-center px-4 py-[14px] mt-1 rounded-xl bg-[var(--surface-raised)] text-[var(--text-tertiary)] text-[15px] font-semibold border-0 cursor-pointer hover:bg-[var(--surface-active)] transition-colors"
+diff --git a/src/hooks/useMultiPhotoUpload.ts b/src/hooks/useMultiPhotoUpload.ts
+index bd09c4f..acf9cf5 100644
+--- a/src/hooks/useMultiPhotoUpload.ts
++++ b/src/hooks/useMultiPhotoUpload.ts
+@@ -1,6 +1,7 @@
+ import { useState, useCallback, useRef, useEffect } from 'react'
+ import { compressImage } from '../utils/imageUtils'
+ import { useAuthStore } from '../stores/authStore'
++import { vaultPut, vaultDelete, vaultList, vaultClaim, vaultRelease, isVaultClaimed } from '../utils/photoVault'
+ 
+ // ── 다중 사진 업로드 훅 ────────────────────────────────────
+ const MAX_PHOTOS = 5
+@@ -11,6 +12,17 @@ export interface PhotoSlot {
+   uploading: boolean
+   key: string | null
+   error: string | null
++  vaultId: string | null
++}
++
++/** uploadAll 부분 실패 — 저장 API 호출 전에 mutation 을 중단시키기 위해 throw 된다. */
++export class PhotoUploadFailedError extends Error {
++  failedCount: number
++  constructor(failedCount: number) {
++    super(`사진 ${failedCount}장 업로드 실패 — 다시 시도해 주세요`)
++    this.name = 'PhotoUploadFailedError'
++    this.failedCount = failedCount
++  }
+ }
+ 
+ async function uploadBlob(blob: Blob, token: string | null): Promise<string> {
+@@ -24,25 +36,38 @@ async function uploadBlob(blob: Blob, token: string | null): Promise<string> {
+   return json.data.key
+ }
+ 
+-export function useMultiPhotoUpload() {
++export function useMultiPhotoUpload(vaultScope?: string) {
+   const [slots, setSlots] = useState<PhotoSlot[]>([])
+   const slotsRef = useRef<PhotoSlot[]>([])
+   const cameraRef = useRef<HTMLInputElement>(null)
+   const albumRef  = useRef<HTMLInputElement>(null)
+   const [showPicker, setShowPicker] = useState(false)
+-  // Mutex: serialize handleFiles calls to prevent race conditions
++  // Mutex: handleFiles/uploadAll/restoreFromVault 를 직렬화해 슬롯 상태 경합 방지
+   const processingRef = useRef<Promise<void>>(Promise.resolve())
++  // 보관함에 남아 있고 어느 픽커에도 첨부되어 있지 않은(= 복구 가능한) 사진 수
++  const [vaultPendingCount, setVaultPendingCount] = useState(0)
+ 
+-  // Cleanup on unmount
++  // Cleanup on unmount — preview 해제 + claim 반납 (entry 는 남아 복구 가능)
+   useEffect(() => {
+     return () => {
+-      slotsRef.current.forEach(s => URL.revokeObjectURL(s.preview))
++      slotsRef.current.forEach(s => {
++        URL.revokeObjectURL(s.preview)
++        vaultRelease(s.vaultId)
++      })
+     }
+   }, [])
+ 
++  const refreshVaultCount = useCallback(async () => {
++    if (!vaultScope) return
++    const entries = await vaultList(vaultScope)
++    setVaultPendingCount(entries.filter(e => !isVaultClaimed(e.id)).length)
++  }, [vaultScope])
++
++  useEffect(() => { refreshVaultCount() }, [refreshVaultCount])
++
+   const canAdd = slots.length < MAX_PHOTOS
+ 
+-  const openPicker  = useCallback(() => setShowPicker(true), [])
++  const openPicker  = useCallback(() => { setShowPicker(true); refreshVaultCount() }, [refreshVaultCount])
+   const closePicker = useCallback(() => setShowPicker(false), [])
+   const pickCamera  = useCallback(() => cameraRef.current?.click(), [])
+   const pickAlbum   = useCallback(() => albumRef.current?.click(), [])
+@@ -52,7 +77,7 @@ export function useMultiPhotoUpload() {
+     e.target.value = ''
+     if (!files.length) return
+ 
+-    // Chain onto previous handleFiles to serialize
++    // Chain onto previous work to serialize
+     processingRef.current = processingRef.current.then(async () => {
+       const remaining = MAX_PHOTOS - slotsRef.current.length
+       if (remaining <= 0) return
+@@ -62,7 +87,10 @@ export function useMultiPhotoUpload() {
+         try {
+           const blob = await compressImage(file)
+           const preview = URL.createObjectURL(blob)
+-          newSlots.push({ blob, preview, uploading: false, key: null, error: null })
++          // 첨부 즉시 원본을 보관함에 캐싱 — 업로드 실패/이탈에도 디바이스에 보존
++          const vaultId = vaultScope ? await vaultPut(vaultScope, blob) : null
++          vaultClaim(vaultId)
++          newSlots.push({ blob, preview, uploading: false, key: null, error: null, vaultId })
+         } catch {
+           // skip
+         }
+@@ -74,45 +102,111 @@ export function useMultiPhotoUpload() {
+         setSlots(merged)
+       }
+     })
+-  }, [])
++  }, [vaultScope])
+ 
+   const removeSlot = useCallback((idx: number) => {
+     const slot = slotsRef.current[idx]
+-    if (slot) URL.revokeObjectURL(slot.preview)
++    if (slot) {
++      URL.revokeObjectURL(slot.preview)
++      if (slot.vaultId) {
++        vaultRelease(slot.vaultId)
++        vaultDelete(slot.vaultId).then(refreshVaultCount)
++      }
++    }
+     const next = slotsRef.current.filter((_, i) => i !== idx)
+     slotsRef.current = next
+     setSlots(next)
+-  }, [])
+-
+-  const uploadAll = useCallback(async (): Promise<string[]> => {
+-    // Wait for any pending handleFiles to finish
+-    await processingRef.current
+-    const current = slotsRef.current
+-    if (current.length === 0) return []
+-    const token = useAuthStore.getState().token
+-    const keys: string[] = []
+-
+-    for (let i = 0; i < current.length; i++) {
+-      const slot = current[i]
+-      if (slot.key) {
+-        keys.push(slot.key)
+-        continue
+-      }
+-      try {
+-        const key = await uploadBlob(slot.blob, token)
+-        keys.push(key)
+-      } catch {
+-        // skip failed
++  }, [refreshVaultCount])
++
++  /**
++   * 전 슬롯 업로드. 성공한 슬롯은 key 를 기록해 재시도 시 재업로드하지 않는다.
++   * 하나라도 실패하면 PhotoUploadFailedError 를 throw — 호출부 mutation 이 저장 전에 중단된다.
++   * 보관함 entry 는 여기서 지우지 않는다 — 저장 API 성공 후 reset() 에서 정리 (저장 실패 시 보존).
++   */
++  const uploadAll = useCallback((): Promise<string[]> => {
++    const prev = processingRef.current
++    const run = (async () => {
++      // Wait for any pending handleFiles to finish
++      await prev
++      const current = slotsRef.current
++      if (current.length === 0) return []
++      const token = useAuthStore.getState().token
++      const updates = new Map<PhotoSlot, PhotoSlot>()
++
++      for (const slot of current) {
++        if (slot.key) continue // 이미 업로드된 슬롯 (부분 실패 후 재시도)
++        try {
++          const key = await uploadBlob(slot.blob, token)
++          updates.set(slot, { ...slot, key, error: null })
++        } catch {
++          updates.set(slot, { ...slot, error: '업로드 실패' })
++        }
+       }
+-    }
+-    return keys
++
++      // 성공분 key 를 슬롯 상태에 반영 (재시도 시 skip 의 전제).
++      // 업로드 중 removeSlot 으로 빠진 슬롯을 덮어쓰지 않도록 라이브 슬롯에 identity 기준 merge.
++      const merged = slotsRef.current.map(s => updates.get(s) ?? s)
++      slotsRef.current = merged
++      setSlots(merged)
++
++      const failedCount = merged.filter(s => !s.key).length
++      if (failedCount > 0) throw new PhotoUploadFailedError(failedCount)
++      return merged.map(s => s.key as string)
++    })()
++    // 업로드 동안 들어오는 handleFiles/restore 는 완료 후로 직렬화
++    processingRef.current = run.then(() => undefined, () => undefined)
++    return run
+   }, [])
+ 
++  /**
++   * 보관함의 복구 가능 사진을 다시 첨부. maxToAdd 로 폼 차원의 잔여 한도를 줄 수 있다
++   * (예: 서버 기존 사진 + 슬롯 합산 5장 제한). 복구된 장수 반환.
++   */
++  const restoreFromVault = useCallback((maxToAdd?: number): Promise<number> => {
++    const prev = processingRef.current
++    const run = (async () => {
++      if (!vaultScope) return 0
++      await prev
++      const entries = await vaultList(vaultScope)
++      const remaining = Math.min(
++        MAX_PHOTOS - slotsRef.current.length,
++        maxToAdd ?? Number.POSITIVE_INFINITY,
++      )
++      const toRestore = entries.filter(e => !isVaultClaimed(e.id)).slice(0, Math.max(0, remaining))
++      if (toRestore.length === 0) return 0
++      const restored: PhotoSlot[] = toRestore.map(e => {
++        vaultClaim(e.id)
++        return {
++          blob: e.blob,
++          preview: URL.createObjectURL(e.blob),
++          uploading: false,
++          key: null,
++          error: null,
++          vaultId: e.id,
++        }
++      })
++      const merged = [...slotsRef.current, ...restored].slice(0, MAX_PHOTOS)
++      slotsRef.current = merged
++      setSlots(merged)
++      refreshVaultCount()
++      return restored.length
++    })()
++    processingRef.current = run.then(() => undefined, () => undefined)
++    return run
++  }, [vaultScope, refreshVaultCount])
++
++  /** 저장 성공 후 호출 (호출부 onSuccess). 업로드 완료된 슬롯의 보관함 entry 를 이 시점에 정리. */
+   const reset = useCallback(() => {
+-    slotsRef.current.forEach(s => URL.revokeObjectURL(s.preview))
++    slotsRef.current.forEach(s => {
++      URL.revokeObjectURL(s.preview)
++      vaultRelease(s.vaultId)
++      // 업로드+저장까지 끝난 슬롯만 보관함에서 제거 — 미업로드분은 복구용 안전망으로 남김
++      if (s.key && s.vaultId) vaultDelete(s.vaultId)
++    })
+     slotsRef.current = []
+     setSlots([])
+-  }, [])
++    refreshVaultCount()
++  }, [refreshVaultCount])
+ 
+   const isUploading = slots.some(s => s.uploading)
+   const hasPhotos = slots.length > 0
+@@ -133,5 +227,7 @@ export function useMultiPhotoUpload() {
+     uploadAll,
+     reset,
+     isUploading,
++    vaultPendingCount,
++    restoreFromVault,
+   }
+ }
+diff --git a/src/hooks/usePhotoUpload.ts b/src/hooks/usePhotoUpload.ts
+index 44f3bda..9ed1fcd 100644
+--- a/src/hooks/usePhotoUpload.ts
++++ b/src/hooks/usePhotoUpload.ts
+@@ -1,16 +1,37 @@
+-import { useState, useCallback, useRef } from 'react'
++import { useState, useCallback, useRef, useEffect } from 'react'
+ import { compressImage } from '../utils/imageUtils'
++import { vaultPut, vaultDelete, vaultList, vaultClaim, vaultRelease, isVaultClaimed } from '../utils/photoVault'
+ 
+ // ── 사진 업로드 훅 ─────────────────────────────────────
+-export function usePhotoUpload() {
++// upload() 는 사진 미첨부 시에도 null 을 반환하므로, 호출부는
++// `hook.hasPhoto && key === null` 로 "업로드 실패"와 "미첨부(정상)" 를 구분해야 한다.
++export function usePhotoUpload(vaultScope?: string) {
+   const [photoBlob,     setPhotoBlob]     = useState<Blob | null>(null)
+   const [photoPreview,  setPhotoPreview]  = useState<string | null>(null)
+   const [uploading,     setUploading]     = useState(false)
+   const [showPicker,    setShowPicker]    = useState(false)
+   const cameraRef = useRef<HTMLInputElement>(null)
+   const albumRef  = useRef<HTMLInputElement>(null)
++  // 현재 첨부 사진의 보관함 entry id
++  const vaultIdRef = useRef<string | null>(null)
++  // 업로드 성공 결과 캐시 — 같은 blob 재시도 시 재업로드 방지 + 저장 성공 시 entry 정리용
++  const uploadedRef = useRef<{ blob: Blob; key: string; vaultId: string | null } | null>(null)
++  const [vaultPendingCount, setVaultPendingCount] = useState(0)
+ 
+-  const openPicker  = () => setShowPicker(true)
++  const refreshVaultCount = useCallback(async () => {
++    if (!vaultScope) return
++    const entries = await vaultList(vaultScope)
++    setVaultPendingCount(entries.filter(e => !isVaultClaimed(e.id)).length)
++  }, [vaultScope])
++
++  useEffect(() => { refreshVaultCount() }, [refreshVaultCount])
++
++  // Unmount: claim 만 반납 (entry 는 남아 복구 가능)
++  useEffect(() => {
++    return () => { vaultRelease(vaultIdRef.current) }
++  }, [])
++
++  const openPicker  = () => { setShowPicker(true); refreshVaultCount() }
+   const closePicker = () => setShowPicker(false)
+   const pickCamera  = () => cameraRef.current?.click()
+   const pickAlbum   = () => albumRef.current?.click()
+@@ -21,19 +42,41 @@ export function usePhotoUpload() {
+     // 입력 초기화 (같은 파일 재선택 허용)
+     e.target.value = ''
+     const blob = await compressImage(file)
++    // 기존 첨부를 교체 — 이전 보관함 entry 정리
++    if (vaultIdRef.current) {
++      vaultRelease(vaultIdRef.current)
++      vaultDelete(vaultIdRef.current)
++      vaultIdRef.current = null
++    }
++    uploadedRef.current = null
++    // 첨부 즉시 원본을 보관함에 캐싱 — 업로드 실패/이탈에도 디바이스에 보존
++    if (vaultScope) {
++      vaultIdRef.current = await vaultPut(vaultScope, blob)
++      vaultClaim(vaultIdRef.current)
++    }
+     setPhotoBlob(blob)
+     setPhotoPreview(URL.createObjectURL(blob))
+-  }, [])
++  }, [vaultScope])
+ 
+   const removePhoto = useCallback(() => {
+     if (photoPreview) URL.revokeObjectURL(photoPreview)
++    if (vaultIdRef.current) {
++      vaultRelease(vaultIdRef.current)
++      vaultDelete(vaultIdRef.current).then(refreshVaultCount)
++      vaultIdRef.current = null
++    }
++    uploadedRef.current = null
+     setPhotoBlob(null)
+     setPhotoPreview(null)
+-  }, [photoPreview])
++  }, [photoPreview, refreshVaultCount])
+ 
+-  // 업로드 → photo_key 반환
++  // 업로드 → photo_key 반환 (미첨부·실패 모두 null — 호출부에서 hasPhoto 로 구분).
++  // 보관함 entry 는 여기서 지우지 않는다 — 저장 API 성공 후 reset() 에서 정리 (저장 실패 시 보존).
+   const upload = useCallback(async (): Promise<string | null> => {
+     if (!photoBlob) return null
++    // 같은 blob 이 이미 업로드 성공했으면 key 재사용 (BC 동반 저장 등 부분 실패 후 재시도 시 중복 업로드 방지)
++    if (uploadedRef.current && uploadedRef.current.blob === photoBlob) return uploadedRef.current.key
++    const vid = vaultIdRef.current // 이 업로드가 올리는 blob 의 entry id 스냅샷
+     setUploading(true)
+     try {
+       const form = new FormData()
+@@ -44,17 +87,44 @@ export function usePhotoUpload() {
+         headers: { Authorization: `Bearer ${(await import('../stores/authStore')).useAuthStore.getState().token}` },
+       })
+       const json = await res.json() as { success: boolean; data?: { key: string } }
+-      return json.success ? json.data!.key : null
++      const key = json.success ? json.data!.key : null
++      if (key) uploadedRef.current = { blob: photoBlob, key, vaultId: vid }
++      return key
+     } finally {
+       setUploading(false)
+     }
+   }, [photoBlob])
+ 
++  /** 보관함의 최근 사진을 다시 첨부 (현재 첨부는 교체되지만 entry 는 보존). 복구 성공 여부 반환. */
++  const restoreFromVault = useCallback(async (): Promise<boolean> => {
++    if (!vaultScope) return false
++    const entries = await vaultList(vaultScope)
++    const latest = entries.filter(e => !isVaultClaimed(e.id)).pop()
++    if (!latest) return false
++    if (photoPreview) URL.revokeObjectURL(photoPreview)
++    // 교체되는 기존 첨부의 entry 는 지우지 않고 claim 만 반납 — 다시 복구 가능
++    vaultRelease(vaultIdRef.current)
++    vaultClaim(latest.id)
++    vaultIdRef.current = latest.id
++    uploadedRef.current = null
++    setPhotoBlob(latest.blob)
++    setPhotoPreview(URL.createObjectURL(latest.blob))
++    refreshVaultCount()
++    return true
++  }, [vaultScope, photoPreview, refreshVaultCount])
++
++  /** 저장 성공 후(또는 폼 전환 시) 호출. 업로드까지 끝난 사진의 보관함 entry 를 이 시점에 정리. */
+   const reset = useCallback(() => {
+     if (photoPreview) URL.revokeObjectURL(photoPreview)
++    // 업로드 성공분만 보관함에서 제거 — 미업로드분은 복구용 안전망으로 남김 (14일 후 자동 정리)
++    if (uploadedRef.current?.vaultId) vaultDelete(uploadedRef.current.vaultId)
++    vaultRelease(vaultIdRef.current)
++    vaultIdRef.current = null
++    uploadedRef.current = null
+     setPhotoBlob(null)
+     setPhotoPreview(null)
+-  }, [photoPreview])
++    refreshVaultCount()
++  }, [photoPreview, refreshVaultCount])
+ 
+-  return { cameraRef, albumRef, showPicker, openPicker, closePicker, pickCamera, pickAlbum, photoPreview, uploading, handleFile, removePhoto, upload, reset, hasPhoto: !!photoBlob }
++  return { cameraRef, albumRef, showPicker, openPicker, closePicker, pickCamera, pickAlbum, photoPreview, uploading, handleFile, removePhoto, upload, reset, hasPhoto: !!photoBlob, vaultPendingCount, restoreFromVault }
+ }
+diff --git a/src/pages/FloorPlanPage.tsx b/src/pages/FloorPlanPage.tsx
+index 4629cfa..8bb8fd2 100644
+--- a/src/pages/FloorPlanPage.tsx
++++ b/src/pages/FloorPlanPage.tsx
+@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
+ import { ChevronLeft, X, CheckCircle2, AlertTriangle, XCircle, FlaskConical, Building2, TrainFront } from 'lucide-react'
+ import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
+ import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
++import { todayKstYmd } from '../utils/datetime'
+ import { useAuthStore } from '../stores/authStore'
+ import { usePhotoUpload } from '../hooks/usePhotoUpload'
+ import { PhotoButton } from '../components/PhotoButton'
+@@ -358,9 +359,9 @@ export default function FloorPlanPage() {
+   const [inspectSymptomPick, setInspectSymptomPick] = useState<string>('점등 이상')
+   const [inspectSymptomCustom, setInspectSymptomCustom] = useState('')
+   const [inspectSubmitting, setInspectSubmitting] = useState(false)
+-  const inspectPhoto = usePhotoUpload()
++  const inspectPhoto = usePhotoUpload('inspection')
+   // ── paired BC (소화전 마커일 때 같은 location_no 의 비상콘센트를 함께 점검) ──
+-  const inspectBcPhoto = usePhotoUpload()
++  const inspectBcPhoto = usePhotoUpload('inspection-bc')
+   const [inspectBcResult, setInspectBcResult] = useState<'normal' | 'caution' | 'bad'>('normal')
+   const [inspectBcMemo, setInspectBcMemo] = useState('')
+   const [pairedBC, setPairedBC] = useState<any | null>(null)
+@@ -370,7 +371,7 @@ export default function FloorPlanPage() {
+   const [resolveMaterialName, setResolveMaterialName] = useState('')
+   const [resolveMaterialCount, setResolveMaterialCount] = useState<string>('1')
+   const [resolveSubmitting, setResolveSubmitting] = useState(false)
+-  const resolvePhoto = usePhotoUpload()
++  const resolvePhoto = usePhotoUpload('inspection-resolution')
+   const [editLabel, setEditLabel] = useState('')
+   const [editMarkerType, setEditMarkerType] = useState<MarkerType>('wall_exit')
+   const [editZone, setEditZone] = useState<'research' | 'office' | 'basement' | 'common'>('research')
+@@ -1230,10 +1231,7 @@ export default function FloorPlanPage() {
+           })
+           if (matches.length === 0) return null
+ 
+-          const todayYmd = (() => {
+-            const now = new Date()
+-            return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+-          })()
++          const todayYmd = todayKstYmd()
+           const activeMatch = matches.find(s => {
+             const start = s.date
+             const end   = s.endDate ?? s.date
+@@ -1925,12 +1923,18 @@ export default function FloorPlanPage() {
+                 onClick={async () => {
+                   setInspectSubmitting(true)
+                   try {
+-                    const today = new Date().toISOString().slice(0, 10)
++                    // 세션 날짜는 KST 기준 (브라우저 타임존 무관) — toISOString() 은 UTC 라
++                    // KST 00:00~08:59 저장이 전날 세션에 귀속되는 버그가 있었음
++                    const today = todayKstYmd()
+                     let sessions = await inspectionApi.getSessions(today)
+                     let sid: string
+                     if (sessions.length > 0) sid = sessions[0].id
+                     else { const s = await inspectionApi.createSession({ date: today }); sid = s.id }
+                     const photoKey = await inspectPhoto.upload()
++                    if (inspectPhoto.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
++                    // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
++                    const bcPhotoKey = pairedBC ? await inspectBcPhoto.upload() : null
++                    if (pairedBC && inspectBcPhoto.hasPhoto && bcPhotoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+ 
+                     let cpId = selected.check_point_id ?? ''
+                     let finalMemo = inspectMemo
+@@ -1963,7 +1967,6 @@ export default function FloorPlanPage() {
+                     // SH 저장이 throw 하면 catch 가 잡아서 이 블록은 자동 스킵.
+                     // atomic 보장은 out-of-scope (서버 batch endpoint 별도 phase).
+                     if (pairedBC) {
+-                      const bcPhotoKey = await inspectBcPhoto.upload()
+                       await inspectionApi.submitRecord(sid, {
+                         checkpointId: pairedBC.id,
+                         result: inspectBcResult,
+@@ -1971,6 +1974,7 @@ export default function FloorPlanPage() {
+                         photoKey: bcPhotoKey ?? undefined,
+                       })
+                     }
++                    inspectPhoto.reset()
+                     inspectBcPhoto.reset()
+                     setInspectBcResult('normal')
+                     setInspectBcMemo('')
+@@ -2205,12 +2209,14 @@ export default function FloorPlanPage() {
+                   setResolveSubmitting(true)
+                   try {
+                     const photoKey = await resolvePhoto.upload()
++                    if (resolvePhoto.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+                     await api.post(`/inspections/records/${selected.last_record_id}/resolve`, {
+                       resolution_memo: finalMemo,
+                       resolution_photo_key: photoKey,
+                       materials_used: materialsString,
+                     })
+                     toast.success('조치 완료')
++                    resolvePhoto.reset()
+                     setResolveModal(false)
+                     setSelected(null)
+                     qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })
+diff --git a/src/pages/InspectionPage.tsx b/src/pages/InspectionPage.tsx
+index 14ffa06..39067c1 100644
+--- a/src/pages/InspectionPage.tsx
++++ b/src/pages/InspectionPage.tsx
+@@ -9,7 +9,7 @@ import type { CheckPoint, CheckResult, Floor } from '../types'
+ import { usePhotoUpload } from '../hooks/usePhotoUpload'
+ import { PhotoButton } from '../components/PhotoButton'
+ import { useIsDesktop } from '../hooks/useIsDesktop'
+-import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime } from '../utils/datetime'
++import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime, todayKstYmd } from '../utils/datetime'
+ import { DIV_POINTS as DIV_PTS, type DivPoint as DivPt } from '../constants/divPoints'
+ import { InspectionRevisitPopup } from '../components/InspectionRevisitPopup'
+ import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
+@@ -272,7 +272,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
+   onClose:        () => void
+   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+ }) {
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection')
+   const navigate = useNavigate()
+   const [selectedSW,  setSelectedSW]  = useState<number | null>(null)
+   const [floorResults, setFloorResults] = useState<Record<string, CheckResult>>({})
+@@ -322,6 +322,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       // 사진은 계단실 단위 메타에 가깝다. 모든 층 record 에 동일 photoKey 를 박으면
+       // 상세 진입 시 전층이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 층,
+       // 없으면 첫 층 1건에만 attach.
+@@ -540,7 +541,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
+   onClose:        () => void
+   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+ }) {
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection')
+   const navigate = useNavigate()
+   const [dvrResults,  setDvrResults]  = useState<Record<string, CheckResult>>({})
+   const [memo,        setMemo]        = useState('')
+@@ -582,6 +583,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       // DVR 13대 일괄 점검이라 사진 1장이 의도. 모든 record 에 같은 photoKey 를 박으면
+       // 상세 진입 시 전 DVR 이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 cp,
+       // 없으면 첫 cp 1건에만 attach.
+@@ -743,7 +745,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
+   onClose:        () => void
+   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+ }) {
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection')
+   const navigate = useNavigate()
+   const [zone,        setZone]        = useState<BYZone | null>(null)
+   const [selFloor,    setSelFloor]    = useState<Floor | null>(null)
+@@ -814,6 +816,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       await onSave(selectedCP.id, result, memo, photoKey ?? undefined)
+       setJustSaved(true); setMemo(''); photo.reset()
+     } catch (e: any) {
+@@ -1298,7 +1301,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
+   const [drain,  setDrain]  = useState<'none'|'yes'>('none')
+   const [result, setResult] = useState<CheckResult>('normal')
+   const [memo,   setMemo]   = useState('')
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection')
+   const [showCompressor, setShowCompressor] = useState(false)
+ 
+   // ── 이전 기록 & 자동 판단 ──
+@@ -1402,6 +1405,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
+       const hdrs  = { 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }
+       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) { toast.error('사진 업로드 실패 — 다시 시도해주세요'); return }
+ 
+       const pressureRes = await fetch('/api/div/pressure', {
+         method:'POST', headers: hdrs,
+@@ -1890,7 +1894,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
+   scheduleItems: ScheduleItem[]
+ }) {
+   const staff = useAuthStore(s => s.staff)
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection')
+   const navigate = useNavigate()
+ 
+   const initPt = initialLocationNo ? DIV_PTS.find(p => p.id === initialLocationNo) : null
+@@ -1980,6 +1984,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
+       const hdrs  = { 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }
+       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) { toast.error('사진 업로드 실패 — 다시 시도해주세요'); return }
+ 
+       await fetch('/api/div/comp-inspection', {
+         method:'POST', headers: hdrs,
+@@ -2287,7 +2292,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
+   onClose:        () => void
+   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+ }) {
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection')
+   const navigate = useNavigate()
+   const [zone,        setZone]        = useState<PPZone | null>(null)
+   const [pickerIdx,   setPickerIdx]   = useState<number>(0)
+@@ -2341,6 +2346,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       await onSave(selectedCP.id, result, memo, photoKey ?? undefined)
+       setJustSaved(true); setMemo(''); photo.reset()
+     } catch (e: any) {
+@@ -2539,7 +2545,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
+   onClose:        () => void
+   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+ }) {
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection')
+   const navigate = useNavigate()
+   const [item,        setItem]        = useState<'주차장비'|'회전문'|null>(null)
+   const [subItem,     setSubItem]     = useState<'북문'|'남문'|null>(null)
+@@ -2593,6 +2599,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       await onSave(cpId, result, memo, photoKey ?? undefined)
+       setJustSaved(true); setMemo(''); photo.reset()
+     } catch (e: any) {
+@@ -2786,7 +2793,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
+   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+   initialCpId?:   string
+ }) {
+-  const photo = usePhotoUpload()
++  const photo = usePhotoUpload('inspection')
+   const navigate = useNavigate()
+   // QR에서 넘어온 경우 초기 항목 자동 선택
+   const initCp = initialCpId ? allCheckpoints.find(cp => cp.id === initialCpId) : null
+@@ -2919,6 +2926,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       // 계단전실 한 동을 층별로 일괄 점검. 사진은 stair 단위 메타에 가까우므로
+       // 모든 층 record 에 동일 photoKey 가 박혀 상세 전 record 가 같은 사진을 표시하지 않도록,
+       // caution/bad 가 있으면 그 첫 층, 없으면 첫 층 1건에만 attach.
+@@ -2955,6 +2963,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
+     setSubmitting(true); setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       // 댐퍼 증상 피커 — 전실제연댐퍼 equip 모드 + result !== 'normal' 시만 적용.
+       // 연결송수관(yscp)은 별개 소화설비 (탭으로만 묶임) — 증상 피커 패턴 적용 X.
+       const finalMemo = (item === '전실제연댐퍼' && result !== 'normal')
+@@ -3382,8 +3391,8 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
+   const navigate = useNavigate()
+   const isGuideLight = group.categories.includes('유도등')
+   const [glMarkers, setGlMarkers] = useState<FloorPlanMarker[]>([])
+-  const photo   = usePhotoUpload()
+-  const bcPhoto = usePhotoUpload()
++  const photo   = usePhotoUpload('inspection')
++  const bcPhoto = usePhotoUpload('inspection-bc')
+   // ▶ groupCPs memoize — 이 참조가 안정돼야 피커가 리셋 안 됨
+   const groupCPs       = useMemo(() => allCheckpoints.filter(cp => group.categories.includes(cp.category)), [allCheckpoints, group])
+   const isSohwaGroup   = group.categories.includes('소화전') && group.categories.includes('비상콘센트')
+@@ -3783,6 +3792,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
+     setSubmitError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       let finalMemo = memo
+       let extra: { guide_light_type?: string; floor_plan_marker_id?: string } | undefined
+       let cpIdToSave = selectedCP.id
+@@ -3806,9 +3816,11 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
+       } else if (selectedCP?.category === '방화셔터' && result !== 'normal') {
+         finalMemo = shutterSymptomPick === '직접 입력' ? memo.trim() : shutterSymptomPick
+       }
++      // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
++      const bcPhotoKey = pairedBC ? await bcPhoto.upload() : null
++      if (pairedBC && bcPhoto.hasPhoto && bcPhotoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       await onSave(cpIdToSave, result, finalMemo, photoKey ?? undefined, extra)
+       if (pairedBC) {
+-        const bcPhotoKey = await bcPhoto.upload()
+         await onSave(pairedBC.id, bcResult, bcMemo, bcPhotoKey ?? undefined)
+       }
+       photo.reset()
+@@ -4528,7 +4540,7 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
+   const [submitting,  setSubmitting]  = useState(false)
+   const [error,       setError]       = useState<string | null>(null)
+   const [visible,     setVisible]     = useState(false)
+-  const photo         = usePhotoUpload()
++  const photo         = usePhotoUpload('inspection-resolution')
+ 
+   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
+ 
+@@ -4537,7 +4549,9 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
+     setError(null)
+     try {
+       const photoKey = await photo.upload()
++      if (photo.hasPhoto && photoKey === null) throw new Error('사진 업로드 실패 — 다시 시도해 주세요')
+       await onResolve(item.recordId, memo, photoKey ?? undefined)
++      photo.reset()
+       onClose()
+     } catch (e: any) {
+       setError(e.message ?? '저장 오류')
+@@ -4840,8 +4854,8 @@ export default function InspectionPage() {
+ 
+   const ensureSession = async (): Promise<string> => {
+     if (sessionId) return sessionId
+-    const n = new Date()
+-    const today = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`
++    // 세션 날짜는 KST 기준 (브라우저 타임존 무관) — UTC/로컬 getter 는 새벽 기록을 전날 세션에 귀속시킴
++    const today = todayKstYmd()
+     try {
+       const sessions = await inspectionApi.getSessions(today)
+       const mine = sessions.find((s: any) => s.staff_id === staff?.id || s.staffId === staff?.id)
+diff --git a/src/pages/LegalFindingDetailPage.tsx b/src/pages/LegalFindingDetailPage.tsx
+index 9530e70..c11f41a 100644
+--- a/src/pages/LegalFindingDetailPage.tsx
++++ b/src/pages/LegalFindingDetailPage.tsx
+@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
+ import { ChevronLeft, Download, Loader2, Camera } from 'lucide-react'
+ import { legalApi } from '../utils/api'
+ import { useIsDesktop } from '../hooks/useIsDesktop'
+-import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
++import { useMultiPhotoUpload, PhotoUploadFailedError } from '../hooks/useMultiPhotoUpload'
+ import { PhotoGrid } from '../components/PhotoGrid'
+ import { PhotoSourceModal } from '../components/PhotoSourceModal'
+ import { useAuthStore } from '../stores/authStore'
+@@ -47,7 +47,7 @@ export default function LegalFindingDetailPage() {
+   const [memo, setMemo] = useState('')
+   const [downloading, setDownloading] = useState(false)
+   const staff = useAuthStore(s => s.staff)
+-  const resolutionPhotos = useMultiPhotoUpload()
++  const resolutionPhotos = useMultiPhotoUpload('legal-finding-resolution')
+ 
+   const { data: finding, isLoading, error } = useQuery({
+     queryKey: ['legal-finding', id, fid],
+@@ -80,7 +80,12 @@ export default function LegalFindingDetailPage() {
+       resolutionPhotos.reset()
+       navigate(-1)
+     },
+-    onError: () => {
++    onError: (err) => {
++      // 사진 업로드 부분 실패 — 저장은 차단됐고 성공분은 슬롯에 남아 재시도 시 재업로드되지 않음
++      if (err instanceof PhotoUploadFailedError) {
++        toast.error(err.message)
++        return
++      }
+       toast.error('조치 처리 실패')
+     },
+   })
+@@ -262,7 +267,7 @@ export default function LegalFindingDetailPage() {
+                 <div className="text-caption font-bold text-text-tertiary leading-none" style={{ marginBottom: 6 }}>조치 사진 (최대 5장)</div>
+                 <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+                 <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+-                <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} />
++                <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} restoreCount={resolutionPhotos.vaultPendingCount} onRestore={resolutionPhotos.restoreFromVault} />
+                 <div className="flex overflow-x-auto" style={{ gap: 8, paddingBottom: 4 }}>
+                   {resolutionPhotos.slots.map((slot, i) => (
+                     <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+diff --git a/src/pages/SchedulePage.tsx b/src/pages/SchedulePage.tsx
+index d047b21..232d6b9 100644
+--- a/src/pages/SchedulePage.tsx
++++ b/src/pages/SchedulePage.tsx
+@@ -663,12 +663,20 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
+   const DOW = ['일','월','화','수','목','금','토']
+ 
+   // 날짜별 카테고리 매핑 — 멀티데이 범위는 주말·공휴일 제외
++  // 월 경계에 걸친 일정은 이 달 범위로 클램프 (stats.ts 캘린더와 동일 패턴) —
++  // 끝 2자리(day)만 잘라 비교하면 5/30~6/2 일정이 sd=30 > ed=2 가 되어 양쪽 달 모두 누락된다.
+   const dayCatMap = useMemo(() => {
++    const monthStart = `${curMonth}-01`
++    const monthEnd = `${curMonth}-${String(daysInMonth).padStart(2, '0')}`
+     const m: Record<number, Set<string>> = {}
+     for (const item of items) {
+       if (item.category !== 'inspect' || !item.inspectionCategory) continue
+-      const sd = parseInt(item.date.split('-')[2])
+-      const ed = item.endDate ? parseInt(item.endDate.split('-')[2]) : sd
++      const sdYmd = item.date < monthStart ? monthStart : item.date
++      const edRaw = item.endDate ?? item.date
++      const edYmd = edRaw > monthEnd ? monthEnd : edRaw
++      if (sdYmd > edYmd) continue // 이 달과 겹치지 않는 범위 (방어)
++      const sd = Number(sdYmd.slice(8, 10))
++      const ed = Number(edYmd.slice(8, 10))
+       const isRange = !!item.endDate && item.endDate !== item.date
+       for (let d = sd; d <= ed; d++) {
+         if (isRange) {
+diff --git a/src/utils/generateMonthlyPlan.ts b/src/utils/generateMonthlyPlan.ts
+index 37009f1..5bfae9c 100644
+--- a/src/utils/generateMonthlyPlan.ts
++++ b/src/utils/generateMonthlyPlan.ts
+@@ -93,19 +93,26 @@ export async function generateMonthlyPlan(
+   const ym = `${year}-${String(month).padStart(2, '0')}`
+   const items = await scheduleApi.getByMonth(ym)
+ 
+-  // 날짜별 카테고리 매핑
++  const daysInMonth = new Date(year, month, 0).getDate()
++
++  // 날짜별 카테고리 매핑 — 월 경계에 걸친 일정은 대상 월 범위로 클램프 (stats.ts 캘린더와 동일 패턴).
++  // 끝 2자리(day)만 잘라 비교하면 5/30~6/2 일정이 startDay=30 > endDay=2 가 되어 양쪽 달 모두 누락된다.
++  const monthStart = `${ym}-01`
++  const monthEnd = `${ym}-${String(daysInMonth).padStart(2, '0')}`
+   const dayCatMap: Record<number, Set<string>> = {}
+   for (const item of items) {
+     if (!item.inspectionCategory) continue
+-    const startDay = parseInt(item.date.split('-')[2])
+-    const endDay = item.endDate ? parseInt(item.endDate.split('-')[2]) : startDay
++    const sd = item.date < monthStart ? monthStart : item.date
++    const edRaw = item.endDate ?? item.date
++    const ed = edRaw > monthEnd ? monthEnd : edRaw
++    if (sd > ed) continue // 이 달과 겹치지 않는 범위 (방어)
++    const startDay = Number(sd.slice(8, 10))
++    const endDay = Number(ed.slice(8, 10))
+     for (let d = startDay; d <= endDay; d++) {
+       if (!dayCatMap[d]) dayCatMap[d] = new Set()
+       dayCatMap[d].add(item.inspectionCategory)
+     }
+   }
+-
+-  const daysInMonth = new Date(year, month, 0).getDate()
+   const firstDow = new Date(year, month - 1, 1).getDay()
+ 
+   // 3) 시트 XML 패치
+diff --git a/src/utils/photoVault.ts b/src/utils/photoVault.ts
+new file mode 100644
+index 0000000..66f3eb5
+--- /dev/null
++++ b/src/utils/photoVault.ts
+@@ -0,0 +1,135 @@
++// ── 사진 보관함 (IndexedDB) ────────────────────────────────
++// 촬영/첨부한 원본 Blob 을 업로드와 무관하게 디바이스에 보관해,
++// 업로드 실패·화면 이탈·앱 재실행 후에도 같은 사진으로 재시도할 수 있게 한다.
++// 업로드 성공 시 해당 entry 를 삭제하므로 평상시 보관함은 비어 있다.
++//
++// 모든 함수는 절대 throw 하지 않는다 — 보관함 불능(사파리 프라이빗 모드,
++// 저장소 거부 등)이 업로드/저장 흐름을 깨면 안 되기 때문.
++
++const DB_NAME = 'photo-vault'
++const STORE = 'photos'
++const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000 // 14일 지난 entry 는 자동 정리
++
++export interface VaultEntry {
++  id: string
++  scope: string
++  blob: Blob
++  createdAt: number
++}
++
++function genId(): string {
++  try {
++    return crypto.randomUUID()
++  } catch {
++    return `v-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
++  }
++}
++
++// ── 탭 내 claim 레지스트리 ──────────────────────────────
++// 현재 어떤 훅 인스턴스에 "첨부 중" 인 entry id 집합 (per-tab 메모리).
++// 같은 scope 를 쓰는 다른 픽커가 첨부 중인 사진을 복구 대상으로 제시/탈취해
++// 한 장이 두 record 에 중복 저장되는 것을 막는다. 리로드 후엔 아무것도 첨부
++// 상태가 아니므로 전부 다시 복구 가능해지는 것이 의도.
++const claimed = new Set<string>()
++export function vaultClaim(id: string | null | undefined) { if (id) claimed.add(id) }
++export function vaultRelease(id: string | null | undefined) { if (id) claimed.delete(id) }
++export function isVaultClaimed(id: string): boolean { return claimed.has(id) }
++
++let dbPromise: Promise<IDBDatabase | null> | null = null
++
++function openDb(): Promise<IDBDatabase | null> {
++  if (dbPromise) return dbPromise
++  dbPromise = new Promise(resolve => {
++    try {
++      if (typeof indexedDB === 'undefined') { resolve(null); return }
++      const req = indexedDB.open(DB_NAME, 1)
++      req.onupgradeneeded = () => {
++        const db = req.result
++        if (!db.objectStoreNames.contains(STORE)) {
++          const store = db.createObjectStore(STORE, { keyPath: 'id' })
++          store.createIndex('scope', 'scope')
++        }
++      }
++      req.onsuccess = () => resolve(req.result)
++      req.onerror = () => resolve(null)
++      req.onblocked = () => resolve(null)
++    } catch {
++      resolve(null)
++    }
++  })
++  // 첫 접근 시 오래된 entry 정리 (fire-and-forget)
++  dbPromise.then(db => { if (db) pruneOld(db) })
++  return dbPromise
++}
++
++function pruneOld(db: IDBDatabase) {
++  try {
++    const tx = db.transaction(STORE, 'readwrite')
++    const store = tx.objectStore(STORE)
++    const req = store.openCursor()
++    const cutoff = Date.now() - MAX_AGE_MS
++    req.onsuccess = () => {
++      const cursor = req.result
++      if (!cursor) return
++      const entry = cursor.value as VaultEntry
++      if (entry.createdAt < cutoff) cursor.delete()
++      cursor.continue()
++    }
++  } catch { /* 정리 실패는 무시 */ }
++}
++
++/** Blob 을 보관함에 저장하고 id 반환. 실패 시 null (흐름은 계속 진행). */
++export async function vaultPut(scope: string, blob: Blob): Promise<string | null> {
++  const db = await openDb()
++  if (!db) return null
++  return new Promise(resolve => {
++    try {
++      const id = genId()
++      const tx = db.transaction(STORE, 'readwrite')
++      tx.objectStore(STORE).put({ id, scope, blob, createdAt: Date.now() } satisfies VaultEntry)
++      tx.oncomplete = () => resolve(id)
++      tx.onerror = () => resolve(null)
++      tx.onabort = () => resolve(null)
++    } catch {
++      resolve(null)
++    }
++  })
++}
++
++/** 보관함에서 entry 삭제 (업로드 성공·사용자 제거 시). */
++export async function vaultDelete(id: string | null | undefined): Promise<void> {
++  if (!id) return
++  const db = await openDb()
++  if (!db) return
++  return new Promise(resolve => {
++    try {
++      const tx = db.transaction(STORE, 'readwrite')
++      tx.objectStore(STORE).delete(id)
++      tx.oncomplete = () => resolve()
++      tx.onerror = () => resolve()
++      tx.onabort = () => resolve()
++    } catch {
++      resolve()
++    }
++  })
++}
++
++/** scope 의 보관 entry 목록 (오래된 순). 실패 시 빈 배열. */
++export async function vaultList(scope: string): Promise<VaultEntry[]> {
++  const db = await openDb()
++  if (!db) return []
++  return new Promise(resolve => {
++    try {
++      const tx = db.transaction(STORE, 'readonly')
++      const req = tx.objectStore(STORE).index('scope').getAll(scope)
++      req.onsuccess = () => {
++        const entries = (req.result as VaultEntry[]).filter(e => e.blob instanceof Blob)
++        entries.sort((a, b) => a.createdAt - b.createdAt)
++        resolve(entries)
++      }
++      req.onerror = () => resolve([])
++    } catch {
++      resolve([])
++    }
++  })
++}
