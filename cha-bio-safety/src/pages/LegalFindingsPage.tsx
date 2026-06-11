@@ -100,7 +100,7 @@ export default function LegalFindingsPage() {
       queryClient.invalidateQueries({ queryKey: ['legal-round', id] })
       toast.success('보고서가 업로드되었습니다.')
     } catch {
-      toast.error('사진 업로드 실패')
+      toast.error('보고서 업로드 실패')
     } finally {
       setUploadingReport(false)
     }
