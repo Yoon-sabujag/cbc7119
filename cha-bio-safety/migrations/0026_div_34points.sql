@@ -30,8 +30,8 @@ INSERT INTO check_points (id, qr_code, floor, zone, location, category, descript
 -- 지하 13개
 INSERT INTO check_points (id, qr_code, floor, zone, location, category, description, location_no) VALUES
   ('CP-DIV--1-1', 'QR-DIV--1-1', 'B1', 'common', 'B1층 DIV #1', 'DIV', '지) B1층 공조실',     '-1-1'),
-  ('CP-DIV--1-2', 'QR-DIV--1-2', 'B1', 'common', 'B1층 DIV #2', 'DIV', '지) B1층 화장실',     '-1-2'),
-  ('CP-DIV--1-3', 'QR-DIV--1-3', 'B1', 'common', 'B1층 DIV #3', 'DIV', '지) B1층 식당 뒤',   '-1-3'),
+  ('CP-DIV--1-2', 'QR-DIV--1-2', 'B1', 'common', 'B1층 DIV #2', 'DIV', '지) B1층 식당 뒤',   '-1-2'),
+  ('CP-DIV--1-3', 'QR-DIV--1-3', 'B1', 'common', 'B1층 DIV #3', 'DIV', '지) B1층 화장실',     '-1-3'),
   ('CP-DIV--2-1', 'QR-DIV--2-1', 'B2', 'common', 'B2층 DIV #1', 'DIV', '지) B2층 공조실',     '-2-1'),
   ('CP-DIV--2-2', 'QR-DIV--2-2', 'B2', 'common', 'B2층 DIV #2', 'DIV', '지) B2층 CPX실',      '-2-2'),
   ('CP-DIV--2-3', 'QR-DIV--2-3', 'B2', 'common', 'B2층 DIV #3', 'DIV', '지) B2층 PS실',       '-2-3'),
@@ -40,5 +40,5 @@ INSERT INTO check_points (id, qr_code, floor, zone, location, category, descript
   ('CP-DIV--4-1', 'QR-DIV--4-1', 'B4', 'common', 'B4층 DIV #1', 'DIV', '지) B4층 팬룸',       '-4-1'),
   ('CP-DIV--4-2', 'QR-DIV--4-2', 'B4', 'common', 'B4층 DIV #2', 'DIV', '지) B4층 기계실',     '-4-2'),
   ('CP-DIV--4-3', 'QR-DIV--4-3', 'B4', 'common', 'B4층 DIV #3', 'DIV', '지) B4층 창고',       '-4-3'),
-  ('CP-DIV--5-2', 'QR-DIV--5-2', 'B5', 'common', 'B5층 DIV #2', 'DIV', '지) B5층 1번팬룸',    '-5-2'),
-  ('CP-DIV--5-3', 'QR-DIV--5-3', 'B5', 'common', 'B5층 DIV #3', 'DIV', '지) B5층 2번팬룸',    '-5-3');
+  ('CP-DIV--5-2', 'QR-DIV--5-2', 'B5', 'common', 'B5층 DIV #2', 'DIV', '지) B5층 2번팬룸',    '-5-2'),
+  ('CP-DIV--5-3', 'QR-DIV--5-3', 'B5', 'common', 'B5층 DIV #3', 'DIV', '지) B5층 1번팬룸',    '-5-3');
