@@ -920,7 +920,7 @@ export default function ElevatorPage() {
                         {/* 안전관리자 프로필 */}
                         <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, padding:'14px 16px' }}>
                           <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-                            <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>👤</div>
+                            <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center' }}><User size={24} className="text-text-secondary" /></div>
                             <div>
                               <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>{m.realName ?? m.maskedName}</div>
                               <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>승강기 안전관리자</div>
@@ -940,7 +940,7 @@ export default function ElevatorPage() {
 
                         {/* 교육 현황 */}
                         <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, padding:'14px 16px' }}>
-                          <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:10 }}>📚 교육 현황</div>
+                          <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:10, display:'flex', alignItems:'center', gap:6 }}><BookOpen size={14} className="text-text-secondary" /><span>교육 현황</span></div>
                           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                             <div style={{ background:'var(--bg3)', borderRadius:8, padding:'10px 12px' }}>
                               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
@@ -966,7 +966,7 @@ export default function ElevatorPage() {
 
                         {/* 등록 현황 */}
                         <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, padding:'14px 16px' }}>
-                          <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>🏢 공단 등록 현황</div>
+                          <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}><Building2 size={14} className="text-text-secondary" /><span>공단 등록 현황</span></div>
                           <div style={{ fontSize:12, color:'var(--t2)', marginBottom:10 }}>
                             {reg.total}대 중 <span style={{ fontWeight:700, color:'var(--safe)' }}>{reg.registered}대</span> 등록
                             {reg.total - reg.registered > 0 && <span style={{ color:'var(--warn)', marginLeft:6 }}>· 미등록 {reg.total - reg.registered}대</span>}
@@ -979,7 +979,7 @@ export default function ElevatorPage() {
                               if (!ev) return <div />
                               const isReg = reg.registeredIds.includes(evId)
                               const icon = ev.type === 'escalator' ? 'ES' : 'EV'
-                              return <span style={{ fontSize:10, fontWeight:600, padding:'3px 8px', borderRadius:6, background: isReg ? 'rgba(34,197,94,.12)' : 'rgba(245,158,11,.12)', color: isReg ? 'var(--safe)' : 'var(--warn)', textAlign:'center', display:'block' }}>{icon}{ev.number} {isReg ? '✓' : '✗'}</span>
+                              return <span style={{ fontSize:10, fontWeight:600, padding:'3px 8px', borderRadius:6, background: isReg ? 'rgba(34,197,94,.12)' : 'rgba(245,158,11,.12)', color: isReg ? 'var(--safe)' : 'var(--warn)', display:'flex', alignItems:'center', justifyContent:'center', gap:2 }}>{icon}{ev.number}{isReg ? <CheckCircle2 size={10} strokeWidth={2.5} /> : <X size={10} strokeWidth={2.5} />}</span>
                             }
                             const find = (type: string, num: number) => elevators.find(e => (type === 'ev' ? e.type !== 'escalator' : e.type === 'escalator') && e.number === num)?.id
                             // 고정 배치 7열: EV 4열 + sep + ES 2열
