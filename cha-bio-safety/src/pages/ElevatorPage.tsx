@@ -990,9 +990,9 @@ export default function ElevatorPage() {
                             ]
                             return (
                               <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr) 8px repeat(2, 1fr)', gap:4, alignItems:'center' }}>
-                                <div style={{ gridColumn:'1/5', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>🛗 엘리베이터</div>
+                                <div style={{ gridColumn:'1/5', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em', display:'flex', alignItems:'center', gap:3 }}><ElevatorIcon size={11} className="text-text-tertiary shrink-0" /><span>엘리베이터</span></div>
                                 <div />
-                                <div style={{ gridColumn:'6/8', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>↕️ 에스컬레이터</div>
+                                <div style={{ gridColumn:'6/8', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em', display:'flex', alignItems:'center', gap:3 }}><MoveDiagonal size={11} className="text-text-tertiary shrink-0" /><span>에스컬레이터</span></div>
                                 {grid.map((row, ri) => row.map((id, ci) => {
                                   if (id === null) return <div key={`${ri}-sep`} />
                                   return <div key={`${ri}-${ci}`}>{chip(id)}</div>
