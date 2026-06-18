@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { dailyReportApi } from '../utils/api'
 import { buildDailyReportData } from '../utils/dailyReportCalc'
+import { useDivNames } from '../hooks/useDivNames'
 import { generateDailyExcel } from '../utils/generateExcel'
 import { useStaffList } from '../hooks/useStaffList'
 import { useIsDesktop } from '../hooks/useIsDesktop'
@@ -34,6 +35,7 @@ export default function DailyReportPage() {
   const isDesktop = useIsDesktop()
   const { data: staffList } = useStaffList()
   const staffData = staffList?.map(s => ({ id: s.id, name: s.name, title: s.title ?? '' }))
+  const { divNames } = useDivNames()  // DIV/COMP 실제 개소명(라이브) — 컴프레셔 오일보충 요약에 반영
 
   const [date, setDate] = useState<string>(todayKST())
   const [todayText, setTodayText] = useState<string>('')
@@ -70,9 +72,9 @@ export default function DailyReportPage() {
   // ── 자동 생성 데이터 ──────────────────────────────────
   const autoData = useCallback(() => {
     if (!queryData.data) return null
-    try { return buildDailyReportData(date, queryData.data, '', staffData) }
+    try { return buildDailyReportData(date, queryData.data, '', staffData, divNames) }
     catch { return null }
-  }, [date, queryData.data, staffData])
+  }, [date, queryData.data, staffData, divNames])
 
   const auto = autoData()
 
@@ -204,7 +206,7 @@ export default function DailyReportPage() {
           // D1에 저장된 내용 사용
           try {
             const apiData = await dailyReportApi.getData(dayStr)
-            const autoGen = buildDailyReportData(dayStr, apiData, '', staffData)
+            const autoGen = buildDailyReportData(dayStr, apiData, '', staffData, divNames)
             dayDataMap[day] = {
               ...autoGen,
               todayText: saved.today_text ?? autoGen.todayText,
@@ -212,20 +214,20 @@ export default function DailyReportPage() {
               notes: saved.content ?? '',
             }
           } catch {
-            dayDataMap[day] = buildDailyReportData(dayStr, { schedules: [], leaves: [], elevatorFaults: [] }, '', staffData)
+            dayDataMap[day] = buildDailyReportData(dayStr, { schedules: [], leaves: [], elevatorFaults: [] }, '', staffData, divNames)
           }
         } else {
           // D1 비어있음 → 자동 생성 + lazy save
           try {
             const apiData = await dailyReportApi.getData(dayStr)
-            const autoGen = buildDailyReportData(dayStr, apiData, '', staffData)
+            const autoGen = buildDailyReportData(dayStr, apiData, '', staffData, divNames)
             dayDataMap[day] = autoGen
             // lazy save
             await dailyReportApi.saveNotes({
               date: dayStr, today_text: autoGen.todayText, tomorrow_text: autoGen.tomorrowText, content: autoGen.notes ?? '', is_auto: 1,
             }).catch(() => {})
           } catch {
-            dayDataMap[day] = buildDailyReportData(dayStr, { schedules: [], leaves: [], elevatorFaults: [] }, '', staffData)
+            dayDataMap[day] = buildDailyReportData(dayStr, { schedules: [], leaves: [], elevatorFaults: [] }, '', staffData, divNames)
           }
         }
       }

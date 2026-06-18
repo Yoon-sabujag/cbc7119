@@ -289,6 +289,13 @@ function getFloorPlanUrl(planType: PlanType, floor: string) {
   return `/floorplans/${planType}/${floor}.png?v=18`
 }
 
+// 마커의 "실제 개소명" source. DIV/COMP 는 cp.description('지) 식당 뒤'), 나머지는 cp.location.
+// (DIV 의 cp.location 은 'B1층 DIV #N' 구조 라벨이라 이름으로 쓰지 않는다.)
+function markerRealName(m: FloorPlanMarker): string | null {
+  if (m.marker_type === 'div_marker') return m.cp_description || m.cp_location || null
+  return m.cp_location || null
+}
+
 // ══════════════════════════════════════════════════════
 export default function FloorPlanPage() {
   const navigate = useNavigate()
@@ -523,10 +530,15 @@ export default function FloorPlanPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] }); toast.success('마커 추가됨') },
     onError: (e: any) => toast.error(e.message ?? '마커 추가 실패 — 다시 시도해주세요'),
   })
+  // 마커 수정 성공 시: 도면 마커 목록 + (DIV/COMP 개소명 편집 대비) check_points 캐시 무효화.
+  // check_points 무효화로 압력관리·컴프레셔 점검·DIV 점검·일일보고서가 새 이름을 즉시 재조회한다.
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Parameters<typeof floorPlanMarkerApi.update>[1] }) => floorPlanMarkerApi.update(id, body),
     retry: 2,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })
+      qc.invalidateQueries({ queryKey: ['check-points'] })
+    },
     onError: (e: any) => toast.error(e.message ?? '마커 수정 실패'),
   })
   const deleteMutation = useMutation({
@@ -1152,7 +1164,7 @@ export default function FloorPlanPage() {
         const statusKey = getMarkerStatus(selected)
         const statusColor = STATUS_COLOR[statusKey] ?? STATUS_COLOR.normal
         // Phase 24: cp_location (실제 위치명) 우선 표시. 없으면 사용자 라벨 → marker_type 라벨 fallback.
-        const markerLabel = selected.cp_location || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'
+        const markerLabel = markerRealName(selected) || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'
         const statusLabel = { normal: '정상', caution: '주의', fault: '불량', bad: '불량', resolved: '조치완료' }[statusKey] ?? '미점검'
         // 메모리 룰 feedback_inspection_unresolved_color: bad/fault → fire (주황) 톤, danger 아님
         const iconBoxCls =
@@ -1169,7 +1181,10 @@ export default function FloorPlanPage() {
                                      'text-text-tertiary'
 
         const openEditMarkerModal = () => {
-          setEditLabel(selected.label ?? '')
+          // 개소명 표시는 디스플레이와 동일하게 markerRealName 우선(DIV=description, 그 외=location).
+          // 소화전·완강기·소화기·DIV 등 marker.label=null 이고 실제 이름이 cp 에만 있는
+          // 마커도 모달에 빈칸이 아니라 현재 개소명이 채워진 채로 열린다.
+          setEditLabel(markerRealName(selected) || selected.label || '')
           setEditMarkerType((selected.marker_type as MarkerType) ?? 'wall_exit')
           setEditZone(((selected as any).zone as 'research' | 'office' | 'basement' | 'common') ?? 'research')
           if (planType !== 'extinguisher') {
@@ -1269,7 +1284,7 @@ export default function FloorPlanPage() {
               <button
                 onClick={() => {
                   // 접근불가 마커는 점검완료 팝업 건너뛰고 바로 AccessBlockedPopup 만 표시
-                  if (selected?.description?.includes('접근불가')) { openInspectModal(); return }
+                  if (selected?.marker_type !== 'div_marker' && selected?.description?.includes('접근불가')) { openInspectModal(); return }
                   const r = evalRevisit(); if (r) setRevisitPopup(r); else openInspectModal()
                 }}
                 className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer"
@@ -1554,7 +1569,10 @@ export default function FloorPlanPage() {
                   updateMutation.mutate({
                     id: selected.id,
                     body: {
-                      label: editLabel || undefined,
+                      // trim: 서버 동기 가드(newLabel=body.label.trim())와 emptiness 판정을 일치시킨다.
+                      // 공백-only 입력 시 marker.label='   ' 인데 cp.location 은 미갱신되어 두 저장소가
+                      // 어긋나던 엣지(이 fix 가 막으려는 바로 그 불일치)를 client 에서 no-op 로 막는다.
+                      label: editLabel.trim() || undefined,
                       marker_type: editMarkerType,
                       zone: (planType === 'guidelamp' || planType === 'extinguisher') ? editZone : undefined,
                     }
@@ -1729,7 +1747,9 @@ export default function FloorPlanPage() {
         // Bug J: 마커 description 에 '접근불가' 포함 시 AccessBlockedPopup 오버레이 노출.
         // InspectionPage InspectionModal 과 동일한 UX. FloorPlanPage 는 단일 마커 기반
         // 이라 확인 = 모달 닫기 (다음 마커 네비게이션 없음).
-        const isAccessBlocked = !!selected.description?.includes('접근불가')
+        // div_marker 제외: DIV 는 cp.description 이 실제 개소명(접근불가 의미 없음)이라
+        // 마커 description(=cp.description 동기)에 우연히 '접근불가'가 들어가도 오인 차단하지 않는다.
+        const isAccessBlocked = selected.marker_type !== 'div_marker' && !!selected.description?.includes('접근불가')
         // 접근불가 개소: 폼 렌더링 생략하고 팝업만 표시. plan type 무관하게
         // 일정한 사이즈(유도등 모달 자연 높이 ≈ 290px)로 통일.
         if (isAccessBlocked) {
@@ -1760,7 +1780,7 @@ export default function FloorPlanPage() {
           >
             <div className="text-body font-bold text-text-primary mb-1">점검 기록 입력</div>
             <div className="text-caption text-text-tertiary mb-3.5">
-              {selected.cp_location || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
+              {markerRealName(selected) || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
             </div>
 
             {planType === 'extinguisher' && inspectExtDetail && (
@@ -2102,7 +2122,7 @@ export default function FloorPlanPage() {
             onClick={e => e.stopPropagation()}
           >
             <div className="text-body font-bold text-text-primary mb-1">조치 입력</div>
-            <div className="text-caption text-text-tertiary mb-1">{selected.label || '마커'} · {floor}</div>
+            <div className="text-caption text-text-tertiary mb-1">{markerRealName(selected) || selected.label || '마커'} · {floor}</div>
             {selected.last_memo && (
               <div className="text-caption text-warning bg-warning-bg border border-warning-bar rounded-sm px-2.5 py-1.5 mb-3">
                 지적: {selected.last_memo}

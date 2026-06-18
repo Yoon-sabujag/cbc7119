@@ -12,6 +12,7 @@ import { AlertTriangle, BarChart3, Droplets } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { DIV_POINTS, type DivPoint } from '../constants/divPoints'
+import { useDivNames } from '../hooks/useDivNames'
 
 function authHeader(): Record<string, string> {
   const token = useAuthStore.getState().token
@@ -128,6 +129,8 @@ export default function DivPage() {
   const [year, setYear]     = useState(today.getFullYear())
   const [selDiv, setSelDiv] = useState<DivPoint | null>(null)
   const isDesktop = useIsDesktop()
+  // 개소명은 D1(check_points.description) 정본을 우선 사용, 상수는 오프라인 fallback.
+  const { getDivName } = useDivNames()
 
   // 점검 페이지에서 openDivId 상태로 넘어온 경우 자동으로 해당 개소 상세 열기
   useEffect(() => {
@@ -304,7 +307,7 @@ export default function DivPage() {
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[14px] font-bold text-text-primary flex-shrink-0">DIV #{pos}</span>
                         <span className="text-[13px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
-                          {div.loc.replace(/^[^\)]+\) /, '')}
+                          {(getDivName(div.id) || div.loc).replace(/^(지|연|사)\) /, '')}
                         </span>
                         {alarm && <span className="text-[12px] font-bold text-danger flex-shrink-0">이상</span>}
                         {warn  && <span className="text-[12px] font-bold text-warning-bar flex-shrink-0">주의</span>}
@@ -370,7 +373,7 @@ export default function DivPage() {
                     <div key={div.id} className="bg-surface-raised border border-border-default rounded-lg p-[10px_12px]">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[14px] font-bold text-text-primary flex-shrink-0">DIV #{pos}</span>
-                        <span className="text-[13px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">{div.loc.replace(/^[^\)]+\) /, '')}</span>
+                        <span className="text-[13px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">{(getDivName(div.id) || div.loc).replace(/^(지|연|사)\) /, '')}</span>
                         {dates.length > 0 && <span className="text-[12px] text-text-tertiary flex-shrink-0">최근 {dates[dates.length-1]?.slice(5)?.replace('-', '/') ?? ''}</span>}
                       </div>
                       <IntervalBar dates={dates} color={color} />
@@ -426,7 +429,7 @@ export default function DivPage() {
           {/* 타이틀 */}
           <div className="flex items-center gap-2.5 mb-4">
             <div>
-              <div className="text-[16px] font-bold text-text-primary">{selDiv.floorLabel} · {selDiv.loc}</div>
+              <div className="text-[16px] font-bold text-text-primary">{selDiv.floorLabel} · {getDivName(selDiv.id) || selDiv.loc}</div>
               <div className="text-[12px] text-text-tertiary mt-0.5">{POS_LABEL[selDiv.pos]} · {selDiv.id}</div>
             </div>
             {/* 연도 선택 */}
@@ -872,7 +875,7 @@ export default function DivPage() {
                         {item.point.id}
                       </span>
                       <span className="text-[12px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
-                        {item.point.floorLabel} · {item.point.loc}
+                        {item.point.floorLabel} · {getDivName(item.point.id) || item.point.loc}
                       </span>
                       <span className={`text-[12px] font-bold font-mono flex-shrink-0 ${isDanger ? 'text-danger' : 'text-warning-bar'}`}>
                         {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
@@ -895,7 +898,7 @@ export default function DivPage() {
         <div className="flex items-center gap-2.5">
           <div className="flex-1 min-w-0">
             <div className="text-[16px] font-bold text-text-primary">
-              {selectedDiv.floorLabel} · {selectedDiv.loc}
+              {selectedDiv.floorLabel} · {getDivName(selectedDiv.id) || selectedDiv.loc}
             </div>
             <div className="text-[12px] text-text-tertiary mt-0.5">
               {POS_LABEL[selectedDiv.pos]} · {selectedDiv.id}

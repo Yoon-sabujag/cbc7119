@@ -33,16 +33,27 @@ export const onRequestPut: PagesFunction<Env> = async ({ params, request, env })
   binds.push(id)
 
   // ── 개소명(label) 동기 가드 (사고 260608-b6f 재발 방지) ──────────────────
-  // 소화기 개소명은 D1 3곳에 중복 저장된다:
+  // 개소명은 D1 여러 곳에 중복 저장된다:
   //   check_points.location   (일반점검 목록·도면 마커 이름[cp_location 우선]·QR)
   //   extinguishers.location  (소화기 관리 목록 — CP-FE-% 개소에만 행 존재)
   //   floor_plan_markers.label(이 모달 "개소명" 입력칸)
   // 기존 PUT 은 label 만 갱신 → 모달에서 개소명을 바꿔도 마커 라벨만 바뀌고
-  // 다른 두 화면은 옛 이름 그대로 → "한 개소가 화면마다 다르게" 보이던 버그.
-  // 이제 같은 batch 로 check_points.location / extinguishers.location 까지 전파한다.
+  // 다른 화면은 옛 이름 그대로 → "한 개소가 화면마다 다르게" 보이던 버그.
+  // 게다가 소화전/완강기는 marker.label=null 이 정상(개소명이 cp.location 에만 존재)이라
+  // label 만 갱신하면 cp_location 우선 디스플레이가 바뀌지 않아 "수정해도 반영 안 됨" 처럼 보였다.
+  // 이제 같은 batch 로 check_points(개소명) / extinguishers.location 까지 전파한다.
   //
-  // 범위: 소화기(CP-FE-%) 개소만. 소화전(-SH)·완강기(-WK)·DIV 는 extinguishers 행이
-  //       없고, DIV 는 구조적 이름·컴프 페어링 룰이 있어 제외한다 (사고 260528 참고).
+  // 개소명이 저장되는 check_points 컬럼은 카테고리마다 다르다:
+  //   · 소화기·소화전·완강기 → check_points.LOCATION 이 실제 개소명.
+  //   · DIV/COMP            → check_points.DESCRIPTION 이 실제 개소명('지) 식당 뒤' 류).
+  //     (DIV 의 location 은 'B1층 DIV #N' 구조 라벨이라 건드리지 않는다.)
+  // DIV/COMP description 범위 (260618 사용자 요청):
+  //   DIV 와 컴프레셔는 같은 위치를 공유한다 (CP-DIV-{id} ↔ CP-COMP-{id}). DIV description 을
+  //   바꾸면 페어링 트리거(0091 sync_comp_description_on_div_update)가 CP-COMP-{id} 로,
+  //   0078 트리거가 div 마커로 자동 전파한다 → "DIV 바꾸면 컴프레셔도 똑같이" 가 구조적으로 보장.
+  //   압력관리/점검/일일보고서 화면은 이 description 을 D1 에서 읽어 반영(상수는 오프라인 fallback).
+  // extinguishers.location 범위: CP-FE-(소화기 자산 행이 존재) 한정 유지.
+  //   소화전/완강기/DIV 는 extinguishers 행이 없으므로(D1 실측 0건) 건드리지 않는다.
   // 가드: label 이 빈 문자열/undefined 면 동기하지 않는다 (기존 동작 유지).
   //       이 모달 PUT body 에는 check_point_id 가 없으므로 마커 행에서 조회해 쓴다.
   const newLabel =
@@ -65,10 +76,22 @@ export const onRequestPut: PagesFunction<Env> = async ({ params, request, env })
     env.DB.prepare(`UPDATE floor_plan_markers SET ${sets.join(', ')} WHERE id=?`).bind(...binds),
   ]
 
-  if (newLabel && cpId && cpId.startsWith('CP-FE-')) {
+  const isDivLike = cpId != null && (cpId.startsWith('CP-DIV-') || cpId.startsWith('CP-COMP-'))
+
+  if (newLabel && cpId && isDivLike) {
+    // DIV/COMP — 실제 개소명은 description. 트리거가 COMP 짝 + div 마커로 전파(구조 라벨 location 보존).
+    stmts.push(
+      env.DB.prepare('UPDATE check_points SET description=? WHERE id=?').bind(newLabel, cpId),
+    )
+  } else if (newLabel && cpId) {
+    // 소화기·소화전·완강기 — 실제 개소명은 location.
     stmts.push(
       env.DB.prepare('UPDATE check_points SET location=? WHERE id=?').bind(newLabel, cpId),
     )
+  }
+
+  // extinguishers.location — CP-FE-(소화기 자산 행 존재) 한정. 소화전/완강기/DIV 는 자산 행 없음.
+  if (newLabel && cpId && cpId.startsWith('CP-FE-')) {
     stmts.push(
       env.DB
         .prepare("UPDATE extinguishers SET location=?, updated_at=datetime('now','+9 hours') WHERE check_point_id=?")

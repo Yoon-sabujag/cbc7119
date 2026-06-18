@@ -5,6 +5,12 @@ import { DOW_KO } from './shiftCalc'
 // '소방용 가압송수장치 점검 일지'의 측정점 라벨
 // 양식: 지상층 = `{zone 한국어} {floor 코드} {위치명}` / 지하층 = `B{N}F {위치명}`
 // formatFloorLabel 헬퍼와 동일 룰 (constants/divPoints.ts DIV_POINTS 의 floor/loc 패턴 기준 mirror).
+// ⚠️ 의도적 분리 (260618): 이 DIV_NAMES 는 공식 DIV 점검표 Excel 전용으로 수기 큐레이트된
+//   축약 이름이다('지)/연)/사)' 접두사 없이 짧게). 화면(압력관리·점검·지도 마커)이 쓰는 실제
+//   개소명 check_points.description / divPoints.ts 의 loc('지) B1층 식당 뒤')와는 표기 스킴이
+//   다르며, 도면 마커 모달의 DIV 개소명 편집은 이 맵에 반영되지 않는다(설계상 분리).
+//   점검표 Excel 이 라이브 편집 이름을 따라가야 한다면 generateDivExcel 에 useDivNames().divNames 를
+//   주입(접두사 제거)하는 별도 작업이 필요하다.
 export const DIV_NAMES: Record<string, string> = {
   '9-3':  '사무동 8-1F 계단위 PS실',
   '8-1':  '연구동 8F 공조실', '8-2':  '연구동 8F PS실',  '8-3':  '사무동 8F PS실',

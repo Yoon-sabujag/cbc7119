@@ -11,6 +11,7 @@ import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime, todayKstYmd } from '../utils/datetime'
 import { DIV_POINTS as DIV_PTS, type DivPoint as DivPt } from '../constants/divPoints'
+import { useDivNames } from '../hooks/useDivNames'
 import { InspectionRevisitPopup } from '../components/InspectionRevisitPopup'
 import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
 import { useInspectionRevisitPopup, type MonthRecordEntry } from '../hooks/useInspectionRevisitPopup'
@@ -1149,6 +1150,7 @@ function DivTrendSubview({ point, records, onClose }: {
   records: any[]   // oldest → newest
   onClose: () => void
 }) {
+  const { getDivName } = useDivNames()
   const W = typeof window !== 'undefined' ? window.innerWidth - 32 : 358
   // 최근 기록 기준 12개월
   const hist = (() => {
@@ -1177,7 +1179,7 @@ function DivTrendSubview({ point, records, onClose }: {
           <X size={16} className="text-text-secondary" />
         </button>
         <div>
-          <div className="text-body-sm font-bold text-text-primary">{point.floorLabel} — {point.loc}</div>
+          <div className="text-body-sm font-bold text-text-primary">{point.floorLabel} — {getDivName(point.id) || point.loc}</div>
           <div className="text-caption text-text-tertiary mt-0.5">DIV #{point.pos} · {point.id}</div>
         </div>
       </div>
@@ -1293,6 +1295,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 }) {
   const staff = useAuthStore(s => s.staff)
   const navigate = useNavigate()
+  const { getDivName } = useDivNames()
 
   // ── 단계 선택 ──
   // initialLocationNo = DIV_PTS의 id (예: '8-1', '-5-3')
@@ -1540,8 +1543,8 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
   const totalSteps  = zone && zone !== 'underground' && line ? DIV_LINE_SEQ[line].length : null
   const underItems  = useMemo(() => underPending.map(id => {
     const pt = DIV_PTS.find(p => p.id === id)
-    return { id, label: `${pt?.floorLabel} — ${pt?.loc}` }
-  }), [underPending])
+    return { id, label: `${pt?.floorLabel} — ${getDivName(id) || pt?.loc || ''}` }
+  }), [underPending, getDivName])
 
   // ── 재진입 팝업 (공통 훅) ──
   const currentCpId = currentPt ? DIV_PT_CP[currentPt.id] ?? null : null
@@ -1705,7 +1708,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
                   <div className="flex-1 text-center">
                     <div className="text-caption text-text-tertiary font-semibold">현재 개소</div>
                     <div className="text-body-sm font-bold text-text-primary mt-0.5">{currentPt.floorLabel} — DIV #{currentPt.pos}</div>
-                    <div className="text-caption text-text-secondary mt-0.5">{currentPt.loc}</div>
+                    <div className="text-caption text-text-secondary mt-0.5">{getDivName(currentPt.id) || currentPt.loc}</div>
                   </div>
                   <button className={navBtnCls(canNext)} onClick={canNext ? goNext : undefined}>
                     <ChevronRight size={20} />
@@ -1928,6 +1931,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
   const staff = useAuthStore(s => s.staff)
   const photo = usePhotoUpload('inspection')
   const navigate = useNavigate()
+  const { getDivName } = useDivNames()
 
   const initPt = initialLocationNo ? DIV_PTS.find(p => p.id === initialLocationNo) : null
   const initIsUnder = initPt ? initPt.floor < 0 : false
@@ -2165,7 +2169,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
                   <div className="flex-1 text-center">
                     <div className="text-caption text-text-tertiary font-semibold">현재 개소</div>
                     <div className="text-body-sm font-bold text-text-primary mt-0.5">{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
-                    <div className="text-caption text-text-secondary mt-0.5">{currentPt.loc}</div>
+                    <div className="text-caption text-text-secondary mt-0.5">{getDivName(currentPt.id) || currentPt.loc}</div>
                   </div>
                   <button className={navBtnCls(canNext)} onClick={canNext ? goNext : undefined}>
                     <ChevronRight size={20} />
@@ -2179,7 +2183,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
               <div className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default text-center">
                 <div className="text-caption text-text-tertiary font-semibold">현재 개소</div>
                 <div className="text-body-sm font-bold text-text-primary mt-0.5">{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
-                <div className="text-caption text-text-secondary mt-0.5">{currentPt.loc}</div>
+                <div className="text-caption text-text-secondary mt-0.5">{getDivName(currentPt.id) || currentPt.loc}</div>
               </div>
             )}
 

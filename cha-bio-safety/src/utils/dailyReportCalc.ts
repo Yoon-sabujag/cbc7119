@@ -301,7 +301,8 @@ function buildTasks(
   schedules: any[],
   elevatorFaults: any[],
   remediations: any[] = [],
-  compOilRefills: any[] = []
+  compOilRefills: any[] = [],
+  divNames: Record<string, string> = {}  // 측정점 id→실제 개소명(라이브). 없으면 상수 loc fallback.
 ): TaskEntry[] {
   const dateStr = toDateStr(date)
   const tasks: TaskEntry[] = []
@@ -331,7 +332,7 @@ function buildTasks(
       if (cat === '컴프레셔' && compOilRefills.length > 0) {
         const refillLines = compOilRefills.map((r: any) => {
           const lbl = DIV_POINT_LABEL[r.div_id]
-          const place = lbl ? `${lbl.floorLabel} ${lbl.loc}` : (r.div_id ?? '')
+          const place = lbl ? `${lbl.floorLabel} ${divNames[r.div_id] ?? lbl.loc}` : (r.div_id ?? '')
           return `  - ${place} 컴프레샤 오일 보충`
         })
         text = `${text}\n${refillLines.join('\n')}`
@@ -488,14 +489,15 @@ export function buildDailyReportData(
   date: string,
   apiData: { schedules: any[]; leaves: any[]; elevatorFaults: any[]; remediations?: any[]; compOilRefills?: any[] },
   notes: string,
-  staffData?: { id: string; name: string; title?: string }[]
+  staffData?: { id: string; name: string; title?: string }[],
+  divNames: Record<string, string> = {}  // 측정점 id→실제 개소명(라이브). 없으면 상수 loc fallback.
 ): DailyReportData {
   const dateObj = parseDateStr(date)
   const dow = DOW_KO[dateObj.getDay()]
 
   const personnel = buildPersonnel(dateObj, apiData.leaves ?? [], apiData.schedules ?? [], staffData)
   const patrol = buildPatrol(dateObj, personnel.onDuty)
-  const todayTasks = buildTasks(dateObj, patrol, apiData.schedules ?? [], apiData.elevatorFaults ?? [], apiData.remediations ?? [], apiData.compOilRefills ?? [])
+  const todayTasks = buildTasks(dateObj, patrol, apiData.schedules ?? [], apiData.elevatorFaults ?? [], apiData.remediations ?? [], apiData.compOilRefills ?? [], divNames)
   const tomorrowTasks = buildTomorrowTasks(dateObj, patrol, apiData.schedules ?? [])
 
   // 텍스트 조합 (엑셀 병합셀용)

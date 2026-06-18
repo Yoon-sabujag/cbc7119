@@ -185,6 +185,7 @@ export interface FloorPlanMarker {
   description?: string | null          // '[접근불가]' 등 메모 기반 접근불가 판정 (check_points 와 대칭)
   // Phase 24: cp join 결과 (cp 매핑된 마커만 채워짐). 마커 클릭 시 위치명 source.
   cp_location?: string | null
+  cp_description?: string | null  // DIV/COMP 실제 개소명('지) 식당 뒤'). DIV 마커 표시·편집의 정본.
   cp_floor?: string | null
   cp_zone?: string | null
 }

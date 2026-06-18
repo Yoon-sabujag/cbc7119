@@ -18,7 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const mWhere = floor ? 'WHERE m.floor = ? AND m.plan_type = ?' : 'WHERE m.plan_type = ?'
     const mBinds = floor ? [floor, planType] : [planType]
     const mRows = await env.DB.prepare(
-      `SELECT m.*, cp.location AS cp_location, cp.floor AS cp_floor, cp.zone AS cp_zone
+      `SELECT m.*, cp.location AS cp_location, cp.description AS cp_description, cp.floor AS cp_floor, cp.zone AS cp_zone
        FROM floor_plan_markers m
        LEFT JOIN check_points cp ON cp.id = m.check_point_id
        ${mWhere} ORDER BY m.floor ASC, m.created_at ASC`
