@@ -11,7 +11,9 @@ import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { InspectionRevisitPopup, type RevisitVariant } from '../components/InspectionRevisitPopup'
+import { DivInspectModal } from '../components/div/DivInspectModal'
 import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
+import type { CheckResult } from '../types'
 // import PdfFloorPlan from '../components/PdfFloorPlan'
 // import SvgFloorPlan from '../components/SvgFloorPlan'
 
@@ -296,6 +298,12 @@ function markerRealName(m: FloorPlanMarker): string | null {
   return m.cp_location || null
 }
 
+// div_marker 의 check_point_id('CP-DIV-8-1') → DIV_PTS locationNo('8-1'). 도면 DIV 점검 진입용.
+function extractDivLocationNo(cpId: string | null): string | undefined {
+  if (!cpId?.startsWith('CP-DIV-')) return undefined
+  return cpId.slice('CP-DIV-'.length) // 'CP-DIV-8-1' → '8-1', 'CP-DIV--5-3' → '-5-3'
+}
+
 // ══════════════════════════════════════════════════════
 export default function FloorPlanPage() {
   const navigate = useNavigate()
@@ -353,6 +361,7 @@ export default function FloorPlanPage() {
   const [dragPos, setDragPos] = useState<{ x_pct: number; y_pct: number } | null>(null) // 드래그 중 실시간 위치
   const [editMarker, setEditMarker] = useState(false) // 마커 수정 모달
   const [inspectModal, setInspectModal] = useState(false) // 인라인 점검 모달
+  const [divInspectLoc, setDivInspectLoc] = useState<string | null>(null) // 도면 DIV 마커 → lockToPoint DivInspectModal 진입 (locationNo)
   // ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 가드) ──
   const [revisitPopup, setRevisitPopup] = useState<{
     variant:       RevisitVariant
@@ -360,6 +369,20 @@ export default function FloorPlanPage() {
     inspectorName: string
     recordId?:     string
   } | null>(null)
+  // 도면 DIV 모달 onSaveRecord 어댑터 — check_records 만 쓴다 (GOTCHA①: div_pressures/logs/comp-inspection
+  // 은 DivInspectModal 내부 fetch 가 이미 씀 → 중복 쓰기 금지). 일반 점검 generic 저장부의 KST 세션
+  // get-or-create 패턴 재사용.
+  const divSaveAdapter = useCallback(async (cpId: string, result: CheckResult, memo: string, photoKey?: string) => {
+    const today = todayKstYmd()
+    const sessions = await inspectionApi.getSessions(today)
+    const sid = sessions.length > 0 ? sessions[0].id : (await inspectionApi.createSession({ date: today })).id
+    await inspectionApi.submitRecord(sid, {
+      checkpointId: cpId,
+      result,
+      memo: memo || undefined,
+      photoKey: photoKey ?? undefined,
+    })
+  }, [])
   const [inspectExtDetail, setInspectExtDetail] = useState<ExtinguisherDetail | null>(null)
   const [inspectResult, setInspectResult] = useState<'normal' | 'caution' | 'bad'>('normal')
   const [inspectMemo, setInspectMemo] = useState('')
@@ -1268,6 +1291,11 @@ export default function FloorPlanPage() {
         }
 
         const openInspectModal = () => {
+          // DIV 마커: generic inspectModal 대신 lockToPoint 리치 DivInspectModal 진입 (GOTCHA①: generic submitRecord 경로 미진입)
+          if (selected?.marker_type === 'div_marker') {
+            setDivInspectLoc(extractDivLocationNo(selected.check_point_id) ?? null)
+            return
+          }
           const defaultSymptom = SYMPTOM_OPTIONS_BY_PLAN[planType]?.[0] ?? '점등 이상'
           setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick(defaultSymptom); setInspectSymptomCustom('')
           inspectPhoto.reset(); setInspectExtDetail(null)
@@ -1701,6 +1729,22 @@ export default function FloorPlanPage() {
         </div>
       )}
 
+      {/* 도면 DIV 마커 → lockToPoint 리치 DivInspectModal (일반 점검과 동일 데이터: div_pressures/logs/comp-inspection/CP-DIV·CP-COMP) */}
+      {divInspectLoc && (
+        <DivInspectModal
+          lockToPoint
+          initialLocationNo={divInspectLoc}
+          monthRecords={{}}        /* GOTCHA④: FloorPlanPage 자체 evalRevisit 게이트로 재점검 처리 → 내부 재점검 팝업 비활성 (이중 팝업 방지) */
+          scheduleItems={[]}
+          onSaveRecord={divSaveAdapter}
+          onClose={() => {
+            qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })
+            setDivInspectLoc(null)
+            setSelected(null)
+          }}
+        />
+      )}
+
       {/* ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 시) ── */}
       {revisitPopup && (
         <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
@@ -1718,6 +1762,11 @@ export default function FloorPlanPage() {
                 const wasCompleted = revisitPopup.variant === 'completed'
                 setRevisitPopup(null)
                 if (wasCompleted && selected) {
+                  // DIV 마커: generic inspectModal 대신 lockToPoint DivInspectModal 진입 (GOTCHA①: generic submitRecord 경로 미진입)
+                  if (selected.marker_type === 'div_marker') {
+                    setDivInspectLoc(extractDivLocationNo(selected.check_point_id) ?? null)
+                    return
+                  }
                   const defaultSymptom = SYMPTOM_OPTIONS_BY_PLAN[planType]?.[0] ?? '점등 이상'
                   setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick(defaultSymptom); setInspectSymptomCustom('')
                   inspectPhoto.reset(); setInspectExtDetail(null)
@@ -1735,7 +1784,7 @@ export default function FloorPlanPage() {
       )}
 
       {/* ── 인라인 점검 기록 모달 ────────────────────── */}
-      {inspectModal && selected && (planType === 'guidelamp' || selected.check_point_id) && (() => {
+      {inspectModal && selected && selected.marker_type !== 'div_marker' && (planType === 'guidelamp' || selected.check_point_id) && (() => {
         const MARKER_TO_GL: Record<string,string> = {
           ceiling_exit:'ceiling_exit', wall_exit:'wall_exit',
           room_corridor:'room_passage', hallway_corridor:'corridor_passage', stair_corridor:'stair_passage',
