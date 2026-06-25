@@ -9,11 +9,12 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 최신: 도면 DIV 마커 완료표시 월초/월말 반쪽 윈도우 통일(260626-b5v, 순수 클라이언트). 직전 도면 DIV 모달 통일(260626-7vq, **사용자 검증 완료** — "반영 잘 됨"). **b5v 사용자 prod 검증 대기**(월초/월말 경계 마커색 리셋 + 비-DIV 무변화 + 미조치 fire 유지)
-진행 작업:       없음 (260626-b5v 배포 완료, 사용자 prod 검증 대기)
-기준 production: `2afe856a` (fix: 도면 DIV 마커 반쪽 윈도우 완료표시, 260626-b5v) — 메인 직접. 직전 c27bf628(도면 DIV 모달 통일 260626-7vq, 사용자 검증 완료)
+상태:           안정 (SYNCED) — 최신: 도면 DIV 마커 완료표시 월초/월말 반쪽 윈도우 통일(260626-b5v). 직전 도면 DIV 모달 통일(260626-7vq). **둘 다 사용자 prod 검증 완료(2026-06-26 — "둘 다 잘 됨")**. HANDOFF 파일 정리 완료
+진행 작업:       없음
+기준 production: `2afe856a` (fix: 도면 DIV 마커 반쪽 윈도우 완료표시, 260626-b5v) — 메인 직접. 직전 c27bf628(도면 DIV 모달 통일 260626-7vq)
 마지막 동기화:   2026-06-26
 마지막 배포 URL: https://14cfff64.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+⚠️ staging 분기: 260626-7vq 는 staging(cbc7119-data 260626-5hm)에 있으나 **260626-b5v(반쪽 윈도우)는 prod 전용** — staging 미적용(사용자가 b5v staging 생략 결정). 차후 staging-first 작업 시 cbc7119-data 에 b5v(getMarkerStatus 반쪽 게이트 + inspectionProgress export) 재적용 필요할 수 있음
 ```
 
 **상태 의미**:
