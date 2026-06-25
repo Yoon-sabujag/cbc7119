@@ -9,11 +9,11 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 최신: 도면 마커 개소명 수정 동기 확장 (소화전/완강기 공란·미반영 교정 + DIV/COMP 단일출처 편집·컴프 페어링) staging fd0f517 sync. 11파일 + 0091 트리거. 적대검증 5차원 PASS + 배포 + dist 검증. **사용자 UI 검증 완료(2026-06-18, 소화전 마커 개소명 반영 확인)**
-진행 작업:       없음
-기준 production: `06159952` (fix: 도면 마커 개소명 수정 동기 확장, 260618-kqk) — staging sync, 메인 직접 적용. 직전 7010fe59(승강기 안전관리자 아이콘, 260614-5i0)
-마지막 동기화:   2026-06-18
-마지막 배포 URL: https://8ba8d790.cbc7119.pages.dev (production alias = cbc7119.pages.dev)
+상태:           작업중 (IN_PROGRESS) — 도면 DIV 마커 리치 모달 통일(260626-7vq) 코드 3커밋 적용+build 통과, **직원 도메인 배포 대기**(사용자 컨펌 후 수동 wrangler). 이전 안정: 도면 마커 개소명 동기 확장 staging fd0f517 sync (사용자 검증 완료 2026-06-18)
+진행 작업:       260626-7vq 도면 DIV 마커 통일 — 코드 적용 완료, wrangler 배포 + 사용자 prod 검증 대기
+기준 production: `c27bf628` (feat: 도면 DIV 마커→리치 DivInspectModal 통일 3/3, 260626-7vq) — staging 260626-5hm 검증본 prod 재적용, 메인 직접. 직전 안정 06159952(도면 마커 개소명, 260618-kqk)
+마지막 동기화:   2026-06-26 (코드 커밋, 미배포)
+마지막 배포 URL: https://8ba8d790.cbc7119.pages.dev (production alias = cbc7119.pages.dev) — 260626-7vq 배포 전
 ```
 
 **상태 의미**:
