@@ -6,6 +6,7 @@ import { ChevronLeft, X, CheckCircle2, AlertTriangle, XCircle, FlaskConical, Bui
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
 import { todayKstYmd } from '../utils/datetime'
+import { getCycleHalfRange, CYCLE_CATEGORIES } from '../utils/inspectionProgress'
 import { useAuthStore } from '../stores/authStore'
 import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
@@ -119,8 +120,18 @@ const STATUS_COLOR: Record<string, string> = {
   resolved:    '#3b82f6',
 }
 
-function getMarkerStatus(m: FloorPlanMarker): string {
+// todayYmd 전달 시: div_marker(DIV/컴프레셔=월 2회 점검, 월초 1~15 / 월말 16~말)는 일반 점검과
+// 동일하게 완료 판정을 현재 반쪽 윈도우로 한정한다. 현재 반쪽 밖의 완료기록(normal | bad/caution+resolved)
+// 은 '미점검'으로 강등해 재점검을 유도. 단 미조치(open bad/caution)는 반쪽 무관하게 유지(조치 경고).
+// div_marker 가 아니거나 todayYmd 미전달이면 기존 월 전체 동작 그대로(비-cycle 마커 무변화).
+function getMarkerStatus(m: FloorPlanMarker, todayYmd?: string): string {
   if (!m.last_result) return 'uninspected'
+  const isPending = (m.last_result === 'bad' || m.last_result === 'caution') && m.last_status !== 'resolved'
+  if (!isPending && todayYmd && m.marker_type === 'div_marker' && m.last_inspected_at) {
+    const [hs, he] = getCycleHalfRange(todayYmd)
+    const day = m.last_inspected_at.slice(0, 10)
+    if (day < hs || day > he) return 'uninspected'
+  }
   if ((m.last_result === 'bad' || m.last_result === 'caution') && m.last_status === 'resolved') return 'resolved'
   return STATUS_COLOR[m.last_result] ? m.last_result : 'uninspected'
 }
@@ -309,6 +320,7 @@ export default function FloorPlanPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { staff } = useAuthStore()
+  const todayYmd = todayKstYmd() // 마커 완료표시 반쪽 윈도우 판정용 (DIV 월초/월말)
   const canEditMarker = !!staff
   const isDesktop = useIsDesktop()
   const isAdmin = staff?.role === 'admin'
@@ -1115,7 +1127,7 @@ export default function FloorPlanPage() {
 
             {/* ── 마커 오버레이 ──────────────────────── */}
             {imgLoaded && markers.map(m => {
-              const color = STATUS_COLOR[getMarkerStatus(m)] ?? STATUS_COLOR.normal
+              const color = STATUS_COLOR[getMarkerStatus(m, todayYmd)] ?? STATUS_COLOR.normal
               // 드래그 중이면 실시간 위치, 아니면 DB 위치
               const isDragging = dragId === m.id && dragPos
               const xPct = isDragging ? dragPos.x_pct : m.x_pct
@@ -1184,7 +1196,7 @@ export default function FloorPlanPage() {
 
         {/* ── 마커 상세 (데스크톱: 말풍선 / 모바일: 바텀시트) ── */}
         {selected && !addModal && !editMarker && (() => {
-        const statusKey = getMarkerStatus(selected)
+        const statusKey = getMarkerStatus(selected, todayYmd)
         const statusColor = STATUS_COLOR[statusKey] ?? STATUS_COLOR.normal
         // Phase 24: cp_location (실제 위치명) 우선 표시. 없으면 사용자 라벨 → marker_type 라벨 fallback.
         const markerLabel = markerRealName(selected) || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'
@@ -1281,6 +1293,15 @@ export default function FloorPlanPage() {
             return todayYmd >= start && todayYmd <= end
           })
           if (!activeMatch) return null
+
+          // DIV/컴프레셔(월 2 cycle): 완료 기록이 현재 반쪽 윈도우(월초 1~15 / 월말 16~말) 밖이면
+          // completed 재진입 팝업 억제 — 일반 점검 useInspectionRevisitPopup 과 동일(다른 반쪽에선
+          // 미점검으로 보고 점검 진행 허용). pending(미조치)은 위에서 이미 반쪽 무관 처리됨.
+          if (CYCLE_CATEGORIES.has(planTypeToCategory) && selected.last_inspected_at) {
+            const [hs, he] = getCycleHalfRange(todayYmd)
+            const cday = (selected.last_inspected_at as string).slice(0, 10)
+            if (cday < hs || cday > he) return null
+          }
 
           return {
             variant:       'completed',

@@ -2,10 +2,10 @@ import type { CheckPoint } from '../types'
 
 // 260427-1dc: 월 2 cycle 구조 카테고리 (DIV/컴프레셔)
 // — computeCardCompletion 에서 월 반반 분할 (1~15 / 16~말) 분기 적용 대상
-const CYCLE_CATEGORIES = new Set(['DIV', '컴프레셔'])
+export const CYCLE_CATEGORIES = new Set(['DIV', '컴프레셔'])
 
 // today 가 속한 반쪽 윈도우 반환 (1~15: early / 16~말: late).
-function getCycleHalfRange(today: string): [string, string] {
+export function getCycleHalfRange(today: string): [string, string] {
   const ym = today.slice(0, 7)
   const day = Number(today.slice(8, 10))
   const [y, m] = today.split('-').map(Number)
