@@ -6353,10 +6353,10 @@ function DesktopInspectionView({
           // ── 화재수신반 3분할 상세 pane (Surface 6) ──
           <>
             {/* id-head */}
-            <div className="shrink-0 flex items-center gap-[11px] px-4 py-[11px] border-b border-border-default bg-surface-raised">
+            <div className="shrink-0 flex items-center gap-2.5 px-5 py-3 border-b border-border-default bg-surface-raised">
               <button onClick={() => setCategoryIdx(null)}
-                className="w-7 h-7 flex items-center justify-center rounded-[7px] bg-surface-sunken text-text-secondary cursor-pointer shrink-0 hover:bg-surface-active transition-colors">
-                <ChevronLeft size={16} />
+                className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default cursor-pointer flex items-center justify-center shrink-0 hover:bg-surface-active transition-colors">
+                <ChevronLeft size={14} className="text-text-secondary" />
               </button>
               <div className="flex-1 flex items-center gap-1.5 text-[16px] font-bold text-text-primary min-w-0">
                 <BellRing size={16} className="text-text-secondary shrink-0" />
