@@ -54,13 +54,13 @@ self.addEventListener('push', (event: PushEvent) => {
 // ── 알림 클릭 핸들러 — 딥링크 이동 ─────────────────────────
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
-  // 목적지: data.url (백엔드 per-type url) 우선, 없으면 fallback
-  //   fire -> /fire-alarm (화재 takeover), equip -> /inspection?panel=fire-alarm (화재수신반 페이지)
+  // 목적지: data.url (백엔드 per-type url = /fire-alarm) 우선.
+  // url 없는 레거시/비-패널 푸시(일일·일정 리마인더 등)는 루트로 — 회귀 방지 (prod 260701-pnl).
   const data = event.notification.data || {}
   const fallback =
     data.alarmType === 'equip' || data.type === 'equip'
       ? '/inspection?panel=fire-alarm'
-      : '/fire-alarm'
+      : '/'
   const url = data.url || fallback
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
