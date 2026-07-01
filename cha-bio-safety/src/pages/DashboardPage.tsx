@@ -626,8 +626,8 @@ export default function DashboardPage() {
         // gridTemplateRows 는 IS_ANDROID 동적 분기 — 인라인 허용 키
         style={{
           gridTemplateRows: IS_ANDROID
-            ? 'auto auto auto auto 1fr minmax(140px, auto)'
-            : 'auto auto auto auto 1fr auto',
+            ? 'auto auto auto auto minmax(140px, 1fr)'
+            : 'auto auto auto auto minmax(125px, 1fr)',
         }}
       >
 
@@ -761,30 +761,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* ④ 오늘 일정 */}
-        <div
-          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col min-h-0 [animation:slideUp_.28s_.16s_ease-out_both]"
-        >
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border-default shrink-0">
-            <span className="text-caption font-bold text-text-secondary">오늘 일정</span>
-            <span className="text-caption text-text-tertiary bg-surface-sunken px-2 py-0.5 rounded-pill">{schedule.length}건</span>
-          </div>
-          <div className="overflow-y-auto flex-1">
-            {timed.length > 0 && (
-              <>
-                <div className="px-2.5 pt-1 pb-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase"><Clock size={11} className="inline-block align-text-bottom mr-1" />시간 확정</div>
-                {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
-              </>
-            )}
-            {untimed.length > 0 && (
-              <>
-                <div className="px-2.5 pt-1 pb-0.5 mt-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase border-t border-border-default"><ClipboardList size={11} className="inline-block align-text-bottom mr-1" />시간 미정</div>
-                {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
-              </>
-            )}
           </div>
         </div>
 
