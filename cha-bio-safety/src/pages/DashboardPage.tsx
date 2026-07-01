@@ -2,10 +2,12 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Map as MapIcon, BarChart3, Siren, Users, Flame, Clock, ClipboardList } from 'lucide-react'
+import { Map as MapIcon, BarChart3, Siren, Users, Flame, Clock, ClipboardList, BellOff } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
-import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
+import { dashboardApi, scheduleApi, fireAlarmApi, panelApi, alarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, CatBar } from '../components/ui'
+import LivePanelImage from '../components/panel/LivePanelImage'
+import { freshnessLabel } from '../components/panel/freshness'
 import type { DashboardScheduleItem, Staff } from '../types'
 import { getMonthlySchedule } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
@@ -49,6 +51,49 @@ interface MonthlyItem {
   late_pct?: number
   early_color?: string
   late_color?: string
+}
+
+// Phase 25: 대시보드 경보/점검 상태 칩 (모바일 배너 + 데스크톱 배너 공용).
+// 경보중 = 빨강 blink 칩, 점검모드 = 회색 no-blink 칩, 평상시 = 렌더 없음.
+// 색 = 의미 고정 (danger / gray). 비-임계치 카드에 status 색 차용 금지 (SS6.2).
+function PanelStateChip({ activeAlarm, maintOn, maintLabel, onClick }: {
+  activeAlarm: { location?: string | null } | null
+  maintOn: boolean
+  maintLabel: string
+  onClick: () => void
+}) {
+  if (activeAlarm) {
+    return (
+      <div
+        onClick={onClick}
+        className="shrink-0 inline-flex items-center gap-2 rounded-pill px-3 py-[7px] text-caption font-extrabold leading-none text-white cursor-pointer"
+        style={{
+          background: 'linear-gradient(135deg,#dc2626,#ef4444)',
+          animation: 'chipblink 1.4s ease-in-out infinite',
+        }}
+      >
+        <span
+          className="w-[7px] h-[7px] rounded-full bg-white shrink-0"
+          style={{ animation: 'blink 1s steps(1,end) infinite' }}
+        />
+        <Flame size={12} />
+        화재 경보 · {activeAlarm.location ?? '장소 확인'}
+      </div>
+    )
+  }
+  if (maintOn) {
+    return (
+      <div
+        onClick={onClick}
+        className="shrink-0 inline-flex items-center gap-2 rounded-pill px-3 py-[7px] text-caption font-extrabold leading-none bg-surface-sunken border border-border-strong text-text-secondary cursor-pointer"
+      >
+        <span className="w-[7px] h-[7px] rounded-full bg-text-tertiary shrink-0" />
+        <BellOff size={12} />
+        {maintLabel}
+      </div>
+    )
+  }
+  return null
 }
 
 export default function DashboardPage() {
@@ -122,6 +167,24 @@ export default function DashboardPage() {
     refetchInterval: 30_000,
   })
   const latestAlarm = (recentAlarms ?? [])[0] as any
+
+  // Phase 25: 화재수신반 상태 + 활성경보 (미배포 트랙 -> try/catch 평상시 fallback)
+  const { data: panelStatus } = useQuery({
+    queryKey: ['panel-status'],
+    queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    retry: false,
+  })
+  const { data: alarmActive } = useQuery({
+    queryKey: ['alarm-active'],
+    queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
+    refetchInterval: 30_000,
+    retry: false,
+  })
+  const activeAlarm = alarmActive ?? panelStatus?.activeAlarm ?? null
+  const maintOn = panelStatus?.maint?.enabled ?? false
+  const frameUpdatedAt = panelStatus?.frameUpdatedAt ?? null
 
   const dutyStaff: Staff[] = staffRows.map(s => ({
     id: s.id, name: s.name, title: s.title,
@@ -491,8 +554,8 @@ export default function DashboardPage() {
         // gridTemplateRows 는 IS_ANDROID 동적 분기 — 인라인 허용 키
         style={{
           gridTemplateRows: IS_ANDROID
-            ? 'auto auto auto 1fr minmax(140px, auto)'
-            : 'auto auto auto 1fr auto',
+            ? 'auto auto auto auto 1fr minmax(140px, auto)'
+            : 'auto auto auto auto 1fr auto',
         }}
       >
 
@@ -505,6 +568,12 @@ export default function DashboardPage() {
             <div className="text-caption font-bold text-info-bar uppercase tracking-wider">오늘 점검 대상</div>
             <div className="text-label font-bold text-text-primary mt-0.5 leading-tight">{todayTarget}</div>
           </div>
+          <PanelStateChip
+            activeAlarm={activeAlarm}
+            maintOn={maintOn}
+            maintLabel="점검 모드 · 알림 중지"
+            onClick={() => navigate('/inspection?panel=fire-alarm')}
+          />
           {latestAlarm && (
             <>
               <div className="text-right shrink-0">
@@ -516,6 +585,18 @@ export default function DashboardPage() {
               <div className="w-1.5 h-1.5 rounded-full bg-danger-bar shrink-0 animate-[blink_1s_ease-in-out_infinite]" />
             </>
           )}
+        </div>
+
+        {/* ①-b 화재수신반 라이브 (16:9 순수 이미지, chrome 0) */}
+        <div
+          onClick={() => navigate('/inspection?panel=fire-alarm')}
+          className="rounded-md overflow-hidden bg-black aspect-video cursor-pointer min-h-[180px] [animation:slideUp_.28s_.03s_ease-out_both]"
+        >
+          <LivePanelImage
+            frameUpdatedAt={frameUpdatedAt}
+            className="w-full h-full"
+            imgClassName="w-full h-full object-cover"
+          />
         </div>
 
         {/* ② 오늘 현황 — §6.2 Stat Card negative rule */}
