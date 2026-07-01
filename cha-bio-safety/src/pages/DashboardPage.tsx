@@ -510,9 +510,10 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 미니 캘린더 — flex-1 로 좌측 점검현황 높이만큼 채워 캘린더 바닥 == 점검현황 바닥 자동 정렬.
-                셀 w-6(24px) 컴팩트 + justify-center (점검현황 도넛 정렬과 동일) → 오늘일정 top == 빠른도구 top. */}
-            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-3 flex-1 min-h-[248px] overflow-y-auto flex flex-col justify-center">
+            {/* 미니 캘린더 — flex-1 로 좌측 점검현황 높이만큼 채워 캘린더 카드 바닥 == 점검현황 카드 바닥 정렬.
+                justify-end 로 그리드를 카드 하단에 붙여 '달력 마지막 주'가 카드 바닥에 닿게(=점검현황 바닥과 정렬).
+                셀 w-6(24px) 컴팩트. dot 많은 달은 overflow-y-auto 로 스크롤(카드 높이는 flex-1 로 항상 정렬 유지). */}
+            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-3 flex-1 min-h-[220px] overflow-y-auto flex flex-col justify-end">
               <div className="text-label font-bold text-text-primary text-center mb-2.5">
                 {calYear}년 {calMonth + 1}월
               </div>

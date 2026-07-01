@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<style>
+  :root{--sr:#1a1f27;--ss:#232a33;--tp:#e6edf3;--ts:#adb6c0;--tt:#8b949e;--bd:rgba(255,255,255,.14);--ac:#3b82f6;--sb:#22c55e;--info:#38bdf8;--danger:#f87171;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif;}
+  body{background:#000;color:var(--tp);}
+  .shell{width:1920px;height:1080px;display:flex;}
+  .side{width:280px;flex:0 0 auto;background:var(--sr);border-right:1px solid var(--bd);}
+  .content{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
+  .thead{height:54px;flex:0 0 auto;border-bottom:1px solid var(--bd);background:var(--sr);display:flex;align-items:center;padding:0 20px;font-weight:700;}
+  .dash{flex:1;min-height:0;overflow:auto;padding:20px 32px;display:flex;flex-direction:column;gap:16px;}
+  .row0{height:30px;font-size:12px;color:var(--ts);display:flex;align-items:center;}
+  .banner{border-radius:16px;border:1px solid rgba(14,165,233,.3);padding:16px 24px;background:rgba(37,99,235,.08);}
+  .banner .k{font-size:12px;font-weight:700;color:var(--info);} .banner .v{font-size:14px;font-weight:700;margin-top:4px;}
+  .row2{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .sc{background:var(--sr);border:1px solid var(--bd);border-radius:16px;padding:20px;} .sc .l{font-size:12px;color:var(--tt);margin-bottom:10px;} .sc .n{font-family:monospace;font-size:36px;font-weight:700;line-height:1;}
+  .row3{display:flex;gap:16px;flex:1;min-height:0;}
+  .left{flex:1;display:flex;flex-direction:column;gap:16px;} .right{width:340px;flex:0 0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--sr);border:1px solid var(--bd);border-radius:16px;overflow:hidden;}
+  .insp{flex:1;min-height:0;display:flex;flex-direction:column;}
+  .insp .h{display:flex;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--bd);font-size:14px;font-weight:700;}
+  .insp .body{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:32px;justify-content:center;}
+  .drow{display:flex;justify-content:space-evenly;gap:8px;} .du{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+  .donut{width:76px;height:76px;border-radius:50%;border:6px solid var(--ss);display:flex;align-items:center;justify-content:center;font-size:15px;font-family:monospace;font-weight:700;color:var(--tt);}
+  .qtools{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex:0 0 auto;}
+  .qt{background:var(--sr);border:1px solid var(--bd);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;} .qt .ic{width:44px;height:44px;border-radius:12px;background:var(--ss);} .qt .tl{font-size:13px;font-weight:700;} .qt .td{font-size:12px;color:var(--tt);}
+  /* live */
+  .live{flex:0 0 auto;} .live .h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:700;}
+  .live .vid{background:#000;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:#4b5563;font-size:12px;border-block:1px solid var(--bd);}
+  .live .cap{padding:9px 13px;font-size:13px;font-weight:700;color:var(--sb);}
+  /* CALENDAR — flex-1 fill + justify-end (grid bottom-aligned) + compact */
+  .cal{flex:1;min-height:220px;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-end;padding:12px 14px;}
+  .cal .ct{text-align:center;font-size:13px;font-weight:700;margin-bottom:8px;}
+  .cg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;}
+  .cg .dow{font-size:12px;font-weight:700;color:var(--tt);padding:1px 0;}
+  .cg .c{padding:1px 0;position:relative;} .cg .c .d{width:24px;height:24px;line-height:24px;border-radius:50%;margin:0 auto;font-size:11px;}
+  .cg .c.today .d{background:var(--ac);color:#fff;} .cg .c .dot{display:flex;justify-content:center;gap:2px;margin-top:1px;height:5px;} .cg .c .dot i{width:4px;height:4px;border-radius:50%;background:var(--info);}
+  /* today list */
+  .today{flex:0 0 auto;height:133px;overflow:hidden;display:flex;flex-direction:column;} .today .h{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:700;} .today .li{padding:8px 16px;font-size:13px;color:var(--ts);}
+  #out{position:fixed;top:60px;left:300px;z-index:99;background:rgba(0,0,0,.88);color:#0f0;font-family:monospace;font-size:14px;padding:8px 12px;border:1px solid #0f0;white-space:pre;}
+  .gl{position:fixed;left:0;right:0;border-top:2px dashed;z-index:80;}
+</style></head><body>
+<div class="shell"><div class="side"></div><div class="content"><div class="thead">대시보드</div>
+<div class="dash">
+  <div class="row0">관리자 석현민 · 보조 김병조·박보윤·윤종엽</div>
+  <div class="banner"><div class="k">오늘 점검 대상</div><div class="v">전층 피난계단 점검</div></div>
+  <div class="row2"><div class="sc"><div class="l">점검 미완료</div><div class="n">0</div></div><div class="sc"><div class="l">미조치 항목</div><div class="n">2</div></div><div class="sc"><div class="l">오늘 일정</div><div class="n">2</div></div><div class="sc"><div class="l">승강기 고장</div><div class="n">0</div></div></div>
+  <div class="row3">
+    <div class="left">
+      <div class="card insp" id="insp"><div class="h"><span>이번 달 점검 현황</span><span>2026년 7월</span></div><div class="body"><div class="drow" id="d1"></div><div class="drow" id="d2"></div><div class="drow" id="d3"></div></div></div>
+      <div class="qtools" id="qt"></div>
+    </div>
+    <div class="right">
+      <div class="card live"><div class="h">🔔 화재수신반 라이브</div><div class="vid">수신반 화면 로딩 · 미연결</div><div class="cap">● 정상 · 이상 없음 · 지연</div></div>
+      <div class="card cal" id="cal"><div class="ct">2026년 7월</div><div class="cg" id="cg"></div></div>
+      <div class="card today" id="today"><div class="h"><span>오늘 일정</span><span>2건</span></div><div class="li">— 전층 피난계단 점검 · 완료</div></div>
+    </div>
+  </div>
+</div></div></div>
+<div id="out"></div>
+<script>
+  const mk=n=>Array.from({length:6}).map((_,i)=>`<div class="du"><div class="donut">0%</div><div class="lbl" style="font-size:12px;color:var(--ts)">항목${n}${i}</div><div class="frac" style="font-size:12px;color:var(--tt)">0/0</div></div>`).join('');
+  d1.innerHTML=mk(1);d2.innerHTML=mk(2);d3.innerHTML=mk(3);
+  qt.innerHTML=Array.from({length:4}).map(()=>`<div class="qt"><div class="ic"></div><div class="tl">도구</div><div class="td">설명 텍스트</div></div>`).join('');
+  let g='';['일','월','화','수','목','금','토'].forEach(d=>g+=`<div class="dow">${d}</div>`);
+  for(let i=0;i<3;i++)g+='<div class="c"></div>';
+  for(let d=1;d<=31;d++){const dot=[1,6,13,17,20,24,27,30].includes(d);g+=`<div class="c ${d===1?'today':''}" data-d="${d}"><div class="d">${d}</div>${dot?'<div class="dot"><i></i></div>':''}</div>`;}
+  cg.innerHTML=g;
+  const R=el=>el.getBoundingClientRect();
+  const insp=R(document.getElementById('insp')),cal=R(document.getElementById('cal')),qtb=R(document.getElementById('qt')),tod=R(document.getElementById('today'));
+  const last=document.querySelector('.cg .c[data-d="31"]'); const lastB=last?R(last).bottom:0;
+  document.getElementById('out').textContent=
+`점검현황 bottom = ${insp.bottom.toFixed(0)}
+캘린더카드 bottom = ${cal.bottom.toFixed(0)}  (차 ${(cal.bottom-insp.bottom).toFixed(0)})
+마지막주(31) bottom = ${lastB.toFixed(0)}  (점검현황과 차 ${(lastB-insp.bottom).toFixed(0)})
+빠른도구 top = ${qtb.top.toFixed(0)}
+오늘일정 top = ${tod.top.toFixed(0)}  (차 ${(tod.top-qtb.top).toFixed(0)})`;
+  const g1=document.createElement('div');g1.className='gl';g1.style.top=insp.bottom+'px';g1.style.borderColor='#0f0';document.body.appendChild(g1);
+</script>
+</body></html>
