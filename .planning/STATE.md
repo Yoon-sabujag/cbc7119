@@ -418,8 +418,8 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-01
-Stopped at: Phase 25 Wave 1 (25-01) 실행 완료 — panelApi/alarmApi+interfaces (api.ts), LivePanelImage+freshness helpers, usePinchZoom hook (3/3 tasks, tsc clean, 98ea76d/ff2cc1b/75c0dc7, FloorPlanPage 무수정). 다음: Wave 2 (25-02/03/04)
-Resume file: .planning/phases/25-panel-monitoring/25-02-PLAN.md
+Stopped at: Phase 25 Wave 2 (25-02) 실행 완료 — DashboardPage 모바일 16:9 수신반 라이브 카드 + 경보/점검 칩(PanelStateChip) + 그리드 트랙 5->6, 데스크톱 shrink-0 라이브 위젯(LIVE/화재 dot badge, live-cap, firepulse, click->일반점검/dblclick->zoom=1 240ms) + 배너 칩. panel-state react-query(['panel-status']+['alarm-active']) 평상시 fallback. chipblink/firepulse keyframes(index.css). (2/2 tasks, tsc clean, 67bfc10/660cb23, feature/25-panel-monitoring). 다음: 25-03/04 (Wave 2 잔여) 또는 Wave 3 (25-05/06)
+Resume file: .planning/phases/25-panel-monitoring/25-03-PLAN.md
 
 ---
 *State initialized: 2026-03-28*
