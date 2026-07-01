@@ -277,7 +277,7 @@ ARCHIVED_PHASES_END -->
 | 20. Document Storage Infrastructure | v1.4 | 3/3 | Complete   | 2026-04-08 |
 | 21. Documents Page UI | v1.4 | 5/6 | In Progress|  |
 | 22. 업무수행기록표 Form + Excel | v1.4 | 2/2 | Complete    | 2026-04-11 |
-| 25. 화재수신반 원격감시·경보 UI | v1.5 | 3/6 | In Progress |  |
+| 25. 화재수신반 원격감시·경보 UI | v1.5 | 4/6 | In Progress |  |
 
 ## Backlog
 
@@ -336,7 +336,7 @@ Plans:
 - [x] 25-02-PLAN.md (Wave 2) — 대시보드: 모바일 16:9 수신반 카드 + 경보/점검 칩 · 데스크톱 라이브 위젯 + 배너 칩 (2/2 tasks · 67bfc10/660cb23 · tsc clean · 2026-07-01)
 - [ ] 25-03-PLAN.md (Wave 2) — 모바일 화재수신반 페이지: FireAlarmModal 확장(점검모드 토글·라이브·48h 이벤트·resolve/create 저장 분기) + 전체화면 줌 뷰어 + 딥링크 auto-open
 - [x] 25-04-PLAN.md (Wave 2) — 경보 풀스크린 `/fire-alarm` (FireAlarmPage·ACK) + App.tsx 라우트/no-nav 등록 (2/2 tasks · ac71057e/a449e40a · tsc clean · 2026-07-01)
-- [ ] 25-05-PLAN.md (Wave 3) — 데스크톱 일반점검 3분할 상세 pane(화재수신반) + 경보 takeover modal + 줌 오버레이 (핀치 텍스트 제거)
+- [x] 25-05-PLAN.md (Wave 3) — 데스크톱 일반점검 3분할 상세 pane(화재수신반) + 경보 takeover modal + 줌 오버레이 (핀치 텍스트 제거) (3/3 tasks · 5423935/0634827/311b588 · tsc clean · 2026-07-01)
 - [ ] 25-06-PLAN.md (Wave 3) — Service Worker 딥링크: push url 포워드 + notificationclick 실제 라우팅 (화재→/fire-alarm, 설비→화재수신반 페이지)
 
 ---

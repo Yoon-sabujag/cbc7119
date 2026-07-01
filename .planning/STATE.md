@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: 문서 관리
-status: completed
-stopped_at: "Phase 25 UI-SPEC 승인 (gsd-ui-checker 6/6). 다음: plan-phase 25"
-last_updated: "2026-07-01T03:24:18.571Z"
+status: in_progress
+stopped_at: "Completed 25-05-PLAN.md (데스크톱 3분할 화재수신반 상세 pane + 경보 takeover modal + 줌 오버레이 + FLAG-1 useSearchParams 딥링크). 다음: 25-06 (SW 딥링크)"
+last_updated: "2026-07-01T04:30:00.000Z"
 last_activity: "2026-05-31 - Completed quick task 260531-uyn: **07-elevator 잔존 cleanup 종결** (commit f96534e, branch main). 옵션 B 완결(5-16) 시 별도 quick 후보로 남긴 ElevatorPage.tsx cleanup 2건 처리: ①데스크톱 헤더 "수리 기록" 버튼 yellow gradient(#854d0e,#eab308) → accent gradient(var(--accent-active),var(--accent)) — 모바일 FAB(1762)와 통일, 3A 결정 잔여분 / ②이모지 ✕ 3건(검사성적서 close size20 / 이미지뷰어 close 흰색 size22 / 고장목록 삭제버튼 size14) → lucide `<X>`. 고장 접수 red gradient(#991b1b,#ef4444) 무변경. 메모리 item 3(5721ee5+33cb883)은 기수정 history 라 제외. grep ✕=0 / #854d0e=0 / red 4 잔존 / accent 2 / tsc PASS. 직원 콘솔(20260328) 이관용 4-diff sync 노트 SUMMARY 에 정리(문자열 매칭 적용 — 라인 drift 주의). **07-elevator cleanup 완전 종결 = 잔존 redesign cleanup 0**."
 progress:
   total_phases: 25
   completed_phases: 18
   total_plans: 46
-  completed_plans: 47
+  completed_plans: 48
   percent: 72
 ---
 
