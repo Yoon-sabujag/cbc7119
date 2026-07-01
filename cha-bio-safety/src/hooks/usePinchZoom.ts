@@ -44,6 +44,9 @@ export function usePinchZoom(options: UsePinchZoomOptions = {}) {
   const prevMid = useRef<Pt>({ x: 0, y: 0 })
   const isPinching = useRef(false)
   const lastTap = useRef(0)
+  // 마지막 터치 시각 — 터치 더블탭 뒤 브라우저가 합성하는 dblclick 이 onDoubleClick(줌)을
+  // 재발동해 확대를 즉시 원복시키던 충돌(모바일 더블탭 무반응) 방지용.
+  const lastTouchAt = useRef(0)
 
   // translate 를 컨테이너 경계 안으로 clamp (FloorPlanPage :544-552 포팅)
   const clampTranslate = useCallback((tx: number, ty: number, s: number): Pt => {
@@ -62,6 +65,7 @@ export function usePinchZoom(options: UsePinchZoomOptions = {}) {
   }, [])
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
+    lastTouchAt.current = Date.now()
     const ts = Array.from(e.touches).map(t => ({ x: t.clientX, y: t.clientY }))
     prevTouches.current = ts
     if (ts.length === 2) {
@@ -131,6 +135,7 @@ export function usePinchZoom(options: UsePinchZoomOptions = {}) {
   }, [clampTranslate, maxScale])
 
   const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    lastTouchAt.current = Date.now()
     if (e.touches.length === 0) isPinching.current = false
     prevTouches.current = Array.from(e.touches).map(t => ({ x: t.clientX, y: t.clientY }))
   }, [])
@@ -156,6 +161,8 @@ export function usePinchZoom(options: UsePinchZoomOptions = {}) {
 
   // 마우스 더블클릭 줌 (데스크톱)
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
+    // 터치에서 합성된 dblclick 은 무시 — 터치 더블탭은 onTouchStart 가 이미 처리(중복 원복 방지).
+    if (Date.now() - lastTouchAt.current < 700) return
     if (scaleRef.current > 1.5) {
       reset()
       return
