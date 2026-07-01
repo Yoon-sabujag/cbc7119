@@ -330,8 +330,13 @@ Plans:
 8. 푸시 딥링크 — `src/sw.ts` push 핸들러가 payload `url` 포워드 + `notificationclick`이 `data.url` 읽어 실제 라우팅(화재→경보 풀스크린 `/fire-alarm` / 설비→화재수신반 페이지). 현재 항상 `/` 여는 동작 대체 (HANDOFF §2.0b, blocker 아님)
 
 Plans:
-- [ ] 25-UI-SPEC.md — UI 설계 계약 (spacing/typography/color/copywriting/컴포넌트 인벤토리 · gsd-ui-checker 6차원 검증)
-- [ ] (후속 세션) plan-phase → execute-phase — 시안→TSX 변환 (feature/25-panel-monitoring)
+- [x] 25-UI-SPEC.md — UI 설계 계약 (spacing/typography/color/copywriting/컴포넌트 인벤토리 · gsd-ui-checker 6차원 검증 · approved 2026-07-01)
+- [ ] 25-01-PLAN.md (Wave 1) — 파운데이션: panelApi/alarmApi + interfaces (api.ts) · LivePanelImage + freshness helper · usePinchZoom hook
+- [ ] 25-02-PLAN.md (Wave 2) — 대시보드: 모바일 16:9 수신반 카드 + 경보/점검 칩 · 데스크톱 라이브 위젯 + 배너 칩
+- [ ] 25-03-PLAN.md (Wave 2) — 모바일 화재수신반 페이지: FireAlarmModal 확장(점검모드 토글·라이브·48h 이벤트·resolve/create 저장 분기) + 전체화면 줌 뷰어 + 딥링크 auto-open
+- [ ] 25-04-PLAN.md (Wave 2) — 경보 풀스크린 `/fire-alarm` (FireAlarmPage·ACK) + App.tsx 라우트/no-nav 등록
+- [ ] 25-05-PLAN.md (Wave 3) — 데스크톱 일반점검 3분할 상세 pane(화재수신반) + 경보 takeover modal + 줌 오버레이 (핀치 텍스트 제거)
+- [ ] 25-06-PLAN.md (Wave 3) — Service Worker 딥링크: push url 포워드 + notificationclick 실제 라우팅 (화재→/fire-alarm, 설비→화재수신반 페이지)
 
 ---
 *Roadmap created: 2026-03-28*
