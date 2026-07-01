@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Map as MapIcon, BarChart3, Siren, Users, Flame, Clock, ClipboardList, BellOff } from 'lucide-react'
+import { Map as MapIcon, BarChart3, Siren, Users, Flame, Clock, ClipboardList, BellOff, BellRing, Maximize2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi, panelApi, alarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, CatBar } from '../components/ui'
@@ -104,6 +104,19 @@ export default function DashboardPage() {
 
   const queryClient = useQueryClient()
 
+  // Phase 25 desktop 라이브 위젯: single click -> 일반점검, dblclick -> 줌 오버레이 (240ms 판별)
+  const panelClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handlePanelClick = useCallback(() => {
+    if (panelClickTimer.current) return
+    panelClickTimer.current = setTimeout(() => {
+      panelClickTimer.current = null
+      navigate('/inspection?panel=fire-alarm')
+    }, 240)
+  }, [navigate])
+  const handlePanelDblClick = useCallback(() => {
+    if (panelClickTimer.current) { clearTimeout(panelClickTimer.current); panelClickTimer.current = null }
+    navigate('/inspection?panel=fire-alarm&zoom=1')
+  }, [navigate])
 
   const handleManualComplete = useCallback(async (item: DashboardScheduleItem) => {
     if (!confirm(`"${item.title}"을 완료 처리하시겠습니까?`)) return
@@ -318,6 +331,12 @@ export default function DashboardPage() {
             <div className="text-caption font-bold text-info-bar uppercase tracking-wider">오늘 점검 대상</div>
             <div className="text-body-sm font-bold text-text-primary mt-1 leading-snug">{todayTarget}</div>
           </div>
+          <PanelStateChip
+            activeAlarm={activeAlarm}
+            maintOn={maintOn}
+            maintLabel="점검모드 · 17:30 자동복구"
+            onClick={() => navigate('/inspection?panel=fire-alarm')}
+          />
           {latestAlarm && (
             <>
               <div className="w-px h-9 bg-info-bar/20 shrink-0" />
@@ -437,6 +456,58 @@ export default function DashboardPage() {
 
           {/* 우: 캘린더 + 오늘 일정 (340px) */}
           <div className="w-[340px] shrink-0 flex flex-col gap-4">
+
+            {/* Phase 25: 화재수신반 라이브 위젯 (shrink-0 — flex-1 오늘 일정 높이 침범 방지) */}
+            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden shrink-0">
+              <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border-default">
+                <BellRing size={16} className="text-text-secondary" />
+                <span className="text-label font-bold text-text-primary">화재수신반 라이브</span>
+                <span className="ml-auto text-caption text-text-tertiary">방재실 캡처</span>
+              </div>
+              <div
+                onClick={handlePanelClick}
+                onDoubleClick={handlePanelDblClick}
+                className={`relative bg-black aspect-video cursor-pointer border-y ${activeAlarm ? 'border-danger-bar' : 'border-border-default'}`}
+                style={activeAlarm ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}
+              >
+                <LivePanelImage frameUpdatedAt={frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+                {/* LIVE / 화재 배지 (dot span) */}
+                <div
+                  className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
+                  style={{ background: activeAlarm ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}
+                >
+                  <span className="w-[6px] h-[6px] rounded-full bg-white" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
+                  {activeAlarm ? '화재' : 'LIVE'}
+                </div>
+                {/* 더블클릭 확대 힌트 */}
+                <div className="absolute bottom-[7px] right-[7px] inline-flex items-center gap-1 bg-black/50 rounded-sm px-[7px] py-0.5 text-[10px] text-white pointer-events-none">
+                  <Maximize2 size={13} />
+                  더블클릭 확대
+                </div>
+              </div>
+              {/* 캡션 — 평상/경보 (desktop 13px/600 = text-label) */}
+              <div className="flex items-center gap-[7px] px-[13px] py-[9px] text-label text-text-secondary font-semibold">
+                {activeAlarm ? (
+                  <>
+                    <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
+                    <span className="text-danger font-bold">화재 발생</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span className="truncate">{activeAlarm.location ?? '장소 확인'}</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span className="font-mono tabular-nums shrink-0">{activeAlarm.detectedAt}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-[7px] h-[7px] rounded-full bg-safe-bar shrink-0" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
+                    <span className="text-safe font-bold">정상</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span>이상 없음</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span className="font-mono tabular-nums">{freshnessLabel(frameUpdatedAt).label}</span>
+                  </>
+                )}
+              </div>
+            </div>
 
             {/* 미니 캘린더 */}
             <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-4 shrink-0">
