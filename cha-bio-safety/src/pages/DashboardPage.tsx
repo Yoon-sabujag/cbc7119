@@ -567,8 +567,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 오늘 일정 — shrink-0 h-[133px] (좌측 빠른도구 행 높이와 일치 → top 정렬) */}
-            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col shrink-0 h-[133px]">
+            {/* 오늘 일정 — shrink-0 h-[126px] (좌측 빠른도구 실측 행 높이 126px 와 일치 → 오늘일정 top==빠른도구 top,
+                캘린더 카드 bottom==점검현황 카드 bottom. 실제 화면 getBoundingClientRect 측정값 기준). */}
+            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col shrink-0 h-[126px]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border-default shrink-0">
                 <span className="text-label font-bold text-text-primary">오늘 일정</span>
                 <span className="text-caption text-text-tertiary bg-surface-sunken px-2.5 py-0.5 rounded-pill">{schedule.length}건</span>
