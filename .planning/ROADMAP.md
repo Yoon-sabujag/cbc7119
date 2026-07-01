@@ -7,6 +7,7 @@
 - ✅ **v1.2 UX 개선 + 다운로드** — Phases 12-15 (shipped 2026-04-06)
 - ✅ **v1.3 설정 페이지** — Phases 16-19 (shipped 2026-04-08)
 - 🚧 **v1.4 문서 관리** — Phases 20-22 (started 2026-04-08)
+- 🔔 **v1.5 화재수신반 원격감시** — Phase 25 (started 2026-06-30)
 
 ## Phases
 
@@ -66,6 +67,10 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 ### 🧯 Ops Observation Fixes (retroactive)
 
 - [x] **Phase 23: Observation-Mode Bug Fixes** — 2026-04-23~24 운영 관찰 중 발견된 3건 즉시 수정 (푸시 cron 침묵 복구 / 교육 알림 D-60 재설계 + 신규교육 트리거 추가 / 대시보드-모바일 점검 카드 기준 통일). GSD 밖에서 작업 후 소급 기록. 세부: `.planning/phases/23-obs-mode-bugfixes/`
+
+### 🔔 v1.5 화재수신반 원격감시 (Phase 25)
+
+- [ ] **Phase 25: 화재수신반 원격감시·경보 UI (시안→TSX)** — 방재실 수신반 미러링 라이브뷰 + 색 기반 경보(빨강=화재/초록=설비) 감지 UI. 모바일(대시보드 수신반 카드·경보칩 / 화재수신반 페이지 / 경보 풀스크린 / 줌 뷰어) + 데스크톱(라이브 위젯 / 일반점검 3분할 상세 pane). 순수 시각(sketch→TSX), 백엔드·데이터·에이전트는 별도 트랙(cbc7119-data). 세부: `.planning/phases/25-panel-monitoring/`
 
 ## Phase Details
 
@@ -305,6 +310,28 @@ Plans:
 - [x] 24-04-PLAN.md — FloorPlanPage 마커 모달 단순화 + ❓ 빈 마커 + 범례 미배치 + URL state machine + 점검 카드 sub-action
 - [x] 24-05-PLAN.md — InspectionPage + 새로 등록 버튼 + extDetail 카드 sub-action (정보 수정 / 분리)
 - [x] 24-06-PLAN.md — Production deploy (--branch=production) + version bump + 7 success criteria UAT
+
+### Phase 25: 화재수신반 원격감시·경보 UI (시안→TSX)
+
+**Goal:** 방재실 화재수신반 미러링 라이브뷰와 색 기반 경보(빨강=화재 / 초록=설비동작) UI를 모바일·데스크톱에 구현한다. 순수 시각(sketch→TSX) — 표시 로직·라벨·상태 전이는 HANDOFF §1 API 계약 기준으로 렌더하고, 백엔드·데이터·맥 에이전트는 별도 트랙(cbc7119-data)이 담당한다. 이 콘솔은 wrangler 금지 · main push → cbc7119-preview 자동배포로만 확인.
+**Requirements**: PANEL-UI-01~07 (this phase)
+**Depends on:** Phase 24 (InspectionPage 화재수신반 카드 / FireAlarmModal / 데스크톱 3분할 DesktopInspectionView)
+**Track:** cbc7119-design (시각 전용)
+**Source 시안 (개념 참고 · repo 밖):** `~/Desktop/수신반-미리보기/index.html`(모바일) · `desktop.html`(데스크톱) · 설계·룰 SSOT: `~/Desktop/수신반-미리보기/HANDOFF.md` §2
+
+**Success Criteria:**
+1. 모바일 대시보드 — '오늘 점검 대상' 바로 아래 순수 16:9 수신반 화면 카드(상태줄·LIVE·버튼 없음, 탭→화재수신반) + '오늘 점검 대상' 우측 경보 전용 영역(경보중=빨강 blink chip·해제/조치완료 저장 시 소멸 / 점검모드=회색 무점멸 chip / 평상시=비움)
+2. 모바일 화재수신반 페이지 — 헤더 점검모드 토글(단일 조작점) + 라이브 카드(탭→줌 뷰어) + 최근 이벤트(48h) + 수기폼(기존 `FireAlarmModal` 확장). 경보중=비화재보 자동초안 안내+폼, 점검모드=자동화 안내문+라이브/이벤트 유지·수기폼 숨김
+3. 경보 풀스크린 `/fire-alarm` (푸시 탭 목적지) — 빨강(화재)/초록(설비) takeover + '확인'(ACK). 화재=재발송 경고 문구, 설비=단발
+4. 전체화면 줌 뷰어 — 라이브 16:9 + 더블탭/핀치 줌(FloorPlanPage 패턴 재사용), body:fixed 금지 스크롤락
+5. 데스크톱 대시보드 — 우측 컬럼 최상단 수신반 라이브 위젯(클릭→일반점검, 더블클릭→줌 오버레이) + 상태별 정상/화재 캡션
+6. 데스크톱 일반점검 3분할 — 화재수신반 상세 pane(라이브→(경보중)비화재보 초안 안내+폼→최근 이벤트→(평상시)수기폼) + 상세 헤더 점검모드 토글(정상라이브 pill·전체화면 버튼 제거) + 헤더 아래 경보배너 없음(라이브 빨강+초안 안내로만) + 화면 내 경보 takeover modal
+7. 아이콘 lucide-react 통일·이모지 0, 앱 다크 토큰·헤더 크롬 룰 준수, 색=의미 고정(경보 danger #ef4444 / 설비 safe #22c55e / 점검 gray), 라이브/상태/이벤트는 API(§1 계약) 기준 렌더 + 미배포 엔드포인트 204/빈응답 graceful(placeholder)
+8. 푸시 딥링크 — `src/sw.ts` push 핸들러가 payload `url` 포워드 + `notificationclick`이 `data.url` 읽어 실제 라우팅(화재→경보 풀스크린 `/fire-alarm` / 설비→화재수신반 페이지). 현재 항상 `/` 여는 동작 대체 (HANDOFF §2.0b, blocker 아님)
+
+Plans:
+- [ ] 25-UI-SPEC.md — UI 설계 계약 (spacing/typography/color/copywriting/컴포넌트 인벤토리 · gsd-ui-checker 6차원 검증)
+- [ ] (후속 세션) plan-phase → execute-phase — 시안→TSX 변환 (feature/25-panel-monitoring)
 
 ---
 *Roadmap created: 2026-03-28*

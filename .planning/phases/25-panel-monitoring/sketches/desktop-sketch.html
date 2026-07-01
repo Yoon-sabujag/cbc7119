@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>화재수신반 데스크톱 시안</title>
+<style>
+/* ===== 디자인 토큰 (앱 tokens.css 다크 = 기본, 모바일 시안과 동일) ===== */
+:root{
+  --page:#0a0d12; --raised:#1a1f27; --sunken:#232a33; --active:#2c333d;
+  --sidebar:#11151c; --logo:#0d1117;
+  --t1:#e6edf3; --t2:#adb6c0; --t3:#8b949e;
+  --bd:rgba(255,255,255,.14); --bd2:rgba(255,255,255,.22);
+  --accent:#3b82f6; --acl:#60a5fa; --info:#0ea5e9;
+  --danger:#f87171; --danger-bar:#ef4444; --danger-bg:rgba(239,68,68,.13);
+  --fire:#fb923c; --fire-bar:#f97316; --fire-bg:rgba(249,115,22,.14);
+  --safe:#4ade80; --safe-bar:#22c55e;
+  --warn:#f59e0b;
+  --c-day:#f59e0b; --c-night:#ef4444; --c-off:#3b82f6; --c-leave:#6b7280;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Pretendard","Pretendard Variable",system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  background:#1d2126; color:#cfd6dd; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column; align-items:center;
+  padding:16px 16px 40px;
+}
+.ic{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img{display:block}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* ===== 페이지 헤더 / 범례 ===== */
+.brief{width:100%;max-width:1480px;text-align:center;margin-bottom:14px}
+.brief h1{font-size:19px;font-weight:700;color:#f1f4f8;letter-spacing:-.2px}
+.brief p{font-size:13px;color:#9aa3ad;margin-top:5px}
+.legend{display:flex;flex-wrap:wrap;justify-content:center;gap:7px 10px;margin-top:11px;font-size:12px;color:#aab2bc}
+.legend span{display:inline-flex;align-items:center;gap:6px;background:#21262d;border:1px solid #353c45;border-radius:99px;padding:4px 11px}
+.dotc{width:9px;height:9px;border-radius:50%}
+
+/* ===== 상단 뷰 전환 탭 + 상태 서브토글 ===== */
+.controls{width:100%;max-width:1480px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:11px;flex-wrap:wrap}
+.view-tabs{display:flex;gap:6px;background:#21262d;border:1px solid #353c45;padding:6px;border-radius:14px}
+.view-tab{font-size:14px;font-weight:600;color:#9aa3ad;padding:9px 20px;border-radius:10px;white-space:nowrap;transition:.15s}
+.view-tab:hover{color:#cfd6dd}
+.view-tab.active{background:linear-gradient(135deg,#1d4ed8,#0ea5e9);color:#fff}
+.state-wrap{display:flex;align-items:center;gap:10px;font-size:12.5px;color:#8a929c}
+.state-toggle{display:inline-flex;background:#1b2026;border:1px solid #353c45;border-radius:99px;padding:4px}
+.state-btn{font-size:13.5px;font-weight:700;color:#9aa3ad;padding:7px 16px;border-radius:99px;transition:.15s}
+.state-btn.on{background:var(--active);color:var(--t1)}
+.state-btn.on[data-s="alarm"]{background:var(--danger-bg);color:var(--danger)}
+.state-btn.on[data-s="inspect"]{background:rgba(139,148,158,.2);color:#c2cad3}
+
+/* ===== 데스크톱 브라우저 목업 ===== */
+.browser{
+  width:1480px;max-width:calc(100vw - 32px);
+  height:928px;max-height:calc(100vh - 30px);
+  background:#0b0e13;border-radius:14px;overflow:hidden;
+  box-shadow:0 0 0 1px #313842, 0 26px 70px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;
+}
+.browser-bar{height:44px;flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:0 16px;background:#15191f;border-bottom:1px solid rgba(255,255,255,.07)}
+.tl{display:flex;gap:8px}
+.tl i{width:12px;height:12px;border-radius:50%}
+.url{flex:1;max-width:560px;height:28px;display:flex;align-items:center;gap:8px;padding:0 13px;background:#0b0e13;border:1px solid rgba(255,255,255,.08);border-radius:8px;font-size:12.5px;color:#8b949e}
+.url svg{flex:0 0 auto;color:#6b7682}
+.browser-bar .bspacer{flex:1}
+.browser-bar .bicons{display:flex;gap:14px;color:#6b7682}
+
+/* ===== 앱 셸 (사이드바 + 메인) ===== */
+.app{flex:1 1 auto;display:flex;min-height:0;position:relative;background:var(--page);transition:box-shadow .25s}
+#app[data-state="alarm"]{box-shadow:inset 0 0 0 3px rgba(239,68,68,.6), inset 0 0 60px rgba(239,68,68,.12)}
+#app[data-state="inspect"]{box-shadow:inset 0 0 0 2px rgba(139,148,158,.4)}
+
+/* ----- 좌측 사이드바 280px ----- */
+.dsidebar{width:280px;flex:0 0 auto;background:var(--sidebar);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
+.logo-strip{height:54px;flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:0 18px;border-bottom:1px solid var(--bd);background:var(--logo)}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#dc2626,#f97316);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.logo-tx b{display:block;font-size:14px;font-weight:800;color:var(--t1);line-height:1.15}
+.logo-tx span{font-size:10.5px;color:var(--t3)}
+.nav-scroll{flex:1 1 auto;overflow-y:auto;padding:8px 0}
+.nav-scroll::-webkit-scrollbar{width:5px}.nav-scroll::-webkit-scrollbar-thumb{background:#2a313b;border-radius:9px}
+.nav-sec{padding:4px 0}
+.nav-sec-h{display:flex;align-items:center;justify-content:space-between;padding:9px 18px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--t3);text-transform:none}
+.nav-sec-h .chev{color:#5a6470}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 18px 10px 17px;font-size:14px;font-weight:600;color:var(--t2);border-left:3px solid transparent;cursor:pointer;transition:.12s}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--t1)}
+.nav-item.active{background:var(--active);color:var(--t1);border-left-color:var(--acl)}
+.nav-item svg{flex:0 0 auto;color:inherit;opacity:.85}
+.nav-item .nbadge{margin-left:auto;font-size:10.5px;font-weight:800;color:#fff;background:var(--danger-bar);border-radius:99px;padding:1px 7px;min-width:18px;text-align:center}
+.nav-item .ndot{margin-left:auto;width:8px;height:8px;border-radius:50%}
+.user-card{flex:0 0 auto;height:60px;display:flex;align-items:center;gap:11px;padding:0 16px;border-top:1px solid var(--bd)}
+.user-card .uav{width:36px;height:36px;border-radius:50%;background:var(--c-day);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex:0 0 auto}
+.user-card .uname{font-size:13.5px;font-weight:700;color:var(--t1);line-height:1.2}
+.user-card .urole{font-size:11px;color:var(--t3)}
+.user-card .ugear{margin-left:auto;width:34px;height:34px;border-radius:9px;background:var(--sunken);color:var(--t2);display:flex;align-items:center;justify-content:center}
+
+/* ----- 메인 영역 ----- */
+.dmain{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0}
+.dhead{min-height:54px;flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:8px 28px;border-bottom:1px solid var(--bd);background:var(--raised)}
+.dhead .ph-title{font-size:19px;font-weight:700;color:var(--t1)}
+.dhead .ph-title .ico{vertical-align:-3px;margin-right:8px;color:var(--t2)}
+.dhead .ph-slot{margin-left:auto;display:flex;align-items:center;gap:12px}
+.dhead .ph-date{font-size:14px;font-weight:600;color:var(--t2)}
+.streak{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#fbbf24;background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.35);border-radius:99px;padding:6px 14px}
+/* 점검모드 인-페이지 스위치 */
+.imode-switch{display:inline-flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;color:var(--t2);background:var(--sunken);border:1px solid var(--bd);border-radius:99px;padding:6px 9px 6px 14px;cursor:pointer}
+.imode-switch .sw{width:38px;height:22px;border-radius:99px;background:#39414c;position:relative;transition:.18s;flex:0 0 auto}
+.imode-switch .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#cfd6dd;transition:.18s}
+#app[data-state="inspect"] .imode-switch{color:#c2cad3;border-color:rgba(139,148,158,.5)}
+#app[data-state="inspect"] .imode-switch .sw{background:#6b7682}
+#app[data-state="inspect"] .imode-switch .sw::after{left:18px;background:#fff}
+/* 점검모드 = 헤더 토글 1개로만 조작 + 자동화 안내 (별도 종료버튼 없음) */
+.imode-control{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.imode-auto{font-size:10.5px;font-weight:600;color:var(--t3);text-align:right;line-height:1.5;max-width:340px}
+#app[data-state="inspect"] .imode-auto{color:#aeb6bf}
+.maint-autonote{display:flex;align-items:flex-start;gap:9px;padding:11px 14px;border-radius:12px;background:var(--sunken);border:1px solid var(--bd2);font-size:12.5px;color:var(--t3);line-height:1.55;flex:0 0 auto}
+.maint-autonote .ma-ic{flex:0 0 auto;font-size:14px;margin-top:1px}
+.maint-autonote b{color:var(--t2);font-weight:700}
+
+/* ----- 상단 상태 배너 (경보/점검모드 — 데스크톱은 화면 내 배너) ----- */
+.state-banner{flex:0 0 auto;display:flex;align-items:center;gap:13px;padding:11px 28px}
+.banner-alarm{background:linear-gradient(100deg,rgba(220,38,38,.28),rgba(239,68,68,.12));border-bottom:1px solid rgba(239,68,68,.5)}
+.banner-alarm .bdot{width:9px;height:9px;border-radius:50%;background:var(--danger-bar);animation:blink 1s steps(1) infinite;flex:0 0 auto}
+.banner-alarm .btx{flex:1;font-size:14px;color:#fecaca}
+.banner-alarm .btx b{color:#fff;font-weight:800}
+.bn-btn{flex:0 0 auto;font-size:13px;font-weight:700;padding:8px 15px;border-radius:9px}
+.bn-btn.solid{background:#fff;color:#b91c1c}
+.bn-btn.ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.bn-btn.gray{background:var(--sunken);color:var(--t2);border:1px solid var(--bd)}
+
+/* ----- 뷰 컨테이너 ----- */
+.dview{flex:1 1 auto;min-height:0}
+.dview-dash{overflow-y:auto}
+.dview-dash::-webkit-scrollbar{width:7px}.dview-dash::-webkit-scrollbar-thumb{background:#2a313b;border-radius:9px}
+.dview-panel{overflow:hidden;display:flex}   /* 일반점검 = 좌 항목그리드 / 우 상세 독립 스크롤 */
+#app[data-view="dash"] .dview-panel{display:none}
+#app[data-view="panel"] .dview-dash{display:none}
+/* 헤더 타이틀 아이콘 뷰별 스왑 */
+#app[data-view="dash"] .ico-panel{display:none}
+#app[data-view="panel"] .ico-dash{display:none}
+
+/* ===== 상태별 가시성 ===== */
+#app[data-state="normal"] .only-alarm,#app[data-state="normal"] .only-inspect{display:none!important}
+#app[data-state="alarm"] .only-normal,#app[data-state="alarm"] .only-inspect{display:none!important}
+#app[data-state="inspect"] .only-normal,#app[data-state="inspect"] .only-alarm{display:none!important}
+#app[data-state="inspect"] .hide-inspect{display:none!important}   /* 점검모드: 이벤트/수기폼 숨김 */
+#app[data-state="alarm"] .show-ni{display:none!important}   /* 정상+점검모드 공통(라이브 화면 = 점검모드에도 평소처럼) */
+
+/* ===== 공통 카드 ===== */
+.card{background:var(--raised);border:1px solid var(--bd);border-radius:14px;transition:transform .14s,box-shadow .14s}
+.lift:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.sec-cap{font-size:14px;font-weight:700;color:var(--t2)}
+
+/* ===== 대시보드 ===== */
+.dash-wrap{padding:20px 28px 28px;display:flex;flex-direction:column;gap:16px}
+
+/* Row0 근무자 바 */
+.dutybar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dutygrp{display:flex;align-items:center;gap:9px}
+.rolelbl{font-size:11px;font-weight:800;color:var(--t3);letter-spacing:-.3px}
+.rolelbl.mgr{color:rgba(245,158,11,.85)}
+.rolelbl.asst{color:rgba(173,182,192,.7)}
+.dchip{display:flex;align-items:center;gap:8px;border-radius:99px;padding:5px 14px 5px 5px;border:1px solid}
+.dchip .av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex:0 0 auto}
+.dchip .nm{font-size:13.5px;font-weight:700;color:var(--t1);line-height:1.15}
+.dchip .lb{font-size:11px;font-weight:600;line-height:1.1}
+
+/* Row1 오늘 점검 대상 전폭 배너 (+ 우측 수신반 이력/경보) */
+.target{border:1px solid rgba(14,165,233,.3);border-radius:14px;padding:14px 22px;display:flex;align-items:center;gap:16px;
+  background:linear-gradient(100deg,rgba(37,99,235,.18),rgba(14,165,233,.07))}
+.target .pdot{width:8px;height:8px;border-radius:50%;background:var(--info);flex:0 0 auto;animation:blink 2s ease-in-out infinite}
+.target .cap{font-size:12px;font-weight:800;color:var(--info);text-transform:uppercase;letter-spacing:.07em}
+.target .ttl{font-size:18px;font-weight:800;color:var(--t1);margin-top:3px;line-height:1.15}
+.target .grow{flex:1}
+.tgt-divider{width:1px;align-self:stretch;background:rgba(255,255,255,.13);margin:0 2px}
+.tgt-recv{flex:0 0 auto;text-align:right}
+.tgt-recv .recv-ok{font-size:14px;font-weight:800;color:var(--safe);white-space:nowrap;display:flex;align-items:center;justify-content:flex-end;gap:6px}
+.tgt-recv .recv-sub{font-size:12px;color:var(--t3);margin-top:3px;white-space:nowrap}
+.alarm-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:#fff;text-align:left;line-height:1.2;
+  background:linear-gradient(135deg,#dc2626,#ef4444);border-radius:99px;padding:11px 18px;cursor:pointer;
+  box-shadow:0 0 0 1px rgba(239,68,68,.55),0 3px 14px rgba(239,68,68,.4);animation:chipblink 1.6s ease-in-out infinite}
+.alarm-chip .ac-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:0 0 auto;animation:blink 1s steps(1) infinite}
+.inspect-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:800;color:#c2cad3;
+  background:rgba(139,148,158,.16);border:1px solid rgba(139,148,158,.4);border-radius:99px;padding:10px 16px}
+
+/* Row2 통계 4열 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{background:var(--raised);border:1px solid var(--bd);border-radius:14px;padding:16px 18px 18px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.stat .lab{font-size:14px;font-weight:700;color:var(--t3)}
+.stat .vrow{display:flex;align-items:baseline;gap:7px}
+.stat .val{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:36px;font-weight:600;line-height:1;color:var(--t1)}
+.stat .sub{font-size:14px;color:var(--t3)}
+.stat .bar{position:absolute;bottom:0;left:0;right:0;height:3px}
+
+/* Row3 본문 2열 */
+.body2{display:flex;gap:16px;align-items:flex-start}
+.col-left{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:16px}
+.col-right{width:360px;flex:0 0 auto;display:flex;flex-direction:column;gap:16px}
+
+/* 도넛 카드 */
+.donut-card .dh{display:flex;justify-content:space-between;align-items:center;padding:13px 20px;border-bottom:1px solid var(--bd)}
+.donut-card .dh .y{font-size:13px;color:var(--t3)}
+.donut-grid{display:flex;flex-wrap:wrap;gap:18px 10px;padding:20px 18px;justify-content:space-between}
+.donut-item{display:flex;flex-direction:column;align-items:center;gap:7px;width:96px}
+.donut-wrap{position:relative;width:76px;height:76px}
+.donut-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",monospace;font-size:17px;font-weight:700}
+.donut-item .nm{font-size:13px;color:var(--t2);max-width:96px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.donut-item .fr{font-size:12.5px;color:var(--t3)}
+.donut-item .fr.done{color:var(--safe);font-weight:700}
+
+/* 빠른 도구 4열 (§7.1 전부 회색 통일) */
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.tool{background:var(--raised);border:1px solid var(--bd);border-radius:14px;padding:18px;display:flex;align-items:center;gap:14px;cursor:pointer}
+.tool .ib{width:46px;height:46px;border-radius:13px;background:var(--sunken);display:flex;align-items:center;justify-content:center;color:var(--t2);flex:0 0 auto}
+.tool .tt{font-size:15px;font-weight:700;color:var(--t1)}
+.tool .td{font-size:12.5px;color:var(--t3);margin-top:3px;line-height:1.3}
+
+/* ★ 수신반 라이브 카드 (우측 컬럼 최상단 — 후보1) */
+.live-pure{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:16/9;cursor:pointer;border:1px solid var(--bd);flex:0 0 auto}
+.live-pure img{width:100%;height:100%;object-fit:cover}
+#app[data-state="alarm"] .live-pure{border-color:var(--danger-bar);box-shadow:0 0 0 1px var(--danger-bar),0 0 22px rgba(239,68,68,.4);animation:firepulse 1.4s ease-in-out infinite}
+.live-badge{position:absolute;top:9px;left:9px;font-size:11px;font-weight:800;color:#fff;border-radius:99px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px}
+.live-badge.lb-live{background:rgba(34,197,94,.88)}
+.live-badge.lb-fire{background:rgba(239,68,68,.92)}
+.live-badge .bdot{width:6px;height:6px;border-radius:50%;background:#fff;animation:blink 1s steps(1) infinite}
+.live-hint{position:absolute;right:9px;bottom:9px;font-size:11px;font-weight:600;color:#fff;background:rgba(0,0,0,.55);border-radius:8px;padding:3px 9px;display:inline-flex;align-items:center;gap:5px;pointer-events:none}
+.live-cap{display:flex;align-items:center;gap:7px;padding:9px 13px;font-size:13px;color:var(--t2);font-weight:600}
+.live-cap .lc-ok{color:var(--safe);font-weight:800}
+.live-cap .lc-fire{color:var(--danger);font-weight:800}
+
+/* 미니 캘린더 */
+.calsec{padding:14px 16px 16px}
+.cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.cal-h .m{font-size:14px;font-weight:700;color:var(--t1)}
+.cal-h .nav{display:flex;gap:6px}
+.cal-h .nav button{width:28px;height:28px;border-radius:8px;background:var(--sunken);color:var(--t2);display:flex;align-items:center;justify-content:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-wd{font-size:11px;font-weight:700;color:var(--t3);text-align:center;padding:3px 0}
+.cal-wd.sun{color:var(--danger)}.cal-wd.sat{color:var(--acl)}
+.cal-d{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12.5px;color:var(--t2);position:relative}
+.cal-d.muted{color:#444c56}
+.cal-d.hol{color:var(--danger);font-weight:700}
+.cal-d.today{background:var(--accent);color:#fff;font-weight:800}
+.cal-d .cdots{display:flex;gap:2px;height:5px}
+.cal-d .cdots i{width:4px;height:4px;border-radius:50%}
+
+/* 오늘 일정 리스트 */
+.sched{padding:14px 16px 16px}
+.sched-h{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:11px;display:flex;align-items:center;gap:7px}
+.sched-grp{font-size:11px;font-weight:800;color:var(--t3);margin:9px 0 6px;letter-spacing:.03em}
+.srow{display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-top:1px solid var(--bd)}
+.srow:first-of-type{border-top:none}
+.srow .stime{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;color:var(--acl);flex:0 0 auto;width:42px;padding-top:1px}
+.srow .stime.tbd{color:var(--t3);font-family:inherit;font-size:11.5px;font-weight:600}
+.srow .stt{font-size:13.5px;font-weight:600;color:var(--t1);line-height:1.3}
+.srow .ssub{font-size:12px;color:var(--t3);margin-top:2px}
+.srow .scat{width:4px;align-self:stretch;border-radius:99px;flex:0 0 auto}
+
+/* ===== 일반 점검 페이지 (3분할: 사이드바 | 항목 그리드 | 화재수신반 상세) ===== */
+.inspect-split{flex:1 1 auto;min-height:0;display:flex;overflow:hidden}
+/* 좌: 일반점검 '항목 리스트' = 카테고리 카드 그리드 (50%) */
+.inspect-master{width:50%;flex:0 0 auto;min-width:0;border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0;background:var(--page)}
+.im-head{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--bd);background:var(--raised)}
+.im-head .im-cap{font-size:14px;font-weight:700;color:var(--t1)}
+.period-tabs{display:flex;gap:5px;margin-left:auto}
+.period-tab{font-size:12px;font-weight:600;color:var(--t3);padding:6px 11px;border-radius:8px;background:var(--sunken);border:1px solid var(--bd);line-height:1}
+.period-tab.on{background:var(--active);color:var(--t1);border-color:var(--bd2)}
+.im-scroll{flex:1 1 auto;overflow-y:auto;padding:16px}
+.im-scroll::-webkit-scrollbar{width:7px}.im-scroll::-webkit-scrollbar-thumb{background:#2a313b;border-radius:9px}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.cat-card{background:var(--raised);border:1px solid var(--bd);border-radius:12px;padding:13px 13px 12px;cursor:pointer;transition:transform .13s,border-color .13s}
+.cat-card:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.cat-card.sel{border-color:var(--acl);background:var(--active);box-shadow:0 0 0 1px var(--acl)}
+.cat-card .cc-top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.cat-card .cc-ico{width:32px;height:32px;border-radius:9px;background:var(--sunken);display:flex;align-items:center;justify-content:center;color:var(--t2);flex:0 0 auto}
+.cat-card.sel .cc-ico{background:var(--accent);color:#fff}
+.cat-card .cc-name{font-size:13px;font-weight:700;color:var(--t1);line-height:1.22;min-width:0}
+.cat-card .cc-frac{font-size:11.5px;color:var(--t3);margin-bottom:7px}
+.cat-card .cc-bar{height:5px;border-radius:99px;background:var(--sunken);overflow:hidden}
+.cat-card .cc-bar i{display:block;height:100%;border-radius:99px}
+.cat-card .cc-meta{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:9px;min-height:18px}
+.cat-card .cc-done{font-size:11.5px;font-weight:700;color:var(--safe);white-space:nowrap}
+.cat-card .cc-done.zero{color:var(--t3)}
+.cat-card .cc-flags{display:flex;gap:4px;flex:0 0 auto}
+.cat-card .cc-flag{font-size:10px;font-weight:800;border-radius:6px;padding:2px 6px;white-space:nowrap}
+.cat-card .cc-flag.bad{color:var(--danger);background:var(--danger-bg)}
+.cat-card .cc-flag.caution{color:var(--fire);background:var(--fire-bg)}
+
+/* 우: 화재수신반 '상세 pane' = 좁은 단일 컬럼 → 세로 스택 (50%) */
+.inspect-detail{width:50%;flex:0 0 auto;min-width:0;display:flex;flex-direction:column;min-height:0}
+.id-head{flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid var(--bd);background:var(--raised)}
+.id-back{width:32px;height:32px;border-radius:9px;background:var(--sunken);color:var(--t2);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.id-title{font-size:16px;font-weight:700;color:var(--t1)}
+.id-statpill{font-size:11.5px;font-weight:800;border-radius:99px;padding:4px 11px;display:inline-flex;align-items:center;gap:5px;line-height:1}
+.id-statpill .d{width:6px;height:6px;border-radius:50%;background:currentColor}
+.id-statpill.normal{color:var(--safe);background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4)}
+.id-statpill.alarm{color:var(--danger);background:var(--danger-bg);border:1px solid rgba(239,68,68,.45)}
+.id-full{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--acl);background:var(--sunken);border:1px solid var(--bd);border-radius:9px;padding:7px 13px;display:inline-flex;align-items:center;gap:6px;line-height:1}
+.id-body{flex:1 1 auto;overflow-y:auto;padding:16px 16px 22px;display:flex;flex-direction:column;gap:15px}
+.id-body::-webkit-scrollbar{width:7px}.id-body::-webkit-scrollbar-thumb{background:#2a313b;border-radius:9px}
+
+/* 큰 라이브뷰 (상세 pane 폭에 맞춰 16:9) */
+.biglive{overflow:hidden;flex:0 0 auto}/* aspect-ratio 라이브 카드가 형제 많을 때 flex-shrink로 찌부러지는 것 방지 */
+#app[data-state="alarm"] .biglive-card{border-color:var(--danger-bar);box-shadow:0 0 0 1px var(--danger-bar),0 0 26px rgba(239,68,68,.35);animation:firepulse 1.5s ease-in-out infinite}
+.bigscreen{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;cursor:pointer;border-radius:14px 14px 0 0}
+.bigscreen img{width:100%;height:100%;object-fit:cover}
+.bigscreen .live-badge{top:13px;left:13px;font-size:13px;padding:5px 13px}
+.bigscreen .live-hint{right:13px;bottom:13px;font-size:12px;padding:5px 11px}
+.biglive .live-status{padding:13px 18px;font-size:14px;color:var(--t2);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.biglive .live-status .ok{color:var(--safe);font-weight:800}
+#app[data-state="alarm"] .biglive .live-status{color:var(--danger)}
+#app[data-state="alarm"] .biglive .live-status .ok{color:var(--danger)}
+
+/* 최근 이벤트 */
+.evt-card .eh{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--bd);gap:8px}
+.evt-card .eh .pill{font-size:12px;color:var(--t3);background:var(--sunken);border-radius:99px;padding:3px 11px}
+.evt-card .eh .pill.live{color:var(--danger);background:var(--danger-bg);border:1px solid rgba(239,68,68,.4)}
+.evt{display:flex;align-items:flex-start;gap:13px;padding:14px 18px;border-bottom:1px solid var(--bd)}
+.evt:last-child{border-bottom:none}
+.evt .ethumb{width:84px;height:48px;border-radius:8px;object-fit:cover;flex:0 0 auto;border:1px solid var(--bd)}
+.evt .badge2{font-size:11.5px;font-weight:800;border-radius:7px;padding:3px 9px;flex:0 0 auto;margin-top:2px;white-space:nowrap}
+.evt .badge2.fire{color:var(--danger);background:var(--danger-bg);border:1px solid rgba(239,68,68,.4)}
+.evt .badge2.non{color:var(--t2);background:var(--sunken);border:1px solid var(--bd)}
+.evt .badge2.equip{color:var(--safe);background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4)}
+.evt .e-main{flex:1;min-width:0}
+.evt .e-time{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--t3)}
+.evt .e-loc{font-size:15px;font-weight:700;color:var(--t1);margin-top:2px}
+.evt .e-desc{font-size:13px;color:var(--t3);margin-top:3px}
+.evt .e-auto{font-size:11px;font-weight:700;color:var(--info);background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.3);border-radius:99px;padding:2px 9px;margin-top:6px;display:inline-block}
+
+/* 우측 — 안내 / 폼 */
+.panel-notice{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:12px;background:var(--danger-bg);border:1px solid rgba(239,68,68,.4);font-size:13.5px;color:var(--danger);line-height:1.5}
+.panel-notice b{font-weight:800;color:#fca5a5}
+.panel-notice .pdot{width:8px;height:8px;border-radius:50%;background:var(--danger-bar);margin-top:5px;animation:blink 1s steps(1) infinite;flex:0 0 auto}
+
+.form-card{padding:18px 18px 8px}
+.fh{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:var(--t1);margin-bottom:16px}
+.fh.alarm{color:var(--danger)}
+.field{margin-bottom:16px}
+.lbl{font-size:13px;font-weight:700;color:var(--t3);margin-bottom:8px;display:block}
+.lbl .req{color:var(--danger);font-weight:800}
+.autotag{font-size:11px;font-weight:800;color:var(--info);background:rgba(14,165,233,.13);border:1px solid rgba(14,165,233,.4);border-radius:99px;padding:2px 8px;margin-left:7px;vertical-align:middle}
+.inp{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--bd);background:var(--raised);color:var(--t1);font-size:14.5px;font-family:inherit;outline:none}
+.inp::placeholder{color:#5d6671}
+textarea.inp{resize:none;line-height:1.55}
+.inp:focus{border-color:var(--accent)}
+.inp.need{border-color:var(--danger-bar);background:var(--danger-bg)}
+.inp.need::placeholder{color:var(--danger)}
+.inp.auto{border-color:rgba(14,165,233,.45)}
+.dt{display:flex;gap:10px}.dt .inp{flex:1}
+.seg{display:flex;gap:10px}
+.seg button{flex:1;padding:13px;border-radius:10px;font-size:14.5px;font-weight:700;border:1px solid var(--bd);background:var(--sunken);color:var(--t2)}
+.seg button.sel-fire{border:2px solid var(--danger-bar);background:var(--danger-bg);color:var(--danger)}
+.seg button.sel-non{border:2px solid var(--accent);background:rgba(59,130,246,.13);color:var(--acl)}
+.form-bar{display:flex;gap:12px;padding:14px 18px 18px}
+.btn-save{flex:1;padding:15px;border-radius:12px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);color:#fff;font-size:15.5px;font-weight:800;box-shadow:0 2px 10px rgba(37,99,235,.32)}
+.btn-save.alarm{background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 2px 10px rgba(239,68,68,.35)}
+.btn-ghost{padding:15px 22px;border-radius:12px;background:var(--page);border:1px solid var(--bd2);color:var(--t2);font-size:15px;font-weight:700}
+
+/* ===== 경보 모달 (데스크톱 화면 내 takeover) ===== */
+.alarm-modal{position:absolute;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 38%,rgba(239,68,68,.42),rgba(90,8,8,.93))}
+#app[data-state="alarm"][data-view="dash"] .alarm-modal:not(.acked){display:flex}
+.alarm-modal .am-card{width:560px;max-width:84%;background:rgba(20,10,12,.72);border:1px solid rgba(255,255,255,.18);border-radius:22px;backdrop-filter:blur(10px);box-shadow:0 24px 70px rgba(0,0,0,.55);padding:40px 40px 34px;text-align:center;color:#fff}
+.alarm-modal .am-ico{width:92px;height:92px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,.28);border:2px solid rgba(255,255,255,.5);animation:faring 1.2s ease-out infinite}
+.alarm-modal .am-kind{font-size:24px;font-weight:800;letter-spacing:-.3px}
+.alarm-modal .am-loc{font-size:46px;font-weight:800;margin-top:8px;letter-spacing:-1px;line-height:1.05}
+.alarm-modal .am-time{font-family:"JetBrains Mono",monospace;font-size:15px;opacity:.85;margin-top:12px}
+.alarm-modal .am-sub{font-size:14px;opacity:.85;margin-top:18px;line-height:1.55}
+.alarm-modal .am-foot{display:flex;gap:12px;margin-top:26px}
+.alarm-modal .am-ack{flex:1;padding:17px;border-radius:14px;font-size:18px;font-weight:800;color:#b91c1c;background:#fff;box-shadow:0 6px 22px rgba(0,0,0,.4)}
+.alarm-modal .am-go{padding:17px 22px;border-radius:14px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3)}
+.alarm-modal .am-note{font-size:12.5px;font-weight:700;opacity:.9;margin-top:14px}
+
+/* ===== 줌 오버레이 (더블클릭 확대) ===== */
+.zoom{position:absolute;inset:0;z-index:95;display:none;flex-direction:column;background:#05070a;color:#fff}
+.zoom.open{display:flex}
+.zoom-top{display:flex;align-items:center;gap:10px;padding:16px 20px}
+.zoom-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#fff;background:rgba(34,197,94,.85);border-radius:99px;padding:3px 11px}
+.zoom-badge.fire{background:rgba(239,68,68,.9)}
+.zoom-badge .bdot{width:6px;height:6px;border-radius:50%;background:#fff;animation:blink 1s steps(1) infinite}
+.zoom-label{font-size:14px;color:#aab2bc;font-weight:600}
+.zoom-close{margin-left:auto;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;justify-content:center}
+.zoom-stage{flex:1;display:flex;align-items:center;justify-content:center;padding:8px 22px;min-height:0}
+.zoom-frame{position:relative;max-width:100%;max-height:100%;aspect-ratio:16/9;width:auto;height:100%;background:#000;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.16);box-shadow:0 10px 40px rgba(0,0,0,.6);cursor:zoom-in}
+.zoom-frame.zoomed{cursor:zoom-out}
+.zoom-frame img{width:100%;height:100%;object-fit:cover;transition:transform .3s ease;transform-origin:center}
+.zoom-frame.zoomed img{transform:scale(2.2)}
+.zoom-hint{text-align:center;font-size:13px;color:#8b949e;padding:12px 0 22px}
+.zoom-hint b{color:#e6edf3}
+
+/* ===== 애니메이션 ===== */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes firepulse{0%,100%{box-shadow:0 0 0 1px var(--danger-bar),0 0 16px rgba(239,68,68,.3)}50%{box-shadow:0 0 0 1px var(--danger-bar),0 0 30px rgba(239,68,68,.55)}}
+@keyframes chipblink{0%,100%{box-shadow:0 0 0 1px rgba(239,68,68,.55),0 0 8px rgba(239,68,68,.35)}50%{box-shadow:0 0 0 1px rgba(239,68,68,.75),0 0 20px rgba(239,68,68,.6)}}
+@keyframes faring{0%{box-shadow:0 0 0 0 rgba(255,255,255,.4)}100%{box-shadow:0 0 0 28px rgba(255,255,255,0)}}
+
+.foot-note{width:100%;max-width:1480px;margin-top:16px;font-size:12px;color:#7c848e;text-align:center;line-height:1.7}
+.foot-note b{color:#aab2bc;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- 페이지 헤더 / 범례 -->
+<div class="brief">
+  <h1>화재수신반 데스크톱 시안</h1>
+  <p>방재실 수신반 화면을 캡처보드 → 맥미니가 R2로 라이브 업로드. 데스크톱(1920×1080)에서 상시 모니터링 · 빨강(화재)·초록(설비) 감지 시 화면 내 경보 takeover.</p>
+  <div class="legend">
+    <span><i class="dotc" style="background:#22c55e"></i>정상 라이브</span>
+    <span><i class="dotc" style="background:#ef4444"></i>화재 경보 (빨강)</span>
+    <span><i class="dotc" style="background:#22c55e"></i>설비 동작 (초록)</span>
+    <span><i class="dotc" style="background:#8b949e"></i>점검모드 (알림 OFF)</span>
+    <span><i class="dotc" style="background:#f59e0b"></i>연결 감시 경고</span>
+  </div>
+</div>
+
+<!-- 뷰 전환 탭 + 상태 서브토글 -->
+<div class="controls">
+  <div class="view-tabs">
+    <button class="view-tab active" data-view="dash" onclick="setView('dash')">대시보드</button>
+    <button class="view-tab" data-view="panel" onclick="setView('panel')">일반 점검 (화재수신반)</button>
+  </div>
+  <div class="state-wrap">
+    <span>상태</span>
+    <div class="state-toggle">
+      <button class="state-btn on" data-s="normal" onclick="setState('normal')">평상시</button>
+      <button class="state-btn" data-s="alarm" onclick="setState('alarm')">🔴 경보중</button>
+      <button class="state-btn" data-s="inspect" onclick="setState('inspect')">🔕 점검모드</button>
+    </div>
+  </div>
+</div>
+
+<!-- 데스크톱 브라우저 목업 -->
+<div class="browser">
+  <div class="browser-bar">
+    <div class="tl"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+    <div class="url">
+      <svg width="13" height="13" viewBox="0 0 24 24" class="ic"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      cha-bio-safety.pages.dev/dashboard
+    </div>
+    <div class="bspacer"></div>
+    <div class="bicons">
+      <svg width="17" height="17" viewBox="0 0 24 24" class="ic"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>
+    </div>
+  </div>
+
+  <div class="app" id="app" data-view="dash" data-state="normal">
+
+    <!-- ===== 좌측 사이드바 280px ===== -->
+    <aside class="dsidebar">
+      <div class="logo-strip">
+        <div class="logo-mark"><svg width="17" height="17" viewBox="0 0 24 24" class="ic" style="stroke:#fff"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></div>
+        <div class="logo-tx"><b>차바이오 방재</b><span>소방안전 통합관리</span></div>
+      </div>
+      <div class="nav-scroll">
+        <div class="nav-sec">
+          <div class="nav-sec-h">점검 현황 <svg class="chev" width="13" height="13" viewBox="0 0 24 24" class="ic"><path d="m6 9 6 6 6-6"/></svg></div>
+          <div class="nav-item" data-nav="dash" onclick="setView('dash')">
+            <svg width="18" height="18" viewBox="0 0 24 24" class="ic"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>대시보드</div>
+          <div class="nav-item" data-nav="panel" onclick="setView('panel')">
+            <svg width="18" height="18" viewBox="0 0 24 24" class="ic"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>일반 점검
+            <span class="ndot only-normal" style="background:var(--safe-bar)" title="화재수신반 정상"></span>
+            <span class="nbadge only-alarm">!</span>
+            <span class="ndot only-inspect" style="background:#8b949e"></span>
+          </div>
+          <div class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" class="ic"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>도면 점검</div>
+          <div class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" class="ic"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>조치 관리</div>
+        </div>
+        <div class="nav-sec">
+          <div class="nav-sec-h">시설 관리 <svg class="chev" width="13" height="13" viewBox="0 0 24 24" class="ic"><path d="m9 6 6 6-6 6"/></svg></div>
+        </div>
+        <div class="nav-sec">
+          <div class="nav-sec-h">문서 관리 <svg class="chev" width="13" height="13" viewBox="0 0 24 24" class="ic"><path d="m9 6 6 6-6 6"/></svg></div>
+        </div>
+        <div class="nav-sec">
+          <div class="nav-sec-h">근무·복지 <svg class="chev" width="13" height="13" viewBox="0 0 24 24" class="ic"><path d="m9 6 6 6-6 6"/></svg></div>
+        </div>
+        <div class="nav-sec">
+          <div class="nav-sec-h">직원 관리 <svg class="chev" width="13" height="13" viewBox="0 0 24 24" class="ic"><path d="m9 6 6 6-6 6"/></svg></div>
+        </div>
+      </div>
+      <div class="user-card">
+        <div class="uav">윤</div>
+        <div><div class="uname">윤종엽</div><div class="urole">방재팀 · 보조자</div></div>
+        <button class="ugear"><svg width="16" height="16" viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      </div>
+    </aside>
+
+    <!-- ===== 메인 영역 ===== -->
+    <main class="dmain">
+      <!-- 콘텐츠 헤더 -->
+      <header class="dhead">
+        <div class="ph-title">
+          <span class="ico ico-dash"><svg width="19" height="19" viewBox="0 0 24 24" class="ic"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
+          <span class="ico ico-panel"><svg width="19" height="19" viewBox="0 0 24 24" class="ic"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></span>
+          <span data-title-dash>대시보드</span>
+        </div>
+        <div class="ph-slot">
+          <span class="ph-date">2026. 6. 30 (화) 12:50</span>
+        </div>
+      </header>
+
+      <!-- (경보 배너 제거 — 경보는 라이브 화면 빨강 + 비화재보 초안 안내로 표시) -->
+      <!-- ============ 뷰 A: 대시보드 ============ -->
+      <div class="dview dview-dash">
+        <div class="dash-wrap">
+
+          <!-- Row0 근무자 바 -->
+          <div class="dutybar">
+            <div class="dutygrp">
+              <span class="rolelbl mgr">관리자</span>
+              <div class="dchip" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.28)">
+                <div class="av" style="background:var(--c-night)">박</div>
+                <div><div class="nm">박재성</div><div class="lb" style="color:var(--c-night)">당직</div></div>
+              </div>
+              <span class="rolelbl asst" style="margin-left:6px">보조자</span>
+              <div class="dchip" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.28)">
+                <div class="av" style="background:var(--c-day)">윤</div>
+                <div><div class="nm">윤종엽</div><div class="lb" style="color:var(--c-day)">주간</div></div>
+              </div>
+              <div class="dchip" style="background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.28)">
+                <div class="av" style="background:var(--c-off)">김</div>
+                <div><div class="nm">김민수</div><div class="lb" style="color:var(--c-off)">비번</div></div>
+              </div>
+            </div>
+            <div class="streak"><svg width="16" height="16" viewBox="0 0 24 24" class="ic" style="color:#fbbf24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>연속 12일 점검 달성</div>
+          </div>
+
+          <!-- Row1 오늘 점검 대상 전폭 배너 -->
+          <div class="target lift">
+            <span class="pdot"></span>
+            <div>
+              <div class="cap">오늘 점검 대상</div>
+              <div class="ttl">소방펌프 정기점검</div>
+            </div>
+            <div class="grow"></div>
+            <div class="tgt-divider"></div>
+            <!-- 평상시: 최근 수신반 이력 스니펫 -->
+            <div class="tgt-recv only-normal">
+              <div class="recv-ok"><i class="dotc" style="background:#22c55e"></i>수신반 정상 · 라이브</div>
+              <div class="recv-sub">최근 비화재보 13:19 · B3F 주차장 D구역</div>
+            </div>
+            <!-- 경보중: 빨강 경보 chip -->
+            <button class="alarm-chip only-alarm" onclick="setView('panel')">
+              <span class="ac-dot"></span>🔴 화재 경보 · B1F-2(DIV)
+            </button>
+            <!-- 점검모드: 회색 chip -->
+            <div class="inspect-chip only-inspect">🔕 점검모드 · 17:30 자동복구</div>
+          </div>
+
+          <!-- Row2 통계 4열 (오늘 현황) -->
+          <div class="stats">
+            <div class="stat lift"><div class="lab">점검 미완료</div><div class="vrow"><span class="val" style="color:var(--danger)">3</span><span class="sub">/ 8 항목</span></div><div class="bar" style="background:var(--danger-bar)"></div></div>
+            <div class="stat lift"><div class="lab">미조치 항목</div><div class="vrow"><span class="val" style="color:var(--fire)">1</span><span class="sub">건</span></div><div class="bar" style="background:var(--fire-bar)"></div></div>
+            <div class="stat lift"><div class="lab">오늘 일정</div><div class="vrow"><span class="val">4</span><span class="sub">건</span></div><div class="bar" style="background:var(--bd)"></div></div>
+            <div class="stat lift"><div class="lab">승강기 고장</div><div class="vrow"><span class="val">0</span><span class="sub">대</span></div><div class="bar" style="background:var(--safe-bar)"></div></div>
+          </div>
+
+          <!-- Row3 본문 2열 -->
+          <div class="body2">
+            <!-- 좌 컬럼 -->
+            <div class="col-left">
+              <div class="card donut-card">
+                <div class="dh"><span class="sec-cap">이번 달 점검 현황</span><span class="y">2026년 6월</span></div>
+                <div class="donut-grid" id="donutGrid"></div>
+              </div>
+              <div>
+                <div class="sec-cap" style="margin-bottom:10px">빠른 도구</div>
+                <div class="tools">
+                  <div class="tool lift"><div class="ib"><svg width="20" height="20" viewBox="0 0 24 24" class="ic"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg></div><div><div class="tt">도면 점검</div><div class="td">평면도에서 직접 점검</div></div></div>
+                  <div class="tool lift"><div class="ib"><svg width="20" height="20" viewBox="0 0 24 24" class="ic"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div><div class="tt">DIV 트렌드</div><div class="td">구역별 점검 추이</div></div></div>
+                  <div class="tool lift"><div class="ib"><svg width="20" height="20" viewBox="0 0 24 24" class="ic"><path d="M7 18v-6a5 5 0 0 1 10 0v6"/><path d="M5 21a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/><path d="M21 12h1M2 12h1M12 2v1"/></svg></div><div><div class="tt">고장 접수</div><div class="td">설비 고장 신고 접수</div></div></div>
+                  <div class="tool lift"><div class="ib"><svg width="20" height="20" viewBox="0 0 24 24" class="ic"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div><div class="tt">직원 서비스</div><div class="td">근무표·연차·식대</div></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 우 컬럼 (수신반 라이브 카드 = 최상단) -->
+            <div class="col-right">
+              <!-- ★ 수신반 라이브 위젯 -->
+              <div class="card" style="overflow:hidden;padding:0">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px 9px">
+                  <span class="sec-cap" style="display:flex;align-items:center;gap:7px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" class="ic" style="color:var(--t2)"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>화재수신반 라이브</span>
+                  <span style="font-size:11px;color:var(--t3)">방재실 캡처</span>
+                </div>
+                <div style="padding:0 12px 4px">
+                  <div class="live-pure" onclick="liveClick()" ondblclick="liveDbl()" title="클릭 → 화재수신반 / 더블클릭 → 확대">
+                    <img class="show-ni" src="./normal.jpg" alt="수신반 라이브">
+                    <img class="only-alarm" src="./fire.png" alt="수신반 화재">
+                    <span class="live-badge lb-live show-ni"><span class="bdot"></span>LIVE</span>
+                    <span class="live-badge lb-fire only-alarm"><span class="bdot"></span>화재</span>
+                    <span class="live-hint">⤢ 더블클릭 확대</span>
+                  </div>
+                </div>
+                <div class="live-cap show-ni"><span class="lc-ok">🟢 정상</span> · 이상 없음 · 방금 업데이트</div>
+                <div class="live-cap only-alarm"><span class="lc-fire">🔴 화재 발생</span> · B1F-2(DIV) · 12:50:35</div>
+              </div>
+
+              <!-- 미니 캘린더 -->
+              <div class="card calsec">
+                <div class="cal-h">
+                  <span class="m">2026년 6월</span>
+                  <span class="nav">
+                    <button><svg width="14" height="14" viewBox="0 0 24 24" class="ic"><path d="m15 18-6-6 6-6"/></svg></button>
+                    <button><svg width="14" height="14" viewBox="0 0 24 24" class="ic"><path d="m9 18 6-6-6-6"/></svg></button>
+                  </span>
+                </div>
+                <div class="cal-grid" id="calGrid"></div>
+              </div>
+
+              <!-- 오늘 일정 -->
+              <div class="card sched">
+                <div class="sched-h"><svg width="17" height="17" viewBox="0 0 24 24" class="ic" style="color:var(--t2)"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>오늘 일정</div>
+                <div class="sched-grp">시간 확정</div>
+                <div class="srow"><span class="scat" style="background:var(--c-night)"></span><span class="stime">13:00</span><div><div class="stt">소방펌프 정기점검</div><div class="ssub">B1 기계실 · 윤종엽</div></div></div>
+                <div class="srow"><span class="scat" style="background:var(--c-off)"></span><span class="stime">15:30</span><div><div class="stt">승강기 월점검 입회</div><div class="ssub">전 호기 · 공단 입회</div></div></div>
+                <div class="sched-grp">시간 미정</div>
+                <div class="srow"><span class="scat" style="background:var(--warn)"></span><span class="stime tbd">미정</span><div><div class="stt">DIV B1F-2 구역 점검</div><div class="ssub">컴프 동시 점검</div></div></div>
+                <div class="srow"><span class="scat" style="background:var(--safe-bar)"></span><span class="stime tbd">미정</span><div><div class="stt">자탐 수신기 라벨 정비</div><div class="ssub">2F 방재실</div></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============ 뷰 B: 일반 점검 (화재수신반 항목 선택) — 사이드바|항목그리드|상세 3분할 ============ -->
+      <div class="dview dview-panel">
+        <div class="inspect-split">
+
+          <!-- ── 좌: 일반점검 '항목 리스트' = 카테고리 카드 그리드 (화재수신반 선택 강조) ── -->
+          <div class="inspect-master">
+            <div class="im-head">
+              <span class="im-cap">점검 항목</span>
+              <div class="period-tabs">
+                <button class="period-tab on">이번달</button>
+                <button class="period-tab">7일</button>
+                <button class="period-tab">30일</button>
+                <button class="period-tab">90일</button>
+                <button class="period-tab">전체</button>
+              </div>
+            </div>
+            <div class="im-scroll"><div class="cat-grid" id="catGrid"></div></div>
+          </div>
+
+          <!-- ── 우: 화재수신반 '상세 pane' = 좁은 단일 컬럼 → 세로 스택 ── -->
+          <div class="inspect-detail">
+            <div class="id-head">
+              <button class="id-back" onclick="setView('dash')"><svg width="17" height="17" viewBox="0 0 24 24" class="ic"><path d="m15 18-6-6 6-6"/></svg></button>
+              <span class="id-title">화재수신반</span>
+              <span style="flex:1 1 auto"></span>
+              <!-- 점검모드 토글 (전체화면 버튼 자리 · 정상라이브 pill 제거) -->
+              <span class="imode-switch" role="switch" onclick="setState(app.dataset.state==='inspect'?'normal':'inspect')" title="점검 모드 켜기/끄기"><span>🔕 점검모드</span><span class="sw"></span></span>
+            </div>
+
+            <div class="id-body">
+
+              <!-- 점검모드 ON 시 자동화 안내 — 라이브 화면 위 배너 (모바일 방식) -->
+              <div class="maint-autonote only-inspect">
+                <span class="ma-ic">⚙️</span>
+                <div>자동 ON/복구 · 월간 점검 계획에 소방점검 일정이 잡힌 날은 일과 시작 시 자동 ON. 야간 일정 없으면 17:30, 있으면 21:00 자동 복구. 필요 시 위 토글로 직접 켜고 끌 수 있습니다.</div>
+              </div>
+
+              <!-- ① 라이브뷰 (상세 pane 폭에 맞춰 16:9) -->
+              <div class="card biglive biglive-card">
+                <div class="bigscreen" onclick="openZoom()" title="클릭하면 크게 보기">
+                  <img class="show-ni" src="./normal.jpg" alt="수신반 라이브뷰">
+                  <img class="only-alarm" src="./fire.png" alt="화재 감지 라이브뷰">
+                  <span class="live-badge lb-live show-ni"><span class="bdot"></span>LIVE · 방재실 수신반</span>
+                  <span class="live-badge lb-fire only-alarm"><span class="bdot"></span>화재 감지</span>
+                  <span class="live-hint">⤢ 클릭하면 크게 보기</span>
+                </div>
+                <div class="live-status show-ni"><span class="ok">🟢 정상</span> · 이상 없음 · 마지막 프레임 방금 · <span class="mono">1.5초 간격 캡처</span></div>
+                <div class="live-status only-alarm"><span class="ok">🔴 화재 발생</span> · B1F-2(DIV) 경비과 3F · <span class="mono">12:50:35</span> · 수신반 리셋 대기중</div>
+              </div>
+
+              <!-- ② (경보중) 비화재보 자동초안 — 안내 + 폼 -->
+              <div class="panel-notice only-alarm">
+                <span class="pdot"></span>
+                <div><b>경보 자동감지 — 비화재보 기록 초안이 생성됐습니다.</b><br>수신반 활성화는 대부분 오작동이라 <b>비화재보</b>로 자동선택됩니다. 현장 확인·조치 후 발생장소·원인·조치를 보완해 저장하고, 실화재면 <b>화재보</b>로 바꾸세요.</div>
+              </div>
+              <div class="card form-card only-alarm">
+                <div class="fh alarm"><svg width="18" height="18" viewBox="0 0 24 24" class="ic"><path d="M12 2 2 19h20L12 2z"/><path d="M12 9v5M12 17v.5"/></svg>자동 생성 초안 — 보완 필요</div>
+                <div class="field"><label class="lbl">구분</label>
+                  <div class="seg"><button>화재보</button><button class="sel-non">비화재보 <span class="autotag">자동선택</span></button></div></div>
+                <div class="field"><label class="lbl">발생일시 <span class="autotag">자동</span></label>
+                  <div class="dt"><input class="inp auto" type="date" value="2026-06-30"><input class="inp auto" type="time" value="12:50"></div></div>
+                <div class="field"><label class="lbl">발생장소 <span class="req">· 확인 필요</span></label>
+                  <textarea class="inp need" rows="2" placeholder="현장 확인 후 입력 (예: B1F-2 DIV 경비과 3F)"></textarea></div>
+                <div class="field"><label class="lbl">발생원인 <span class="req">· 확인 필요</span></label>
+                  <textarea class="inp need" rows="2" placeholder="현장 확인 후 입력 (예: 실화재 / 오작동 / 습기)"></textarea></div>
+                <div class="field"><label class="lbl">조치사항 <span class="req" style="color:var(--info)">· 입력 대기</span></label>
+                  <textarea class="inp auto" rows="2" placeholder="대응 후 조치 내용을 입력하세요"></textarea></div>
+              </div>
+              <div class="form-bar only-alarm">
+                <button class="btn-ghost" onclick="setView('dash')">나중에</button>
+                <button class="btn-save alarm" onclick="setState('normal')">조치완료 후 저장</button>
+              </div>
+
+              <!-- ③ 최근 이벤트 (자동감지) — 점검모드에서도 조회 가능(신규 자동저장만 중지) -->
+              <div class="card evt-card">
+                <div class="eh">
+                  <span class="sec-cap">최근 이벤트 (자동감지)</span>
+                  <span class="pill only-normal">최근 48시간</span>
+                  <span class="pill live only-alarm">● 감지중 1</span>
+                </div>
+                <div class="evt only-alarm" style="background:var(--danger-bg)">
+                  <img class="ethumb" src="./fire.png" alt="">
+                  <span class="badge2 fire">감지중</span>
+                  <div class="e-main">
+                    <div class="e-time">2026.6.30 12:50:35</div>
+                    <div class="e-loc" style="color:var(--danger)">B1F-2(DIV) 경비과 3F</div>
+                    <div class="e-desc">화면 빨강 감지 · 비화재보 추정 · 수신반 리셋 대기중</div>
+                    <span class="e-auto" style="color:var(--danger);background:var(--danger-bg);border-color:rgba(239,68,68,.4)">● 진행중 · 초안 생성됨</span>
+                  </div>
+                </div>
+                <div class="evt">
+                  <img class="ethumb" src="./normal.jpg" alt="">
+                  <span class="badge2 non">비화재보</span>
+                  <div class="e-main">
+                    <div class="e-time">2026.6.30 13:19:08</div>
+                    <div class="e-loc">B3F 주차장 D구역</div>
+                    <div class="e-desc">오작동(습기) · 자동복구 · 현장확인 완료</div>
+                    <span class="e-auto">자동감지 → 자동기록</span>
+                  </div>
+                </div>
+                <div class="evt">
+                  <img class="ethumb" src="./equip.jpeg" alt="">
+                  <span class="badge2 equip">설비동작</span>
+                  <div class="e-main">
+                    <div class="e-time">2026.6.29 18:02:11</div>
+                    <div class="e-loc">B1F-2(DIV) T/S</div>
+                    <div class="e-desc">설비 동작 감지(초록) · 정보성 · 재발송 없음</div>
+                  </div>
+                </div>
+                <div class="evt">
+                  <img class="ethumb" src="./normal.jpg" alt="">
+                  <span class="badge2 non">비화재보</span>
+                  <div class="e-main">
+                    <div class="e-time">2026.6.29 02:41:55</div>
+                    <div class="e-loc">2F 복도</div>
+                    <div class="e-desc">오작동 · 자동복구</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ④ 수기 기록 폼 (평상시) -->
+              <div class="card form-card only-normal">
+                <div class="fh"><svg width="18" height="18" viewBox="0 0 24 24" class="ic"><path d="M5 12h14M12 5v14"/></svg>수동 기록 추가</div>
+                <div class="field"><label class="lbl">구분</label>
+                  <div class="seg"><button>화재보</button><button class="sel-non">비화재보</button></div></div>
+                <div class="field"><label class="lbl">발생일시</label>
+                  <div class="dt"><input class="inp" type="date" value="2026-06-30"><input class="inp" type="time" value="13:24"></div></div>
+                <div class="field"><label class="lbl">발생장소</label>
+                  <textarea class="inp" rows="2" placeholder="발생장소를 입력하세요"></textarea></div>
+                <div class="field"><label class="lbl">발생원인</label>
+                  <textarea class="inp" rows="2">오작동</textarea></div>
+                <div class="field"><label class="lbl">조치사항</label>
+                  <textarea class="inp" rows="2">자동복구, 현장확인</textarea></div>
+              </div>
+              <div class="form-bar only-normal">
+                <button class="btn-ghost" onclick="setView('dash')">취소</button>
+                <button class="btn-save">점검 기록 저장</button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 경보 모달 (데스크톱 화면 내 takeover · 대시보드에서만) -->
+    <div class="alarm-modal" id="alarmModal">
+      <div class="am-card">
+        <div class="am-ico"><svg width="44" height="44" viewBox="0 0 24 24" class="ic" style="stroke:#fff;stroke-width:1.6"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></div>
+        <div class="am-kind">🔴 화재 발생</div>
+        <div class="am-loc">B1F-2 (DIV)</div>
+        <div class="am-time mono">2026.6.30 12:50:35</div>
+        <div class="am-sub">수신반 화면 빨강 자동감지. '확인'을 눌러야 추가 알림이 멈춥니다.<br>현장 확인 후 화재수신반 페이지에서 초안을 보완하세요.</div>
+        <div class="am-foot">
+          <button class="am-ack" onclick="ackAlarm()">확인 (경보 인지)</button>
+          <button class="am-go" onclick="setView('panel');ackAlarm()">화재수신반 페이지</button>
+        </div>
+        <div class="am-note">⚠️ 해당시간 근무자 전원에게 발송 · 미확인 시 20초 × 3회 재발송</div>
+      </div>
+    </div>
+
+    <!-- 줌 오버레이 (더블클릭/클릭 확대) -->
+    <div class="zoom" id="zoom">
+      <div class="zoom-top">
+        <span class="zoom-badge" id="zoomBadge"><span class="bdot"></span>LIVE</span>
+        <span class="zoom-label" id="zoomLabel">실시간 수신반 화면 · 자세히 보기</span>
+        <button class="zoom-close" onclick="closeZoom()"><svg width="18" height="18" viewBox="0 0 24 24" class="ic"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="zoom-stage">
+        <div class="zoom-frame" id="zoomFrame" onclick="this.classList.toggle('zoomed')">
+          <img id="zoomImg" src="./normal.jpg" alt="확대 화면">
+        </div>
+      </div>
+      <div class="zoom-hint">화면을 <b>클릭</b>하면 확대 · 다시 <b>클릭</b>하면 원복</div>
+    </div>
+
+  </div><!-- /app -->
+</div><!-- /browser -->
+
+<div class="foot-note">
+  단일 파일 시안 · 외부 CDN 0 · 이미지 상대참조(./normal.jpg ./fire.png ./equip.jpeg)<br>
+  <b>[화재수신반 재구성]</b> 화재수신반은 독립 탭이 아니라 <b>사이드바 › 일반 점검 페이지 안의 한 항목</b> · 3분할 = 사이드바 280px | 일반점검 항목 그리드(16카테고리, 화재수신반 선택 강조) | 화재수신반 상세 pane<br>
+  <b>[상세 pane = 좁은 단일 컬럼 → 세로 스택]</b> 라이브뷰(16:9) → (경보중)비화재보 자동초안 → 최근 이벤트 → 수기 기록 폼<br>
+  <b>[점검모드 단순화]</b> 헤더 토글 1개로만 조작(별도 종료버튼 제거) + 자동화 안내(점검일 자동 ON · 17:30/21:00 자동복구) · 점검 중 자동 경보·푸시·이력 저장 중지(라이브뷰 유지)<br>
+  라이브 카드: 클릭 → 일반점검(화재수신반) / 더블클릭 → 전체화면 확대(다시 클릭하면 원복)
+</div>
+
+<script>
+var app=document.getElementById('app');
+
+// ===== 뷰 전환 =====
+function setView(v){
+  app.dataset.view=v;
+  document.querySelectorAll('.view-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.view===v); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.toggle('active', n.dataset.nav===v); });
+  var t=document.querySelector('[data-title-dash]'); if(t) t.textContent = (v==='panel'?'일반 점검':'대시보드');
+  closeZoom();
+}
+
+// ===== 상태 전환 (대시보드+패널 공유) =====
+function setState(s){
+  app.dataset.state=s;
+  document.querySelectorAll('.state-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.s===s); });
+  var m=document.getElementById('alarmModal'); if(m) m.classList.remove('acked'); // 경보 진입 시 모달 다시 표시
+}
+function ackAlarm(){ document.getElementById('alarmModal').classList.add('acked'); }
+
+// ===== 라이브 카드: 클릭 → 패널 / 더블클릭 → 확대 =====
+var clickTimer=null;
+function liveClick(){ clearTimeout(clickTimer); clickTimer=setTimeout(function(){ setView('panel'); },240); }
+function liveDbl(){ clearTimeout(clickTimer); openZoom(); }
+
+// ===== 줌 오버레이 =====
+function openZoom(){
+  var s=app.dataset.state;
+  var img=document.getElementById('zoomImg'), badge=document.getElementById('zoomBadge'), label=document.getElementById('zoomLabel');
+  if(s==='alarm'){ img.src='./fire.png'; badge.classList.add('fire'); badge.innerHTML='<span class="bdot"></span>화재 감지'; label.textContent='화재 감지 화면 · 자세히 보기'; }
+  else { img.src='./normal.jpg'; badge.classList.remove('fire'); badge.innerHTML='<span class="bdot"></span>LIVE'; label.textContent='실시간 수신반 화면 · 자세히 보기'; }
+  document.getElementById('zoomFrame').classList.remove('zoomed');
+  document.getElementById('zoom').classList.add('open');
+}
+function closeZoom(){ var z=document.getElementById('zoom'); if(z) z.classList.remove('open'); }
+
+// ===== 일반점검 항목 그리드 (16 카테고리 · 화재수신반 선택 강조) =====
+function selectCat(el){
+  document.querySelectorAll('.cat-card').forEach(function(c){ c.classList.remove('sel'); });
+  el.classList.add('sel');   // 시안: 상세 pane 은 화재수신반 고정, 선택 강조만 이동
+}
+(function(){
+  function color(p){ return p>=100?'#22c55e':p>=50?'#3b82f6':p>=1?'#f59e0b':'#8b949e'; }
+  var I={
+    stairs:'<path d="M3 21h4v-4h4v-4h4v-4h4V5"/>',
+    gas:'<path d="M12 2.7C8 7 6 9.6 6 13a6 6 0 0 0 12 0c0-3.4-2-6-6-10.3z"/>',
+    wind:'<path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h8"/>',
+    car:'<path d="M5 17h14M6.5 17l1.3-5h8.4l1.3 5"/><circle cx="8" cy="17.5" r="1.5"/><circle cx="16" cy="17.5" r="1.5"/>',
+    power:'<path d="M12 3v9"/><path d="M6 7a8 8 0 1 0 12 0"/>',
+    shutter:'<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 9h16M4 13h16M4 17h16"/>',
+    grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    gauge:'<path d="M12 13l4-5"/><path d="M4 17a8 8 0 1 1 16 0"/>',
+    sign:'<rect x="3" y="5" width="18" height="11" rx="2"/><path d="M12 16v3M8 21h8"/>',
+    window:'<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 12h16M12 4v16"/>',
+    descent:'<path d="M12 3v11"/><path d="m8 11 4 4 4-4"/><circle cx="12" cy="19" r="2"/>',
+    hydrant:'<path d="M7 18v-6a5 5 0 0 1 10 0v6"/><path d="M5 21h14M9 7h6"/>',
+    ext:'<path d="M9.5 7V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/><rect x="8" y="7" width="6" height="14" rx="2"/><path d="M14 9l3-1"/>',
+    pump:'<circle cx="12" cy="12" r="3.5"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4"/>',
+    bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+    cam:'<path d="M2 7l18-4 1 5-18 4z"/><path d="M5 11v6a2 2 0 0 0 2 2h2"/>'
+  };
+  // [라벨, 완료, 전체, 불량, 주의, 아이콘]  (화재수신반 = 선택)
+  var cats=[
+    ['특별피난계단',6,8,0,1,'stairs'],['청정소화약제',3,3,0,0,'gas'],
+    ['전실제연댐퍼·연결송수관',5,14,1,0,'wind'],['주차장비·회전문',4,6,0,1,'car'],
+    ['소방용전원공급반',2,2,0,0,'power'],['방화셔터',8,8,0,0,'shutter'],
+    ['DIV',7,16,0,2,'grid'],['컴프레셔',7,16,0,1,'gauge'],
+    ['유도등',40,50,0,3,'sign'],['배연창',5,6,0,0,'window'],
+    ['완강기',4,4,0,0,'descent'],['소화전·비상콘센트',9,20,1,0,'hydrant'],
+    ['소화기',50,50,0,0,'ext'],['소방펌프',2,4,0,0,'pump'],
+    ['화재수신반',1,2,0,0,'bell'],['CCTV',3,4,0,0,'cam']
+  ];
+  var grid=document.getElementById('catGrid');
+  cats.forEach(function(d){
+    var nm=d[0],done=d[1],total=d[2],bad=d[3],caut=d[4],ic=d[5];
+    var pct=total?Math.round(done/total*100):0, c=color(pct), sel=(nm==='화재수신반');
+    var flags='';
+    if(bad) flags+='<span class="cc-flag bad">불량 '+bad+'</span>';
+    if(caut) flags+='<span class="cc-flag caution">주의 '+caut+'</span>';
+    var el=document.createElement('div');
+    el.className='cat-card'+(sel?' sel':'');
+    el.setAttribute('onclick','selectCat(this)');
+    el.innerHTML=
+      '<div class="cc-top"><span class="cc-ico"><svg width="18" height="18" viewBox="0 0 24 24" class="ic">'+I[ic]+'</svg></span>'+
+        '<span class="cc-name">'+nm+'</span></div>'+
+      '<div class="cc-frac">'+done+' / '+total+' 완료</div>'+
+      '<div class="cc-bar"><i style="width:'+pct+'%;background:'+c+'"></i></div>'+
+      '<div class="cc-meta"><span class="cc-done'+(done?'':' zero')+'">✓ 점검완료 '+done+'</span>'+
+        '<span class="cc-flags">'+flags+'</span></div>';
+    grid.appendChild(el);
+  });
+})();
+
+// ===== 도넛 렌더 (size 76, progressColor 동일) =====
+(function(){
+  var C=2*Math.PI*33;
+  function color(p){ return p>=100?'#22c55e':p>=50?'#3b82f6':p>=1?'#f59e0b':'#8b949e'; }
+  var data=[
+    ['소화기',50,50],['옥내소화전',9,20],['자동화재탐지',6,20],['유도등',40,50],
+    ['방화문',50,50],['방화셔터',8,8],['제연설비',12,12],['전실제연댐퍼',5,14],
+    ['스프링클러',18,24],['소화펌프',2,4],['비상방송',10,16],['비상조명등',0,12],
+    ['가스계소화',3,3],['연결송수관',4,9],['화재수신반',1,2],['DIV·컴프',7,16]
+  ];
+  var grid=document.getElementById('donutGrid');
+  data.forEach(function(d){
+    var nm=d[0], done=d[1], total=d[2];
+    var pct=Math.round(done/total*100), c=color(pct), dash=C*Math.min(pct,100)/100;
+    var it=document.createElement('div'); it.className='donut-item';
+    it.innerHTML=
+      '<div class="donut-wrap"><svg width="76" height="76" viewBox="0 0 76 76">'+
+        '<circle cx="38" cy="38" r="33" fill="none" stroke="#2c333d" stroke-width="6"/>'+
+        '<circle cx="38" cy="38" r="33" fill="none" stroke="'+c+'" stroke-width="6" stroke-linecap="round"'+
+        ' stroke-dasharray="'+dash.toFixed(1)+' '+(C-dash).toFixed(1)+'" transform="rotate(-90 38 38)"/>'+
+      '</svg><div class="donut-pct" style="color:'+c+'">'+pct+'</div></div>'+
+      '<div class="nm">'+nm+'</div>'+
+      '<div class="fr'+(pct>=100?' done':'')+'">'+done+'/'+total+'</div>';
+    grid.appendChild(it);
+  });
+})();
+
+// ===== 미니 캘린더 (2026년 6월, 6.1=월, 6.30=화 today, 6.6 현충일) =====
+(function(){
+  var grid=document.getElementById('calGrid');
+  var wd=['일','월','화','수','목','금','토'];
+  wd.forEach(function(w,i){ var e=document.createElement('div'); e.className='cal-wd'+(i===0?' sun':i===6?' sat':''); e.textContent=w; grid.appendChild(e); });
+  // 6.1 = 월요일 → 일요일 칸 1개 비움
+  for(var b=0;b<1;b++){ var bl=document.createElement('div'); bl.className='cal-d muted'; grid.appendChild(bl); }
+  var dots={ 3:['#ef4444'], 9:['#f59e0b','#22c55e'], 15:['#3b82f6'], 18:['#22c55e'], 22:['#f59e0b'], 25:['#3b82f6','#ef4444'], 30:['#ef4444','#f59e0b'] };
+  for(var d=1;d<=30;d++){
+    var col=(d)%7; // 6.1은 index1(월)
+    var cell=document.createElement('div'); cell.className='cal-d';
+    if(d===6) cell.classList.add('hol');           // 현충일
+    if(d===30) cell.classList.add('today');         // 오늘
+    var dd=dots[d]||[];
+    var dotsHtml='<div class="cdots">'+dd.map(function(c){return '<i style="background:'+c+'"></i>';}).join('')+'</div>';
+    cell.innerHTML='<span>'+d+'</span>'+dotsHtml;
+    grid.appendChild(cell);
+  }
+})();
+</script>
+</body>
+</html>
