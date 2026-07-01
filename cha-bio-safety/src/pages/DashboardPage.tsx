@@ -667,6 +667,7 @@ export default function DashboardPage() {
           <LivePanelImage
             frameUpdatedAt={frameUpdatedAt}
             imgClassName="w-full h-full object-cover"
+            aspectClass="aspect-[1920/932]"
           />
         </div>
 

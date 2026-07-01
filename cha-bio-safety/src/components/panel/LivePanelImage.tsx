@@ -13,6 +13,7 @@ interface LivePanelImageProps {
   alt?: string
   className?: string
   imgClassName?: string
+  aspectClass?: string   // 프레임 비율 (기본 16:9). 에이전트 크롭 비율에 맞춰 surface 별 오버라이드.
   onClick?: () => void
 }
 
@@ -22,6 +23,7 @@ export default function LivePanelImage({
   alt = '화재수신반 라이브 화면',
   className = '',
   imgClassName = '',
+  aspectClass = 'aspect-video',
   onClick,
 }: LivePanelImageProps) {
   const src = snapshotKey
@@ -33,7 +35,7 @@ export default function LivePanelImage({
 
   return (
     <div
-      className={`relative w-full aspect-video bg-black overflow-hidden ${className}`}
+      className={`relative w-full ${aspectClass} bg-black overflow-hidden ${className}`}
       onClick={onClick}
     >
       {!errored ? (
