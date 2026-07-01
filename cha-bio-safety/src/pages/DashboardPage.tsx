@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Map as MapIcon, BarChart3, Siren, Users, Flame, Clock, ClipboardList, BellOff, BellRing, Maximize2 } from 'lucide-react'
+import { Map as MapIcon, BarChart3, Siren, Users, Flame, BellOff, BellRing, Maximize2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi, panelApi, alarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, CatBar } from '../components/ui'
@@ -458,6 +458,9 @@ export default function DashboardPage() {
           {/* 우: 캘린더 + 오늘 일정 (340px) */}
           <div className="w-[340px] shrink-0 flex flex-col gap-4">
 
+            {/* 상단 그룹 (라이브+캘린더) — 좌측 점검현황(flex-1) 미러 → 캘린더 바닥 정렬 */}
+            <div className="flex-1 min-h-0 flex flex-col gap-4">
+
             {/* Phase 25: 화재수신반 라이브 위젯 (shrink-0 — flex-1 오늘 일정 높이 침범 방지) */}
             <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden shrink-0">
               <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border-default">
@@ -511,7 +514,7 @@ export default function DashboardPage() {
             </div>
 
             {/* 미니 캘린더 */}
-            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-4 shrink-0">
+            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-4 shrink-0 mt-auto">
               <div className="text-label font-bold text-text-primary text-center mb-2.5">
                 {calYear}년 {calMonth + 1}월
               </div>
@@ -564,9 +567,10 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
+            </div>
 
             {/* 오늘 일정 */}
-            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col shrink-0 h-[125px]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border-default shrink-0">
                 <span className="text-label font-bold text-text-primary">오늘 일정</span>
                 <span className="text-caption text-text-tertiary bg-surface-sunken px-2.5 py-0.5 rounded-pill">{schedule.length}건</span>
@@ -626,8 +630,8 @@ export default function DashboardPage() {
         // gridTemplateRows 는 IS_ANDROID 동적 분기 — 인라인 허용 키
         style={{
           gridTemplateRows: IS_ANDROID
-            ? 'auto auto auto auto 1fr minmax(140px, auto)'
-            : 'auto auto auto auto 1fr auto',
+            ? 'auto auto auto auto minmax(140px, 1fr)'
+            : 'auto auto auto auto minmax(125px, 1fr)',
         }}
       >
 
@@ -761,30 +765,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* ④ 오늘 일정 */}
-        <div
-          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col min-h-0 [animation:slideUp_.28s_.16s_ease-out_both]"
-        >
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border-default shrink-0">
-            <span className="text-caption font-bold text-text-secondary">오늘 일정</span>
-            <span className="text-caption text-text-tertiary bg-surface-sunken px-2 py-0.5 rounded-pill">{schedule.length}건</span>
-          </div>
-          <div className="overflow-y-auto flex-1">
-            {timed.length > 0 && (
-              <>
-                <div className="px-2.5 pt-1 pb-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase"><Clock size={11} className="inline-block align-text-bottom mr-1" />시간 확정</div>
-                {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
-              </>
-            )}
-            {untimed.length > 0 && (
-              <>
-                <div className="px-2.5 pt-1 pb-0.5 mt-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase border-t border-border-default"><ClipboardList size={11} className="inline-block align-text-bottom mr-1" />시간 미정</div>
-                {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
-              </>
-            )}
           </div>
         </div>
 

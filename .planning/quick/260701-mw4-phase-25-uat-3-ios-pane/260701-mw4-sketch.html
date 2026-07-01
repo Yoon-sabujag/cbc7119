@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 25 UAT 수정 시안 — FIX-1(모바일 대시보드) · FIX-3(데스크톱 정렬)</title>
+<style>
+  /* ── 실제 tokens.css 다크 테마 값 그대로 ── */
+  :root{
+    --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-sunken:#232a33; --surface-active:#2c333d;
+    --text-primary:#e6edf3; --text-secondary:#adb6c0; --text-tertiary:#8b949e; --text-on-accent:#fff;
+    --border-default:rgba(255,255,255,.14); --border-strong:rgba(255,255,255,.22);
+    --accent:#3b82f6;
+    --safe:#4ade80; --warning:#fbbf24; --danger:#f87171; --info:#38bdf8; --fire:#fb923c;
+    --safe-bar:#22c55e; --warning-bar:#f59e0b; --danger-bar:#ef4444; --info-bar:#0ea5e9; --fire-bar:#f97316;
+    --safe-bg:rgba(34,197,94,.16); --warning-bg:rgba(245,158,11,.16); --danger-bg:rgba(239,68,68,.16); --info-bg:rgba(14,165,233,.16); --fire-bg:rgba(249,115,22,.16);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Pretendard Variable',Pretendard,system-ui,-apple-system,sans-serif;
+    background:#05070a; color:var(--text-primary); padding:32px; line-height:1.5;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  h1{font-size:22px; font-weight:600; letter-spacing:-.01em; margin-bottom:6px;}
+  h2{font-size:18px; font-weight:600; margin:36px 0 4px; padding-top:24px; border-top:1px solid var(--border-default);}
+  h3{font-size:14px; font-weight:700; color:var(--text-secondary); margin:20px 0 10px;}
+  .lede{color:var(--text-tertiary); font-size:13px; max-width:900px; margin-bottom:8px;}
+  .row{display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; gap:8px;}
+  .tag{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px;}
+  .tag.bad{background:var(--danger-bg); color:var(--danger); border:1px solid var(--danger-bar);}
+  .tag.good{background:var(--safe-bg); color:var(--safe); border:1px solid var(--safe-bar);}
+  .cap{font-size:12px; color:var(--text-tertiary);}
+  .note{background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px; padding:14px 16px; font-size:13px; color:var(--text-secondary); max-width:1180px; margin-top:12px;}
+  .note b{color:var(--text-primary);}
+  .note .warn{color:var(--warning);}
+  .note code{font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--surface-sunken); padding:1px 5px; border-radius:5px; color:var(--text-primary);}
+
+  /* ── 공통 카드 요소 ── */
+  .card{background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px; overflow:hidden;}
+  .card-hd{display:flex; align-items:center; justify-content:space-between; padding:6px 12px; border-bottom:1px solid var(--border-default);}
+  .card-hd .t{font-size:12px; font-weight:700; color:var(--text-secondary);}
+  .card-hd .r{font-size:12px; color:var(--text-tertiary);}
+  .live{background:#000; aspect-ratio:16/9; border-radius:6px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;}
+  .live::after{content:'방재실 수신반 라이브 (16:9)'; color:#4b5563; font-size:12px;}
+  .live .badge{position:absolute; top:7px; left:7px; display:inline-flex; align-items:center; gap:4px; background:rgba(34,197,94,.85); color:#fff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:99px;}
+  .live .badge i{width:6px; height:6px; border-radius:50%; background:#fff; display:block;}
+
+  /* 도넛 */
+  .donut{width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace;}
+  .donut.d76{width:76px; height:76px; font-size:15px;}
+
+  /* ── 모바일 프레임 ── */
+  .phone{width:390px; height:788px; background:var(--surface-page); border:8px solid #23272e; border-radius:36px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,.5);}
+  .chipbar{flex:0 0 auto; background:var(--surface-raised); border-bottom:1px solid var(--border-default); padding:6px 12px; display:flex; justify-content:space-between; align-items:center; font-size:11px;}
+  .chip{background:var(--surface-sunken); border:1px solid var(--border-default); border-radius:99px; padding:3px 9px; font-size:11px; color:var(--text-secondary);}
+  .navbar{flex:0 0 auto; height:56px; background:var(--surface-raised); border-top:1px solid var(--border-default); display:flex; align-items:center; justify-content:space-around; font-size:10px; color:var(--text-tertiary);}
+  main.grid{flex:1 1 auto; min-height:0; overflow-y:auto; display:grid; gap:7px; padding:7px 11px;}
+
+  .banner{border-radius:6px; border:1px solid rgba(14,165,233,.3); padding:8px 12px; display:flex; align-items:center; gap:10px; background:linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08));}
+  .banner .dot{width:6px; height:6px; border-radius:50%; background:var(--info-bar); flex:0 0 auto;}
+  .banner .k{font-size:11px; font-weight:700; color:var(--info-bar); text-transform:uppercase; letter-spacing:.05em;}
+  .banner .v{font-size:13px; font-weight:700; color:var(--text-primary); margin-top:2px;}
+
+  .stat4{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
+  .stat{background:var(--surface-raised); border:1px solid var(--border-default); border-radius:6px; padding:8px; position:relative; overflow:hidden;}
+  .stat .l{font-size:11px; font-weight:700; color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .stat .n{font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:600; line-height:1; margin-top:4px;}
+  .stat .s{font-size:11px; color:var(--text-tertiary);}
+  .stat .bar{position:absolute; bottom:0; left:0; right:0; height:2px;}
+
+  .tools2{display:grid; grid-template-columns:repeat(2,1fr); gap:8px;}
+  .tool{background:var(--surface-raised); border:1px solid var(--border-default); border-radius:6px; padding:12px; display:flex; align-items:center; gap:12px;}
+  .tool .ic{width:38px; height:38px; border-radius:6px; background:var(--surface-sunken); flex:0 0 auto; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); font-size:16px;}
+  .tool .tl{font-size:13px; font-weight:700; color:var(--text-primary);}
+  .tool .td{font-size:11px; color:var(--text-tertiary); margin-top:2px;}
+
+  .donutstrip{overflow-x:auto; padding:8px 10px; display:flex; flex-wrap:nowrap; gap:12px;}
+  .donutstrip::-webkit-scrollbar{display:none;}
+  .du{display:flex; flex-direction:column; align-items:center; gap:4px; flex:0 0 auto; min-width:64px;}
+  .du .lbl{font-size:12px; color:var(--text-tertiary); text-align:center; line-height:1.25; max-width:72px;}
+  .du .frac{font-size:12px; color:var(--text-tertiary);}
+
+  /* 붕괴 시각화(현재) */
+  .collapsed{border:1px dashed var(--danger-bar); background:var(--danger-bg); color:var(--danger); font-size:11px; height:8px; display:flex; align-items:center; padding:0 8px; border-radius:4px; overflow:hidden;}
+  .overlap{position:relative;}
+  .overlap .ov{position:absolute; left:0; right:0; top:60%; background:rgba(239,68,68,.14); border:1px dashed var(--danger-bar); border-radius:6px; height:70px; display:flex; align-items:center; justify-content:center; color:var(--danger); font-size:11px; font-weight:700;}
+  .xmark{color:var(--danger); font-weight:700;}
+
+  /* ── 데스크톱 Row3 미니 (1920×1080 비율 축소) ── */
+  .desk{width:1180px; background:var(--surface-page); border:1px solid var(--border-strong); border-radius:10px; padding:16px; }
+  .desk .r3{display:flex; gap:16px; height:560px;}
+  .desk .left{flex:1; display:flex; flex-direction:column; gap:16px;}
+  .desk .right{width:300px; flex:0 0 auto; display:flex; flex-direction:column; gap:16px;}
+  .box{background:var(--surface-raised); border:1px solid var(--border-default); border-radius:16px; overflow:hidden; position:relative;}
+  .box .bh{display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border-default);}
+  .box .bh .t{font-size:13px; font-weight:700;}
+  .box .bh .r{font-size:12px; color:var(--text-tertiary);}
+  .insp{flex:1; min-height:0;}  /* 점검현황 flex-1 */
+  .insp .donuts{display:flex; flex-direction:column; gap:24px; justify-content:center; height:calc(100% - 46px); padding:12px 20px;}
+  .insp .drow{display:flex; justify-content:space-evenly; gap:8px;}
+  .qtools{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; flex:0 0 auto;}
+  .qt{background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px; padding:16px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center;}
+  .qt .ic{width:44px; height:44px; border-radius:12px; background:var(--surface-sunken); display:flex; align-items:center; justify-content:center; color:var(--text-secondary);}
+  .qt .tl{font-size:13px; font-weight:700;}
+  .qt .td{font-size:12px; color:var(--text-tertiary); margin-top:2px;}
+  .dlive{flex:0 0 auto;}
+  .dcal{flex:0 0 auto; padding:16px 14px;}
+  .dcal .ct{text-align:center; font-size:13px; font-weight:700; margin-bottom:10px;}
+  .dcal .cg{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center;}
+  .dcal .cg .dow{font-size:11px; font-weight:700; color:var(--text-tertiary); padding:2px 0;}
+  .dcal .cg .cell{font-size:11px; padding:3px 0;}
+  .dcal .cg .cell.today{background:var(--accent); color:#fff; border-radius:50%;}
+  .dtoday{overflow:hidden;}
+  .dtoday .list{padding:6px 0; font-size:12px; color:var(--text-secondary);}
+  .dtoday .li{padding:6px 16px; border-bottom:1px solid var(--border-default); display:flex; gap:8px; align-items:center;}
+  .dtoday .li .cd{width:6px; height:6px; border-radius:50%; flex:0 0 auto;}
+
+  /* 정렬 가이드 라인 */
+  .guide{position:absolute; left:-6px; right:-6px; border-top:2px dashed var(--warning); pointer-events:none; z-index:5;}
+  .guide.good{border-color:var(--safe);}
+  .glabel{position:absolute; right:4px; top:-16px; font-size:10px; font-weight:700; color:var(--warning); background:var(--surface-page); padding:0 4px;}
+  .guide.good .glabel{color:var(--safe);}
+  .relwrap{position:relative;}
+</style>
+</head>
+<body>
+
+<h1>Phase 25 화재수신반 UAT 수정 시안</h1>
+<p class="lede">콘솔1(production) 코드 실측 RCA 기반. <b>FIX-1</b>(모바일 대시보드 iOS 그리드 붕괴) · <b>FIX-3</b>(데스크톱 우측 캘린더/오늘일정 정렬) 두 건은 레이아웃 <b>구조 변경</b>이라 시안 승인 후 TSX 적용. FIX-2(데스크톱 수신반 pane 헤더 크롬픽스)는 형제 pane 표준에 맞추는 직접 수정 — 시안 없음.</p>
+
+<!-- ═══════════════════════ FIX-1 ═══════════════════════ -->
+<h2>FIX-1 · 모바일 대시보드 iOS 그리드 붕괴 <span class="tag bad">구조 변경 · 승인 필요</span></h2>
+<p class="lede">원인: Phase 25가 <code>①-b 화재수신반 라이브(aspect-video min-h-180px)</code>를 그리드 행으로 추가했는데 iOS <code>gridTemplateRows: 'auto auto auto auto 1fr auto'</code>는 옛 6행 높이예산 그대로 → 100vh 초과. 결과: ④오늘일정(1fr) 0붕괴("얇은 선"), 라이브가 트랙 밖 오버플로해 ②오늘현황과 겹침, ⑤월간 도넛 iOS 미렌더. (Android는 <code>minmax(140px,auto)</code>+월간카드 명시높이 있어 정상.)</p>
+<p class="lede"><b>수정:</b> ① ④오늘 일정 카드 <b>완전 제거</b>(카운트는 ②오늘현황 stat card에 이미 있음). ② 5행으로 재구성 + iOS 분기에도 결정론적 높이(라이브 16:9 / 월간 도넛). ③ 겹침 0 · 도넛 항상 렌더. <span class="warn">지킬 룰: 월간 도넛 가로스크롤·Donut size44 유지 / 그리드 1fr 핀치줌 의도(<code>minmax(0,1fr)</code> 금지).</span></p>
+
+<div class="row">
+  <!-- 현재 (붕괴) -->
+  <div class="col">
+    <div><span class="tag bad">현재 (iOS 붕괴, 6행)</span></div>
+    <div class="phone">
+      <div class="chipbar"><span class="chip">관리자 · 김·이</span><span class="chip">보조자 · 박·윤</span></div>
+      <main class="grid" style="grid-template-rows:auto auto auto auto 1fr auto;">
+        <!-- ① 배너 -->
+        <div class="banner"><span class="dot"></span><div style="flex:1"><div class="k">오늘 점검 대상</div><div class="v">전 층 소화기 · B4 전기실 DIV</div></div></div>
+        <!-- ①-b 라이브 (오버플로) -->
+        <div class="overlap">
+          <div class="live" style="min-height:180px;"><span class="badge"><i></i>LIVE</span></div>
+          <div class="ov">⚠ 라이브가 트랙 밖 오버플로 → ②오늘현황과 겹침</div>
+        </div>
+        <!-- ② 오늘현황 -->
+        <div>
+          <div class="cap" style="font-weight:700; margin-bottom:6px;">오늘 현황</div>
+          <div class="stat4">
+            <div class="stat"><div class="l">점검 미완료</div><div class="n" style="color:var(--danger)">3</div><span class="s">/12</span><div class="bar" style="background:var(--danger-bar)"></div></div>
+            <div class="stat"><div class="l">미조치</div><div class="n" style="color:var(--fire)">2</div><span class="s">건</span><div class="bar" style="background:var(--fire-bar)"></div></div>
+            <div class="stat"><div class="l">오늘 일정</div><div class="n">5</div><span class="s">건</span><div class="bar" style="background:var(--border-default)"></div></div>
+            <div class="stat"><div class="l">승강기</div><div class="n">0</div><span class="s">대</span><div class="bar" style="background:var(--safe-bar)"></div></div>
+          </div>
+        </div>
+        <!-- ③ 빠른도구 -->
+        <div>
+          <div class="cap" style="font-weight:700; margin-bottom:6px;">빠른 도구 모음</div>
+          <div class="tools2">
+            <div class="tool"><div class="ic">🗺</div><div><div class="tl">도면</div><div class="td">층별 점검</div></div></div>
+            <div class="tool"><div class="ic">📊</div><div><div class="tl">통계</div><div class="td">점검 현황</div></div></div>
+          </div>
+        </div>
+        <!-- ④ 오늘일정 (붕괴) -->
+        <div class="collapsed">④ 오늘 일정 — 1fr 0붕괴 "얇은 선" <span class="xmark">✕</span></div>
+        <!-- ⑤ 도넛 (미렌더) -->
+        <div class="collapsed" style="height:14px;">⑤ 이번 달 점검 현황 도넛 — iOS 미렌더 <span class="xmark">✕</span></div>
+      </main>
+      <div class="navbar"><span>홈</span><span>점검</span><span>도면</span><span>승강기</span><span>메뉴</span></div>
+    </div>
+  </div>
+
+  <!-- 제안 (5행) -->
+  <div class="col">
+    <div><span class="tag good">제안 (5행, ④오늘일정 제거)</span></div>
+    <div class="phone">
+      <div class="chipbar"><span class="chip">관리자 · 김·이</span><span class="chip">보조자 · 박·윤</span></div>
+      <main class="grid" style="grid-template-rows:auto auto auto auto minmax(125px,1fr);">
+        <div class="banner"><span class="dot"></span><div style="flex:1"><div class="k">오늘 점검 대상</div><div class="v">전 층 소화기 · B4 전기실 DIV</div></div></div>
+        <div class="live" style="min-height:180px;"><span class="badge"><i></i>LIVE</span></div>
+        <div>
+          <div class="cap" style="font-weight:700; margin-bottom:6px;">오늘 현황</div>
+          <div class="stat4">
+            <div class="stat"><div class="l">점검 미완료</div><div class="n" style="color:var(--danger)">3</div><span class="s">/12</span><div class="bar" style="background:var(--danger-bar)"></div></div>
+            <div class="stat"><div class="l">미조치</div><div class="n" style="color:var(--fire)">2</div><span class="s">건</span><div class="bar" style="background:var(--fire-bar)"></div></div>
+            <div class="stat"><div class="l">오늘 일정</div><div class="n">5</div><span class="s">건</span><div class="bar" style="background:var(--border-default)"></div></div>
+            <div class="stat"><div class="l">승강기</div><div class="n">0</div><span class="s">대</span><div class="bar" style="background:var(--safe-bar)"></div></div>
+          </div>
+          <div class="cap" style="text-align:right; margin-top:4px; color:var(--info)">↑ "오늘 일정 5건" 카운트 여기 존치 (정보 손실 0)</div>
+        </div>
+        <div>
+          <div class="cap" style="font-weight:700; margin-bottom:6px;">빠른 도구 모음</div>
+          <div class="tools2">
+            <div class="tool"><div class="ic">🗺</div><div><div class="tl">도면</div><div class="td">층별 점검</div></div></div>
+            <div class="tool"><div class="ic">📊</div><div><div class="tl">통계</div><div class="td">점검 현황</div></div></div>
+          </div>
+        </div>
+        <!-- ⑤ 도넛 (결정론적 높이 · 항상 렌더) -->
+        <div class="card" style="display:flex; flex-direction:column;">
+          <div class="card-hd"><span class="t">이번 달 점검 현황</span><span class="r">2026년 7월</span></div>
+          <div class="donutstrip">
+            <div class="du"><div class="donut" style="border:5px solid var(--safe-bar);">100</div><div class="lbl">소화기</div><div class="frac" style="color:var(--safe)">12/12</div></div>
+            <div class="du"><div class="donut" style="border:5px solid var(--accent); border-right-color:var(--surface-sunken); border-bottom-color:var(--surface-sunken);">62</div><div class="lbl">유도등</div><div class="frac">8/13</div></div>
+            <div class="du"><div class="donut" style="border:5px solid var(--warning-bar); border-top-color:var(--surface-sunken); border-right-color:var(--surface-sunken); border-bottom-color:var(--surface-sunken);">28</div><div class="lbl">소화전</div><div class="frac">3/11</div></div>
+            <div class="du"><div class="donut" style="border:5px solid var(--accent); border-right-color:var(--surface-sunken);">75</div><div class="lbl">방화셔터</div><div class="frac">6/8</div></div>
+            <div class="du"><div class="donut" style="border:5px solid var(--surface-sunken);">0</div><div class="lbl">제연댐퍼</div><div class="frac">0/9</div></div>
+          </div>
+        </div>
+      </main>
+      <div class="navbar"><span>홈</span><span>점검</span><span>도면</span><span>승강기</span><span>메뉴</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>제안 그리드 템플릿 (5행):</b><br>
+  · iOS 분기: <code>'auto auto auto auto minmax(125px, 1fr)'</code> — 마지막 행(⑤도넛)에 <b>1fr 유지(핀치줌)</b> + <b>125px 최소 바닥</b>으로 도넛이 항상 렌더(=collapse-to-0 방지). <span class="warn">금지된 <code>minmax(0,1fr)</code>과 달리 min이 0이 아니라 플리커 없음.</span><br>
+  · Android 분기: <code>'auto auto auto auto minmax(140px, 1fr)'</code> — 기존 <code>minmax(140,auto)</code> 유지 취지 + 도넛 카드 명시높이 로직 그대로.<br>
+  · ④오늘일정 카드(현 :767–789) 및 <code>timed/untimed</code> 렌더 블록 제거. 나머지 표시 분기/라벨 룰은 코드 그대로.<br>
+  <b>대안(승인 시 선택):</b> 마지막 행을 순수 <code>1fr</code>로 두고 도넛 카드에 <code>min-height</code>만 부여 — 동일 결과, 취향 차이.
+</div>
+
+<!-- ═══════════════════════ FIX-3 ═══════════════════════ -->
+<h2>FIX-3 · 데스크톱 우측 캘린더/오늘일정 정렬 <span class="tag bad">구조 변경 · 승인 필요</span></h2>
+<p class="lede">원인: 우측 캘린더가 <code>shrink-0</code>(내용 높이)라 좌측 점검현황(<code>flex-1</code>) 바닥을 안 따라감 → <b>오늘일정 top이 빠른도구 top보다 아래</b>에서 시작(어긋남). 목표: 양쪽 gap 동일하므로 <b>"캘린더 바닥 == 점검현황 바닥"</b>만 맞추면 <b>"오늘일정 top == 빠른도구 top"</b> 자동. <span class="warn">지킬 룰: 좌측 점검현황 도넛 size76 balanced 그리드(6·7·6) 유지 — 캘린더 쪽만 손봄.</span></p>
+
+<h3>현재 (어긋남)</h3>
+<div class="desk relwrap">
+  <div class="guide" style="top:392px;"><span class="glabel">빠른도구 top</span></div>
+  <div class="guide" style="top:432px; border-color:var(--danger);"><span class="glabel" style="color:var(--danger)">오늘일정 top (↓ 아래에서 시작 · 어긋남)</span></div>
+  <div class="r3">
+    <div class="left">
+      <div class="box insp">
+        <div class="bh"><span class="t">이번 달 점검 현황</span><span class="r">2026년 7월</span></div>
+        <div class="donuts">
+          <div class="drow">
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--safe-bar)">100</div><div class="cap">소화기</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent); border-right-color:var(--surface-sunken)">75</div><div class="cap">유도등</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--warning-bar); border-top-color:var(--surface-sunken); border-right-color:var(--surface-sunken)">30</div><div class="cap">소화전</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent)">88</div><div class="cap">방화셔터</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--surface-sunken)">0</div><div class="cap">제연댐퍼</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent); border-right-color:var(--surface-sunken)">60</div><div class="cap">송수관</div></div>
+          </div>
+          <div class="drow">
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--safe-bar)">100</div><div class="cap">비상조명</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent); border-right-color:var(--surface-sunken)">72</div><div class="cap">완강기</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--warning-bar); border-top-color:var(--surface-sunken); border-right-color:var(--surface-sunken)">25</div><div class="cap">피난구</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent)">90</div><div class="cap">DIV</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent); border-right-color:var(--surface-sunken)">55</div><div class="cap">컴프레셔</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="qtools">
+        <div class="qt"><div class="ic">🗺</div><div class="tl">도면</div><div class="td">층별 점검</div></div>
+        <div class="qt"><div class="ic">📊</div><div class="tl">통계</div><div class="td">점검 현황</div></div>
+        <div class="qt"><div class="ic">🔔</div><div class="tl">경보</div><div class="td">알림 설정</div></div>
+        <div class="qt"><div class="ic">📋</div><div class="tl">점검일지</div><div class="td">출력</div></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="box dlive">
+        <div class="bh"><span class="t">🔔 화재수신반 라이브</span><span class="r">방재실 캡처</span></div>
+        <div class="live" style="border-radius:0;"><span class="badge"><i></i>LIVE</span></div>
+        <div style="padding:9px 13px; font-size:13px; color:var(--safe); font-weight:700;">● 정상 · 이상 없음 · 방금</div>
+      </div>
+      <div class="box dcal">
+        <div class="ct">2026년 7월</div>
+        <div class="cg">
+          <div class="dow" style="color:var(--danger)">일</div><div class="dow">월</div><div class="dow">화</div><div class="dow">수</div><div class="dow">목</div><div class="dow">금</div><div class="dow" style="color:var(--info)">토</div>
+          <div class="cell"></div><div class="cell"></div><div class="cell">1</div><div class="cell">2</div><div class="cell">3</div><div class="cell">4</div><div class="cell">5</div>
+          <div class="cell">6</div><div class="cell">7</div><div class="cell">8</div><div class="cell">9</div><div class="cell">10</div><div class="cell">11</div><div class="cell">12</div>
+          <div class="cell">13</div><div class="cell">14</div><div class="cell">15</div><div class="cell">16</div><div class="cell">17</div><div class="cell">18</div><div class="cell">19</div>
+          <div class="cell">20</div><div class="cell">21</div><div class="cell">22</div><div class="cell">23</div><div class="cell">24</div><div class="cell">25</div><div class="cell">26</div>
+          <div class="cell">27</div><div class="cell">28</div><div class="cell">29</div><div class="cell">30</div><div class="cell">31</div><div class="cell"></div><div class="cell"></div>
+        </div>
+      </div>
+      <div class="box dtoday" style="flex:1; min-height:0;">
+        <div class="bh"><span class="t">오늘 일정</span><span class="r">5건</span></div>
+        <div class="list">
+          <div class="li"><span class="cd" style="background:var(--info-bar)"></span>09:30 VIP 투어 협조</div>
+          <div class="li"><span class="cd" style="background:var(--warning-bar)"></span>14:00 승강기 5호기 수리</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>제안 (정렬 — 오늘일정 top == 빠른도구 top)</h3>
+<div class="desk relwrap">
+  <div class="guide good" style="top:392px;"><span class="glabel">빠른도구 top == 오늘일정 top ✓</span></div>
+  <div class="r3">
+    <div class="left">
+      <div class="box insp">
+        <div class="bh"><span class="t">이번 달 점검 현황</span><span class="r">2026년 7월</span></div>
+        <div class="donuts">
+          <div class="drow">
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--safe-bar)">100</div><div class="cap">소화기</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent); border-right-color:var(--surface-sunken)">75</div><div class="cap">유도등</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--warning-bar); border-top-color:var(--surface-sunken); border-right-color:var(--surface-sunken)">30</div><div class="cap">소화전</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent)">88</div><div class="cap">방화셔터</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--surface-sunken)">0</div><div class="cap">제연댐퍼</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent); border-right-color:var(--surface-sunken)">60</div><div class="cap">송수관</div></div>
+          </div>
+          <div class="drow">
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--safe-bar)">100</div><div class="cap">비상조명</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent); border-right-color:var(--surface-sunken)">72</div><div class="cap">완강기</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--warning-bar); border-top-color:var(--surface-sunken); border-right-color:var(--surface-sunken)">25</div><div class="cap">피난구</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent)">90</div><div class="cap">DIV</div></div>
+            <div class="col" style="align-items:center; gap:6px;"><div class="donut d76" style="border:6px solid var(--accent); border-right-color:var(--surface-sunken)">55</div><div class="cap">컴프레셔</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="qtools">
+        <div class="qt"><div class="ic">🗺</div><div class="tl">도면</div><div class="td">층별 점검</div></div>
+        <div class="qt"><div class="ic">📊</div><div class="tl">통계</div><div class="td">점검 현황</div></div>
+        <div class="qt"><div class="ic">🔔</div><div class="tl">경보</div><div class="td">알림 설정</div></div>
+        <div class="qt"><div class="ic">📋</div><div class="tl">점검일지</div><div class="td">출력</div></div>
+      </div>
+    </div>
+    <div class="right">
+      <!-- 상단 그룹: flex-1 (점검현황 미러) — 라이브 + 캘린더(바닥 정렬) -->
+      <div style="flex:1; min-height:0; display:flex; flex-direction:column; gap:16px;">
+        <div class="box dlive">
+          <div class="bh"><span class="t">🔔 화재수신반 라이브</span><span class="r">방재실 캡처</span></div>
+          <div class="live" style="border-radius:0;"><span class="badge"><i></i>LIVE</span></div>
+          <div style="padding:9px 13px; font-size:13px; color:var(--safe); font-weight:700;">● 정상 · 이상 없음 · 방금</div>
+        </div>
+        <!-- 캘린더: mt-auto 로 상단 그룹 바닥에 정렬 → 캘린더 바닥 == 점검현황 바닥 -->
+        <div class="box dcal" style="margin-top:auto;">
+          <div class="ct">2026년 7월</div>
+          <div class="cg">
+            <div class="dow" style="color:var(--danger)">일</div><div class="dow">월</div><div class="dow">화</div><div class="dow">수</div><div class="dow">목</div><div class="dow">금</div><div class="dow" style="color:var(--info)">토</div>
+            <div class="cell"></div><div class="cell"></div><div class="cell">1</div><div class="cell">2</div><div class="cell">3</div><div class="cell">4</div><div class="cell">5</div>
+            <div class="cell">6</div><div class="cell">7</div><div class="cell">8</div><div class="cell">9</div><div class="cell">10</div><div class="cell">11</div><div class="cell">12</div>
+            <div class="cell">13</div><div class="cell">14</div><div class="cell">15</div><div class="cell">16</div><div class="cell">17</div><div class="cell">18</div><div class="cell">19</div>
+            <div class="cell">20</div><div class="cell">21</div><div class="cell">22</div><div class="cell">23</div><div class="cell">24</div><div class="cell">25</div><div class="cell">26</div>
+            <div class="cell">27</div><div class="cell">28</div><div class="cell">29</div><div class="cell">30</div><div class="cell">31</div><div class="cell"></div><div class="cell"></div>
+          </div>
+        </div>
+      </div>
+      <!-- 하단: 오늘일정 (빠른도구 미러 위치) -->
+      <div class="box dtoday" style="flex:0 0 auto; height:118px;">
+        <div class="bh"><span class="t">오늘 일정</span><span class="r">5건</span></div>
+        <div class="list">
+          <div class="li"><span class="cd" style="background:var(--info-bar)"></span>09:30 VIP 투어 협조</div>
+          <div class="li"><span class="cd" style="background:var(--warning-bar)"></span>14:00 승강기 5호기 수리</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>제안 (a) 구조 정렬 — 권장:</b> 우측을 <code>[flex-1 상단 그룹: 라이브 + 캘린더(mt-auto 바닥 정렬)]</code> + <code>[오늘일정 하단]</code>으로 재구성.
+  상단 그룹이 좌측 <code>점검현황(flex-1)</code>과 같은 높이로 성장 → 캘린더 바닥이 <b>점검현황 바닥을 자동 추종</b> → 오늘일정 top == 빠른도구 top. 캘린더 그리드는 자연 크기 유지, 해상도 비의존.
+  <span class="cap">(1920×1080 실측 추정: 라이브+캘린더 ≈ 점검현황 높이라 라이브·캘린더 사이 mt-auto 갭은 거의 0. 콘텐츠 변동 시에도 자동 정렬.)</span><br>
+  <b>대안 (b) 튠:</b> 구조 유지하고 캘린더 셀/패딩만 줄여 1920×1080에서 정렬 — 더 단순하지만 해상도 의존. <span class="warn">둘 중 어느 쪽을 적용할지 선택해 주세요.</span>
+</div>
+
+<div class="note" style="border-color:var(--safe-bar);">
+  <b>FIX-2 (참고, 시안 없음):</b> 데스크톱 화재수신반 3분할 pane 헤더(<code>:6356</code>)를 형제 상세 pane 헤더(<code>:6540</code>) 크롬에 정렬 —
+  <code>px-4 py-[11px]</code>→<code>px-5 py-3</code>, 백버튼 <code>w-7 h-7 rounded-[7px]</code>→<code>w-8 h-8 rounded-sm</code>(+<code>border border-border-default</code>), <code>ChevronLeft size 16→14</code>, <code>gap-[11px]</code>→<code>gap-2.5</code>. 점검모드 토글 유지(48px 안에 수용). 형제 pane 소스 실측으로 값 확정 완료.
+</div>
+
+</body>
+</html>
