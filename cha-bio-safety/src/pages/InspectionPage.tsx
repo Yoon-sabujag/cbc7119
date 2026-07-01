@@ -4851,7 +4851,7 @@ function DesktopInspectionView({
   const [paSaving, setPaSaving] = useState(false)
   const [maintBusy, setMaintBusy] = useState(false)
   const [panelZoomOpen, setPanelZoomOpen] = useState(false)
-  const [alarmAcked, setAlarmAcked] = useState(false)
+  const [ackedId, setAckedId] = useState<string | null>(null)
   const panelZoom = usePinchZoom({ maxScale: 2.2, doubleTapScale: 2.2 })
 
   // P2-2: 화재수신반 pane 열릴 때 activeAlarm 1회 스냅샷 → handlePanelSave 분기·prefill 이 스냅샷 사용(폴링값 X). display(panelMode)는 live 유지.
@@ -4916,10 +4916,12 @@ function DesktopInspectionView({
     }
   }
 
+  // P2-1: ackedId=인지한 alarm.id — 두번째(다른 id) 경보는 takeover 재노출
   // 경보 인지(ack) — 데스크톱 takeover 모달
   const handleAlarmAck = async () => {
-    setAlarmAcked(true)
-    if (activeAlarm) { try { await alarmApi.ack(activeAlarm.id); qc.invalidateQueries({ queryKey: ['alarm-active'] }) } catch { /* 미배포 폴백 */ } }
+    const ackId = activeAlarm?.id ?? null
+    setAckedId(ackId)
+    if (ackId) { try { await alarmApi.ack(ackId); qc.invalidateQueries({ queryKey: ['alarm-active'] }) } catch { /* 미배포 폴백 */ } }
   }
 
   const paLabelCls = 'text-caption font-semibold text-text-tertiary mb-1.5 block'
@@ -5484,6 +5486,63 @@ function DesktopInspectionView({
           </div>
         )}
       </div>
+
+      {/* ── 데스크톱 경보 takeover 모달 (dash view only, !acked) ── */}
+      {activeAlarm && categoryIdx === null && ackedId !== activeAlarm.id && (
+        <div className="alarm-modal absolute inset-0 z-[90] flex items-center justify-center p-6"
+          style={{ background: 'radial-gradient(circle at 50% 40%, rgba(239,68,68,.28), rgba(10,13,18,.92))' }}>
+          <div className="am-card w-[560px] max-w-full rounded-[18px] border border-[rgba(239,68,68,.4)] bg-[rgba(26,31,39,.82)] backdrop-blur-md px-8 py-9 text-center shadow-[0_20px_60px_rgba(0,0,0,.5)]">
+            <div className="am-ico w-[88px] h-[88px] mx-auto mb-5 rounded-full flex items-center justify-center bg-[rgba(239,68,68,.18)]"
+              style={{ animation: 'firepulse 1.4s ease-in-out infinite' }}>
+              <Flame size={44} className="text-danger" />
+            </div>
+            <div className="am-kind text-[24px] font-extrabold text-danger">화재 발생</div>
+            <div className="am-loc text-[46px] font-extrabold text-text-primary leading-[1.05] my-2">{activeAlarm.location ?? '위치 확인중'}</div>
+            <div className="am-time font-mono tabular-nums text-body-sm text-text-tertiary">{activeAlarm.detectedAt}</div>
+            <div className="am-sub text-body-sm text-text-secondary mt-2">현장 확인 및 조치 후 화재수신반 페이지에서 초안을 보완하세요</div>
+            <div className="flex gap-2.5 mt-7">
+              <button type="button" onClick={handleAlarmAck}
+                className="am-ack flex-1 py-3.5 rounded-md border-0 bg-white text-[#b91c1c] text-body font-bold cursor-pointer hover:bg-white/90 transition-colors">
+                확인 (경보 인지)
+              </button>
+              <button type="button" onClick={() => { setCategoryIdx(FIRE_ALARM_IDX); setRecordId(null); handleAlarmAck() }}
+                className="am-go flex-1 py-3.5 rounded-md border border-border-strong bg-surface-sunken text-text-primary text-body font-bold cursor-pointer hover:bg-surface-active transition-colors">
+                화재수신반 페이지
+              </button>
+            </div>
+            <div className="am-note text-caption text-text-tertiary mt-4">해당시간 근무자 전원에게 발송 · 미확인 시 20초 × 3회 재발송</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 데스크톱 줌 오버레이 (biglive 클릭, usePinchZoom 2.2× · 줌 힌트 텍스트 없음) ── */}
+      {panelZoomOpen && (
+        <div className="zoom absolute inset-0 z-[95] flex flex-col bg-[#05070a] text-white">
+          <button type="button" onClick={() => { setPanelZoomOpen(false); panelZoom.reset() }}
+            className="zoom-close absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white/[.12] text-white cursor-pointer z-10 hover:bg-white/20 transition-colors">
+            <X size={18} />
+          </button>
+          <div className="flex items-center gap-2 px-4 py-3.5 shrink-0">
+            <span className="zoom-badge inline-flex items-center gap-1.5 text-body-sm font-extrabold">
+              <span className="w-[7px] h-[7px] rounded-full shrink-0"
+                style={{ ...paBlink, background: panelMode === 'alarm' ? '#ef4444' : '#22c55e' }} />
+              {panelMode === 'alarm' ? '화재' : 'LIVE'}
+            </span>
+            <span className="text-body-sm text-white/70">
+              {panelMode === 'alarm' ? '화재 발생 · 자세히 보기' : '실시간 수신반 화면 · 자세히 보기'}
+            </span>
+          </div>
+          <div className="flex-1 flex items-center justify-center px-4 pb-4 min-h-0">
+            <div
+              ref={panelZoom.containerRef}
+              {...panelZoom.bind}
+              style={{ touchAction: 'none', transform: panelZoom.transform }}
+              className="zoom-frame w-full max-w-[1100px] aspect-video rounded-md bg-black overflow-hidden cursor-zoom-in">
+              <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
