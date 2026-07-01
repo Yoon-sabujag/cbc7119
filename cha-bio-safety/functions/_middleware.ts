@@ -5,6 +5,7 @@ export interface Env {
   ENVIRONMENT: string
   VAPID_PUBLIC_KEY?: string
   VAPID_PRIVATE_KEY?: string
+  AGENT_KEY?: string
 }
 
 interface JWTPayload { sub:string; name:string; role:string; title:string; iat:number; exp:number }
@@ -23,7 +24,9 @@ async function verifyJWT(token: string, secret: string): Promise<JWTPayload | nu
   } catch { return null }
 }
 
-const PUBLIC = ['/api/auth/login', '/api/health', '/api/holidays/sync', '/api/push/vapid-public-key']
+const PUBLIC = ['/api/auth/login', '/api/health', '/api/holidays/sync', '/api/push/vapid-public-key',
+  // 화재수신반 에이전트 인입 (JWT 예외 — 각 핸들러가 X-Agent-Key 로 보호). active/events/ack/status/maint 는 JWT 유지.
+  '/api/panel/frame', '/api/alarm/trigger', '/api/alarm/clear', '/api/alarm/heartbeat', '/api/alarm/renotify']
 const PUBLIC_PREFIX = ['/api/uploads/', '/api/public/', '/api/holidays', '/api/_telemetry/']
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
@@ -33,7 +36,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   const cors = {
     'Access-Control-Allow-Origin':  '*',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Agent-Key,X-Frame-Key,X-Frame-Ts',
   }
 
   if (request.method === 'OPTIONS')
