@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: 문서 관리
-status: in_progress
-stopped_at: "Completed 25-05-PLAN.md (데스크톱 3분할 화재수신반 상세 pane + 경보 takeover modal + 줌 오버레이 + FLAG-1 useSearchParams 딥링크). 다음: 25-06 (SW 딥링크)"
-last_updated: "2026-07-01T04:30:00.000Z"
+status: completed
+stopped_at: "Phase 25 Wave 2 (25-04) 실행 완료 — 신규 /fire-alarm 경보 풀스크린 페이지(FireAlarmPage.tsx) + App.tsx 배선. fire(빨강/Flame/재발송 경고 "확인을 눌러야 추가 푸시가 멈춥니다") / equip(초록/Settings/단발 "정보성 알림 · 확인 시 닫힘") takeover. 확인=alarmApi.ack(id) optimistic try/catch -> fire=navigate('/inspection?panel=fire-alarm'), equip=navigate('/dashboard'). alarmApi.getActive() try/catch->null -> 활성 없음 시 "경보 없음 · 상황 종료" 중립 상태. LivePanelImage dim 배경 + radial wash(fire blink fawash/faring). 스크롤락 overflow:hidden+touchmove(body:fixed 금지), fixed inset-0 safe-area pin. App.tsx: lazy FireAlarmPage + Route(Auth 래퍼) + '/fire-alarm' 을 MOBILE_NO_NAV_PATHS + DESKTOP_NO_NAV_PATHS 양쪽 등록(전 크롬 숨김). InspectionPage/DashboardPage 무수정. (2/2 tasks, tsc clean, ac71057e/a449e40a, feature/25-panel-monitoring). 다음: Wave 3 (25-05 desktop 3-split / 25-06 sw-push deep-link -> /fire-alarm)"
+last_updated: "2026-07-01T06:03:08.819Z"
 last_activity: "2026-05-31 - Completed quick task 260531-uyn: **07-elevator 잔존 cleanup 종결** (commit f96534e, branch main). 옵션 B 완결(5-16) 시 별도 quick 후보로 남긴 ElevatorPage.tsx cleanup 2건 처리: ①데스크톱 헤더 "수리 기록" 버튼 yellow gradient(#854d0e,#eab308) → accent gradient(var(--accent-active),var(--accent)) — 모바일 FAB(1762)와 통일, 3A 결정 잔여분 / ②이모지 ✕ 3건(검사성적서 close size20 / 이미지뷰어 close 흰색 size22 / 고장목록 삭제버튼 size14) → lucide `<X>`. 고장 접수 red gradient(#991b1b,#ef4444) 무변경. 메모리 item 3(5721ee5+33cb883)은 기수정 history 라 제외. grep ✕=0 / #854d0e=0 / red 4 잔존 / accent 2 / tsc PASS. 직원 콘솔(20260328) 이관용 4-diff sync 노트 SUMMARY 에 정리(문자열 매칭 적용 — 라인 drift 주의). **07-elevator cleanup 완전 종결 = 잔존 redesign cleanup 0**."
 progress:
   total_phases: 25
-  completed_phases: 18
-  total_plans: 46
-  completed_plans: 48
-  percent: 72
+  completed_phases: 19
+  total_plans: 52
+  completed_plans: 53
+  percent: 76
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -202,6 +202,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 | Phase 21 P03 | 2 | 1 tasks | 1 files |
 | Phase 21 P04 | 4 | 3 tasks | 4 files |
 | Phase 21 P05 | 15 min | 3 tasks | 3 files |
+| Phase 25 P06 | 8min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -245,6 +246,7 @@ v1.4 roadmap decisions:
 - [Phase 24]: cp.zone CHECK 제약 제거 + 'common' → 'basement' 정리(0081 마이그레이션) — 의미 부합. 향후 zone 추가 시 마이그레이션 불필요.
 - [Phase 24]: extinguishers.check_point_id NOT NULL 제거(0080 마이그레이션) — skip_marker 등록 + dispose/unassign NULL set 가능.
 - [Phase 24]: floor/zone 필터 COALESCE(cp, ext) — 매핑된 자산이 ext.floor=NULL 이어도 cp.floor 기준 매치.
+- [Phase ?]: 25-06: SW push 딥링크 = data.url 우선 + fire/equip fallback, open-redirect 방지 same-origin 한정
 
 ### Pending Todos
 
