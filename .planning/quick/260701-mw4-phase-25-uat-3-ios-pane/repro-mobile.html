@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<style>
+  :root{--surface-page:#0a0d12;--surface-raised:#1a1f27;--surface-sunken:#232a33;--text-primary:#e6edf3;--text-secondary:#adb6c0;--text-tertiary:#8b949e;--border-default:rgba(255,255,255,.14);--danger:#f87171;--fire:#fb923c;--safe-bar:#22c55e;--danger-bar:#ef4444;--fire-bar:#f97316;--info-bar:#0ea5e9;--accent:#3b82f6;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;}
+  body{background:#05070a;color:#e6edf3;padding:20px;display:flex;gap:30px;}
+  .lab{font-size:14px;font-weight:700;margin-bottom:8px;}
+  .lab.bad{color:var(--danger);} .lab.good{color:var(--safe-bar);}
+  /* phone shell: fixed height main to mimic flex-1 constrained viewport */
+  .phone{width:390px;background:var(--surface-page);border:6px solid #23272e;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;height:600px;}
+  .chip{flex:0 0 auto;background:var(--surface-raised);border-bottom:1px solid var(--border-default);padding:8px 12px;font-size:11px;color:var(--text-secondary);}
+  main{flex:1 1 auto;min-height:0;overflow-y:auto;display:grid;gap:7px;padding:7px 11px;
+       grid-template-rows:auto auto auto auto minmax(125px,1fr);}
+  .banner{border-radius:6px;border:1px solid rgba(14,165,233,.3);padding:8px 12px;background:linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08));}
+  .banner .k{font-size:11px;font-weight:700;color:var(--info-bar);text-transform:uppercase;}
+  .banner .v{font-size:13px;font-weight:700;margin-top:2px;}
+  /* ===== CURRENT: aspect-video ON the grid item (nested aspect + h-full, faithful to real DOM) ===== */
+  .live-cur{border-radius:6px;overflow:hidden;background:#000;aspect-ratio:16/9;min-height:180px;cursor:pointer;}
+  .live-cur > .lpi{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;height:100%;}
+  /* ===== FIXED: grid item is plain block; LivePanelImage's own aspect-video defines height ===== */
+  .live-fix{border-radius:6px;overflow:hidden;background:#000;min-height:180px;cursor:pointer;}
+  .live-fix > .lpi{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;}
+  .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--surface-sunken);color:var(--text-tertiary);font-size:12px;}
+  .stats-h{font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;}
+  .stat4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .stat{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:6px;padding:8px;position:relative;overflow:hidden;}
+  .stat .l{font-size:11px;font-weight:700;color:var(--text-tertiary);}
+  .stat .n{font-family:monospace;font-size:20px;font-weight:600;line-height:1;margin-top:4px;}
+  .bar{position:absolute;bottom:0;left:0;right:0;height:2px;}
+  .tools{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .tool{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:6px;padding:12px;display:flex;align-items:center;gap:12px;}
+  .tool .ic{width:38px;height:38px;border-radius:6px;background:var(--surface-sunken);flex:0 0 auto;}
+  .tool .tl{font-size:13px;font-weight:700;}
+  .tool .td{font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+  .donut-card{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;}
+  .donut-hd{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--border-default);font-size:12px;font-weight:700;color:var(--text-secondary);}
+  .strip{overflow-x:auto;padding:8px 10px;display:flex;gap:12px;}
+  .du{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px;}
+  .donut{width:44px;height:44px;border-radius:50%;border:5px solid var(--safe-bar);display:flex;align-items:center;justify-content:center;font-size:11px;font-family:monospace;font-weight:700;}
+  .cap{font-size:11px;color:var(--text-tertiary);}
+</style></head><body>
+<script>
+function grid(live){return `
+  <div class="chip">관리자 · 김·이 &nbsp;&nbsp; 보조자 · 박·윤</div>
+  <main>
+    <div class="banner"><div class="k">오늘 점검 대상</div><div class="v">전층 피난계단 점검</div></div>
+    ${live}
+    <div><div class="stats-h">오늘 현황</div><div class="stat4">
+      <div class="stat"><div class="l">점검 미완료</div><div class="n" style="color:var(--danger)">0</div><div class="bar" style="background:var(--danger-bar)"></div></div>
+      <div class="stat"><div class="l">미조치</div><div class="n" style="color:var(--fire)">2</div><div class="bar" style="background:var(--fire-bar)"></div></div>
+      <div class="stat"><div class="l">오늘 일정</div><div class="n">2</div><div class="bar" style="background:var(--border-default)"></div></div>
+      <div class="stat"><div class="l">승강기</div><div class="n">0</div><div class="bar" style="background:var(--safe-bar)"></div></div>
+    </div></div>
+    <div><div class="stats-h">빠른 도구 모음</div><div class="tools">
+      <div class="tool"><div class="ic"></div><div><div class="tl">도면 점검</div><div class="td">층별 도면 보기</div></div></div>
+      <div class="tool"><div class="ic"></div><div><div class="tl">DIV 트렌드</div><div class="td">측정점 선택</div></div></div>
+    </div></div>
+    <div class="donut-card"><div class="donut-hd"><span>이번 달 점검 현황</span><span>2026년 7월</span></div>
+      <div class="strip">
+        <div class="du"><div class="donut">100</div><div class="cap">방화문</div><div class="cap">50/50</div></div>
+        <div class="du"><div class="donut">100</div><div class="cap">피난계단</div><div class="cap">50/50</div></div>
+        <div class="du"><div class="donut" style="border-color:var(--surface-sunken)">0</div><div class="cap">연결송수관</div><div class="cap">0/2</div></div>
+        <div class="du"><div class="donut" style="border-color:var(--surface-sunken)">0</div><div class="cap">제연댐퍼</div><div class="cap">0/16</div></div>
+      </div>
+    </div>
+  </main>`;}
+document.write(`
+  <div><div class="lab bad">현재 (aspect-video = grid item) — 오버플로 예상</div>
+    <div class="phone">${grid('<div class="live-cur"><div class="lpi"><div class="ph">수신반 화면 로딩 · 미연결</div></div></div>')}</div></div>
+  <div><div class="lab good">제안 (grid item = plain block, aspect-video는 내부 LivePanelImage)</div>
+    <div class="phone">${grid('<div class="live-fix"><div class="lpi"><div class="ph">수신반 화면 로딩 · 미연결</div></div></div>')}</div></div>
+`);
+</script>
+</body></html>

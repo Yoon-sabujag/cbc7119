@@ -458,10 +458,7 @@ export default function DashboardPage() {
           {/* 우: 캘린더 + 오늘 일정 (340px) */}
           <div className="w-[340px] shrink-0 flex flex-col gap-4">
 
-            {/* 상단 그룹 (라이브+캘린더) — 좌측 점검현황(flex-1) 미러 → 캘린더 바닥 정렬 */}
-            <div className="flex-1 min-h-0 flex flex-col gap-4">
-
-            {/* Phase 25: 화재수신반 라이브 위젯 (shrink-0 — flex-1 오늘 일정 높이 침범 방지) */}
+            {/* Phase 25: 화재수신반 라이브 위젯 (shrink-0) */}
             <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden shrink-0">
               <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border-default">
                 <BellRing size={16} className="text-text-secondary" />
@@ -513,8 +510,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 미니 캘린더 */}
-            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-4 shrink-0 mt-auto">
+            {/* 미니 캘린더 — flex-1 로 좌측 점검현황 높이만큼 채워 캘린더 바닥 == 점검현황 바닥 자동 정렬.
+                셀 w-6(24px) 컴팩트 + justify-center (점검현황 도넛 정렬과 동일) → 오늘일정 top == 빠른도구 top. */}
+            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-3 flex-1 min-h-[248px] overflow-y-auto flex flex-col justify-center">
               <div className="text-label font-bold text-text-primary text-center mb-2.5">
                 {calYear}년 {calMonth + 1}월
               </div>
@@ -551,7 +549,7 @@ export default function DashboardPage() {
                   const cellWeight = (isToday || isHoliday) ? 'font-bold' : 'font-normal'
                   return (
                     <div key={d} title={holName} className="py-0.5 relative">
-                      <div className={`w-7 h-7 rounded-full mx-auto flex items-center justify-center text-caption ${cellWeight} ${cellTextColor} ${cellBgClass}`}>
+                      <div className={`w-6 h-6 rounded-full mx-auto flex items-center justify-center text-caption ${cellWeight} ${cellTextColor} ${cellBgClass}`}>
                         {d}
                       </div>
                       {dayCats.length > 0 && (
@@ -567,10 +565,9 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
-            </div>
 
-            {/* 오늘 일정 */}
-            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col shrink-0 h-[125px]">
+            {/* 오늘 일정 — shrink-0 h-[133px] (좌측 빠른도구 행 높이와 일치 → top 정렬) */}
+            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col shrink-0 h-[133px]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border-default shrink-0">
                 <span className="text-label font-bold text-text-primary">오늘 일정</span>
                 <span className="text-caption text-text-tertiary bg-surface-sunken px-2.5 py-0.5 rounded-pill">{schedule.length}건</span>
@@ -654,13 +651,15 @@ export default function DashboardPage() {
         </div>
 
         {/* ①-b 화재수신반 라이브 (16:9 순수 이미지, chrome 0) */}
+        {/* grid item 은 plain block 로 둔다 — aspect-video 를 grid item 에 직접 주면 iOS/Android 에서
+            auto 트랙이 min-content 로 축소돼 라이브가 트랙 밖으로 넘쳐 ②오늘현황과 겹침.
+            16:9 높이는 내부 LivePanelImage 의 aspect-video 가 정의 (데스크톱 위젯과 동일 패턴). */}
         <div
           onClick={() => navigate('/inspection?panel=fire-alarm')}
-          className="rounded-md overflow-hidden bg-black aspect-video cursor-pointer min-h-[180px] [animation:slideUp_.28s_.03s_ease-out_both]"
+          className="rounded-md overflow-hidden bg-black cursor-pointer min-h-[180px] [animation:slideUp_.28s_.03s_ease-out_both]"
         >
           <LivePanelImage
             frameUpdatedAt={frameUpdatedAt}
-            className="w-full h-full"
             imgClassName="w-full h-full object-cover"
           />
         </div>
