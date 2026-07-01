@@ -5,8 +5,9 @@ date: 2026-07-02
 status: complete
 parent_commit: 13a94daa
 commits:
-  - c45097e5  # P2-2 InspectionPage resolve↔create open-time snapshot
-deploy_url: https://095bbd44.cbc7119.pages.dev
+  - c45097e5  # P2-2 resolve↔create open-time snapshot
+  - 142aac24  # 데스크톱 takeover 모달 + biglive 줌 오버레이 재승격 + P2-1
+deploy_url: https://9f4b9aea.cbc7119.pages.dev
 ---
 
 # SUMMARY — P2-2 prod 미러 + P2-1 데스크톱 UI 미승격 발견
@@ -32,7 +33,17 @@ P2-1(데스크톱 두번째 경보 takeover 안뜸: `alarmAcked` sticky bool →
 
 **결론**: 42ef77e8(Phase 25 프론트 승격)이 DesktopInspectionView 를 **축소 이식** — 데스크톱 takeover 모달 + biglive 줌 오버레이가 통째로 빠짐. 따라서 **prod 데스크톱 ≠ preview**. P2-1 은 단독 3줄 패치 대상이 없어 보류. 데스크톱 경보 UI 를 preview 와 맞추려면 **DesktopInspectionView 재승격(별도 작업)** 필요.
 
-## 사용자 결정 대기
+## 후속 — 데스크톱 재승격 완료 (142aac24, 배포 9f4b9aea)
 
-- 데스크톱 경보 UI(takeover 모달 + 크게보기 줌) 재승격 여부. dormant·데스크톱 한정·모바일이 주 인터페이스라 우선순위 판단 필요.
-- UAT: 실경보(맥 에이전트 배포 후) 편집 중 폴링에도 저장 정확 분기 + prod PWA 재설치.
+사용자 '둘 다 지금' 결정 → design/main `704c9158` 에서 **takeover 모달 + biglive 줌 오버레이 2블록을 DesktopInspectionView return 끝에 verbatim 이식** + **P2-1**(`alarmAcked` sticky bool → `ackedId` id-비교).
+
+- 삽입 위치: 내용 `</div>` 다음, 루트 `</div>` 앞 (main 과 동일 구조).
+- biglive 클릭(L5179 setPanelZoomOpen)·딥링크 zoom=1(L4836) 트리거는 이미 있었으나 여는 오버레이 JSX 가 없어 dead 였던 것 해소.
+- 의존성 전부 prod 존재: Flame(L27 import)·X·Maximize2·paBlink·LivePanelImage·panelZoom hook·FIRE_ALARM_IDX·setCategoryIdx·setRecordId·panelStatus.
+- 검증: 이식 2블록 `diff` vs main **byte-identical**. 마커 am-card/alarm-modal/am-ico/panelZoom.bind/onClick handleAlarmAck 각 1·ackedId 3·alarmAcked 0. tsc 0 + build 87.
+- **결과: 데스크톱 InspectionView = preview.** 직원 앱 화재수신반 코드 전 표면 완결.
+
+## 남은 것
+
+- **UAT**(실발현은 맥 에이전트 배포 후): 데스크톱 2번째 경보 takeover 재노출 / biglive 크게보기 줌 / 편집 중 15s 폴링에도 저장 정확 분기 + prod PWA 재설치.
+- **다음 단계 = 맥 에이전트 연동** (캡처보드 프레임 R2 업로드 → 라이브뷰 활성 → 실제 디버깅). 백엔드·AGENT_KEY prod 준비됨.
