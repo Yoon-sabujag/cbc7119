@@ -5407,25 +5407,31 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     }
   }, [zoomOpen])
 
-  // 경보중: activeAlarm.detectedAt -> 발생일시 자동초안 (한번만)
+  // P2-2: 폴링(15s)이 편집 중 alarm 상태를 뒤집어 resolve↔create 오분기하는 것 방지. 오픈 시점 activeAlarm 1회 스냅샷 → save 분기·prefill 이 스냅샷 사용(폴링값 X). display(mode)는 live 유지.
+  const openAlarmRef = useRef<Alarm | null | undefined>(undefined)  // undefined=쿼리 미settle, null/Alarm=settle 스냅샷
   const prefilledRef = useRef(false)
   useEffect(() => {
-    if (mode === 'alarm' && activeAlarm && !prefilledRef.current) {
-      prefilledRef.current = true
-      const [d, t] = (activeAlarm.detectedAt || '').split(' ')
-      if (d) setDate(d)
-      if (t) setTime(t.slice(0, 5))
-      setType('non_fire')
+    if (openAlarmRef.current === undefined && activeAlarm !== undefined) {
+      openAlarmRef.current = maintOn ? null : (activeAlarm ?? null)
+      const snap = openAlarmRef.current
+      if (snap && !prefilledRef.current) {
+        prefilledRef.current = true
+        const [d, t] = (snap.detectedAt || '').split(' ')
+        if (d) setDate(d)
+        if (t) setTime(t.slice(0, 5))
+        setType('non_fire')
+      }
     }
-  }, [mode, activeAlarm])
+  }, [activeAlarm, maintOn])
 
   // ── 저장 2분기: 경보중 = resolve(칩 소멸) / 평상시 = create(신규) ──
   const handleSave = async () => {
     setSaving(true)
     try {
-      if (mode === 'alarm' && activeAlarm) {
+      const snap = openAlarmRef.current
+      if (snap) {
         // 경보중 자동초안 보완 -> in-place UPDATE + 확정 + panel_alarm cleared -> 대시보드 칩 소멸
-        await alarmApi.resolve(activeAlarm.id, { type, occurredAt: `${date} ${time}:00`, location, cause, action })
+        await alarmApi.resolve(snap.id, { type, occurredAt: `${date} ${time}:00`, location, cause, action })
         qc.invalidateQueries({ queryKey: ['alarm-active'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
       } else {
@@ -6088,24 +6094,35 @@ function DesktopInspectionView({
   const [ackedId, setAckedId] = useState<string | null>(null)
   const panelZoom = usePinchZoom({ maxScale: 2.2, doubleTapScale: 2.2 })
 
-  // 경보중: activeAlarm.detectedAt -> 발생일시 자동초안 (한번만)
+  // P2-2: 화재수신반 pane 열릴 때 activeAlarm 1회 스냅샷 → handlePanelSave 분기·prefill 이 스냅샷 사용(폴링값 X). display(panelMode)는 live 유지.
+  const panelOpenAlarmRef = useRef<Alarm | null | undefined>(undefined)
   const panelPrefilledRef = useRef(false)
   useEffect(() => {
-    if (panelMode === 'alarm' && activeAlarm && !panelPrefilledRef.current) {
-      panelPrefilledRef.current = true
-      const [d, t] = (activeAlarm.detectedAt || '').split(' ')
-      if (d) setPaDate(d)
-      if (t) setPaTime(t.slice(0, 5))
-      setPaType('non_fire')
+    if (isPanel) {
+      if (panelOpenAlarmRef.current === undefined && activeAlarm !== undefined) {
+        panelOpenAlarmRef.current = maintOn ? null : (activeAlarm ?? null)
+        const snap = panelOpenAlarmRef.current
+        if (snap && !panelPrefilledRef.current) {
+          panelPrefilledRef.current = true
+          const [d, t] = (snap.detectedAt || '').split(' ')
+          if (d) setPaDate(d)
+          if (t) setPaTime(t.slice(0, 5))
+          setPaType('non_fire')
+        }
+      }
+    } else {
+      panelOpenAlarmRef.current = undefined
+      panelPrefilledRef.current = false
     }
-  }, [panelMode, activeAlarm])
+  }, [isPanel, activeAlarm, maintOn])
 
   // 저장 2분기: 경보중 = resolve(칩 소멸) / 평상시 = create(신규)
   const handlePanelSave = async () => {
     setPaSaving(true)
     try {
-      if (panelMode === 'alarm' && activeAlarm) {
-        await alarmApi.resolve(activeAlarm.id, { type: paType, occurredAt: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
+      const snap = panelOpenAlarmRef.current
+      if (snap) {
+        await alarmApi.resolve(snap.id, { type: paType, occurredAt: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
         qc.invalidateQueries({ queryKey: ['alarm-active'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
       } else {
