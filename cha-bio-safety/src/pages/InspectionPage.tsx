@@ -3,7 +3,9 @@ import type { ComponentType } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, type ExtinguisherDetail, type FloorPlanMarker } from '../utils/api'
+import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, panelApi, alarmApi, type ExtinguisherDetail, type FloorPlanMarker, type Alarm } from '../utils/api'
+import LivePanelImage from '../components/panel/LivePanelImage'
+import { freshnessLabel } from '../components/panel/freshness'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
@@ -19,7 +21,8 @@ import { computeCardCompletion } from '../utils/inspectionProgress'
 import { getReplaceWarning } from '../utils/extinguisher'
 import { CCTV_DVRS } from '../utils/cctv'
 import {
-  ChevronLeft, ChevronRight, Bell, Check, X, TrendingUp, Flame,
+  ChevronLeft, ChevronRight, Bell, BellRing, BellOff, Check, X, TrendingUp, Flame,
+  Maximize2, RefreshCw, Plus,
   // 카테고리 lucide (11종)
   Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Server,
   FlaskConical, Building2, TrainFront,
@@ -5333,12 +5336,40 @@ export default function InspectionPage() {
   )
 }
 
-// ── 화재수신반 기록 (전체 화면) ─────────────────────────────────
+// ── 화재수신반 원격감시 페이지 (전체 화면) ───────────────────────
+// Phase 25: 라이브 카드 + 48h 자동감지 이벤트 + 3-state 폼(평상시/경보중/점검모드).
+// 백엔드 /api/panel|alarm/* 은 이 디자인 트랙 미배포 -> 모든 query try/catch 평상시 폴백.
 function FireAlarmModal({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient()
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
 
+  // ── 원격감시 상태 (미배포 -> 평상시 폴백) ──
+  const { data: status } = useQuery({
+    queryKey: ['panel-status'],
+    queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
+    refetchInterval: 15_000,
+    retry: false,
+  })
+  const { data: activeAlarm } = useQuery({
+    queryKey: ['alarm-active'],
+    queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
+    refetchInterval: 15_000,
+    retry: false,
+  })
+  const { data: events = [] } = useQuery({
+    queryKey: ['alarm-events'],
+    queryFn: async () => { try { return await alarmApi.getEvents(48) } catch { return [] as Alarm[] } },
+    refetchInterval: 30_000,
+    retry: false,
+  })
+
+  const maintOn = !!status?.maint?.enabled
+  const mode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm ? 'alarm' : 'normal')
+  const fresh = freshnessLabel(status?.frameUpdatedAt ?? null)
+
+  // ── form state (기존 5필드 유지) ──
   const [type, setType] = useState<'fire'|'non_fire'>('non_fire')
   const [date, setDate] = useState(todayStr)
   const [time, setTime] = useState(timeStr)
@@ -5346,82 +5377,211 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const [cause, setCause] = useState('오작동')
   const [action, setAction] = useState('자동복구, 현장확인')
   const [saving, setSaving] = useState(false)
+  const [maintBusy, setMaintBusy] = useState(false)
+  const [zoomOpen, setZoomOpen] = useState(false)
 
   const handleSave = async () => {
     setSaving(true)
     try {
       await fireAlarmApi.create({ type, occurred_at: `${date} ${time}:00`, location, cause, action })
+      qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
       toast.success('화재수신반 기록이 저장되었습니다')
       onClose()
     } catch { toast.error('저장 실패') }
     finally { setSaving(false) }
   }
 
+  // ── 점검(정비)모드 토글 — PUT /api/panel/maint (409 confirm 은 Task 2) ──
+  const handleMaintToggle = async () => {
+    if (maintBusy) return
+    setMaintBusy(true)
+    try {
+      await panelApi.setMaint({ enabled: !maintOn })
+    } catch {
+      // 미배포/네트워크 -> 조용히 무시 (평상시 폴백)
+    } finally {
+      qc.invalidateQueries({ queryKey: ['panel-status'] })
+      qc.invalidateQueries({ queryKey: ['alarm-active'] })
+      setMaintBusy(false)
+    }
+  }
+
   const labelCls = 'text-caption font-semibold text-text-tertiary mb-1.5 block'
   const inputCls = 'w-full box-border px-3 py-2.5 rounded-sm border border-border-default bg-surface-raised text-text-primary text-label outline-none min-w-0 [appearance:none] [-webkit-appearance:none] focus:border-border-focus transition-colors'
+  const blinkStyle = { animation: 'blink 1s steps(1,end) infinite' }
+
+  // 이벤트 badge2 variant
+  const badge2 = (ev: Alarm) => {
+    if (ev.status === 'active' || ev.status === 'acked')
+      return { label: '감지중', cls: 'text-danger bg-danger-bg' }
+    if (ev.type === 'equip')
+      return { label: '설비동작', cls: 'text-safe bg-safe-bg' }
+    return { label: '비화재보', cls: 'text-text-secondary bg-surface-sunken' }
+  }
 
   return (
     <div className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]">
-      {/* 헤더 */}
-      <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
-        <Bell size={18} className="text-text-secondary flex-shrink-0" />
-        <span className="text-body font-bold text-text-primary">화재수신반 기록</span>
+      {/* 헤더 gh */}
+      <div className="flex items-center h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
+        <button onClick={onClose}
+          className="w-7 h-7 flex items-center justify-center rounded-[7px] bg-surface-sunken text-text-secondary cursor-pointer shrink-0">
+          <ChevronLeft size={18} />
+        </button>
+        <div className="flex-1 flex items-center gap-[7px] pl-2.5 text-title font-semibold text-text-primary min-w-0">
+          <BellRing size={18} className="text-text-secondary shrink-0" />
+          <span className="truncate">화재수신반</span>
+        </div>
+        {/* 점검모드 토글 gh-maint (single control point) */}
+        <button type="button" role="switch" aria-checked={maintOn} onClick={handleMaintToggle}
+          className={`inline-flex items-center gap-1.5 rounded-pill px-[7px] py-1 pl-[9px] text-[11px] font-bold leading-none cursor-pointer transition-colors shrink-0 ${
+            maintOn
+              ? 'text-text-primary bg-[rgba(173,182,192,.16)] border border-border-strong'
+              : 'text-text-tertiary bg-surface-sunken border border-border-default'
+          }`}>
+          <BellOff size={13} />
+          <span>점검모드</span>
+          <span className={`relative w-7 h-[18px] rounded-pill transition-colors ${maintOn ? 'bg-info' : 'bg-border-default'}`}>
+            <span className="absolute top-0.5 left-0.5 w-[14px] h-[14px] rounded-full bg-white transition-transform"
+              style={{ transform: maintOn ? 'translateX(14px)' : 'translateX(0)' }} />
+          </span>
+        </button>
       </div>
 
-      {/* 스크롤 본문 */}
-      <div className="flex-1 overflow-y-auto px-4 py-3.5">
-        <div className="flex flex-col gap-3.5">
-          {/* 구분 */}
-          <div>
-            <label className={labelCls}>구분</label>
-            <div className="flex gap-2">
-              {([['fire','화재보'],['non_fire','비화재보']] as const).map(([v, l]) => (
-                <button key={v} onClick={() => setType(v)}
-                  className={`flex-1 px-0 py-2.5 rounded-sm text-label font-bold cursor-pointer transition-colors ${
-                    type===v
-                      ? 'border-2 border-danger-bar bg-danger-bg text-danger'
-                      : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
-                  }`}>
-                  {l}
-                </button>
-              ))}
+      {/* 스크롤 본문 scroll > cont */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-2.5 px-3 py-3">
+          {/* live-card */}
+          <div className={`bg-surface-raised border rounded-md overflow-hidden ${
+            mode === 'alarm'
+              ? 'border-danger-bar bg-danger-bg shadow-[0_0_0_1px_rgba(239,68,68,.4)]'
+              : 'border-border-default'
+          }`} style={mode === 'alarm' ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}>
+            <div className="relative w-full aspect-video bg-black cursor-pointer" onClick={() => setZoomOpen(true)}>
+              <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+              {/* LIVE 배지 live-ov */}
+              <div className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white"
+                style={{ background: mode === 'alarm' ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}>
+                <span className="w-[6px] h-[6px] rounded-full bg-white" style={blinkStyle} />
+                {mode === 'alarm' ? '화재' : 'LIVE'}
+              </div>
+              {/* fshint */}
+              <div className="absolute bottom-[7px] right-[7px] inline-flex items-center gap-1 bg-black/50 rounded-sm px-[7px] py-0.5 text-[10px] text-white pointer-events-none">
+                <Maximize2 size={12} />
+                탭하면 크게 보기
+              </div>
+            </div>
+            {/* live-status */}
+            <div className="flex items-center gap-1.5 flex-wrap p-2 px-[11px] text-caption text-text-secondary tabular-nums">
+              {mode === 'alarm' ? (
+                <>
+                  <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0" style={blinkStyle} />
+                  <span className="text-danger font-extrabold">화재 발생</span>
+                  <span className="text-text-tertiary">·</span>
+                  <span>{activeAlarm?.location ?? '위치 확인중'}</span>
+                  <span className="text-text-tertiary">·</span>
+                  <span>{activeAlarm?.detectedAt ?? ''}</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-[7px] h-[7px] rounded-full bg-safe-bar shrink-0" style={blinkStyle} />
+                  <span className="text-safe font-bold">정상</span>
+                  <span className="text-text-tertiary">·</span>
+                  <span>이상 없음</span>
+                  <span className="text-text-tertiary">·</span>
+                  <span>{fresh.label}</span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* 발생일시 */}
-          <div>
-            <label className={labelCls}>발생일시</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              className={`${inputCls} block mb-1.5 h-input`} />
-            <input type="time" value={time} onChange={e => setTime(e.target.value)}
-              className={`${inputCls} block h-input`} />
+          {/* evt-card (최근 48시간 자동감지) */}
+          <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
+            <div className="flex items-center justify-between p-[7px_12px] border-b border-border-default">
+              <span className="text-caption font-semibold text-text-secondary">최근 이벤트 (자동감지)</span>
+              {mode === 'alarm' ? (
+                <span className="rounded-pill text-[11px] font-bold text-danger bg-danger-bg border border-[rgba(239,68,68,.4)] px-2 py-0.5 leading-none">감지중 {events.filter(e => e.status === 'active' || e.status === 'acked').length || 1}</span>
+              ) : (
+                <span className="rounded-pill text-[11px] text-text-tertiary bg-surface-sunken px-2 py-0.5 leading-none">최근 48시간</span>
+              )}
+            </div>
+            {events.length === 0 ? (
+              <div className="p-[14px_12px] text-caption text-text-tertiary text-center">최근 48시간 자동감지 이벤트 없음</div>
+            ) : (
+              events.map(ev => {
+                const b = badge2(ev)
+                return (
+                  <div key={ev.id} className="flex items-start gap-[9px] p-[9px_12px] border-b border-border-default last:border-b-0">
+                    <span className={`shrink-0 rounded-[6px] px-[7px] py-0.5 text-[10.5px] font-extrabold leading-none mt-0.5 ${b.cls}`}>{b.label}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono text-[11.5px] text-text-tertiary tabular-nums">{ev.detectedAt}</span>
+                        <span className="text-[13px] font-semibold text-text-primary">{ev.location ?? '위치 미상'}</span>
+                      </div>
+                      {ev.cause && <div className="text-caption text-text-tertiary mt-0.5">{ev.cause}</div>}
+                      <span className="inline-block mt-1 text-[10.5px] text-info bg-info-bg rounded-sm px-1.5 py-0.5 leading-none">자동감지</span>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
 
-          {/* 발생장소 */}
-          <div>
-            <label className={labelCls}>발생장소</label>
-            <textarea value={location} onChange={e => setLocation(e.target.value)}
-              placeholder="발생장소를 입력하세요" rows={2}
-              className={`${inputCls} resize-none leading-relaxed`} />
-          </div>
+          {/* 폼 (Task 2 에서 3-state 확장) */}
+          <div className="flex flex-col gap-3.5">
+            {/* 구분 */}
+            <div>
+              <label className={labelCls}>구분</label>
+              <div className="flex gap-2">
+                {([['fire','화재보'],['non_fire','비화재보']] as const).map(([v, l]) => (
+                  <button key={v} onClick={() => setType(v)}
+                    className={`flex-1 px-0 py-2.5 rounded-sm text-label font-bold cursor-pointer transition-colors ${
+                      type===v
+                        ? (v === 'fire'
+                            ? 'border-2 border-danger-bar bg-danger-bg text-danger'
+                            : 'border-2 border-accent bg-[rgba(59,130,246,.13)] text-[#60a5fa]')
+                        : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+                    }`}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          {/* 발생원인 */}
-          <div>
-            <label className={labelCls}>발생원인</label>
-            <textarea value={cause} onChange={e => setCause(e.target.value)}
-              rows={2} className={`${inputCls} resize-none leading-relaxed`} />
-          </div>
+            {/* 발생일시 */}
+            <div>
+              <label className={labelCls}>발생일시</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                className={`${inputCls} block mb-1.5 h-input`} />
+              <input type="time" value={time} onChange={e => setTime(e.target.value)}
+                className={`${inputCls} block h-input`} />
+            </div>
 
-          {/* 조치사항 */}
-          <div>
-            <label className={labelCls}>조치사항</label>
-            <textarea value={action} onChange={e => setAction(e.target.value)}
-              rows={2} className={`${inputCls} resize-none leading-relaxed`} />
+            {/* 발생장소 */}
+            <div>
+              <label className={labelCls}>발생장소</label>
+              <textarea value={location} onChange={e => setLocation(e.target.value)}
+                placeholder="발생장소를 입력하세요" rows={2}
+                className={`${inputCls} resize-none leading-relaxed`} />
+            </div>
+
+            {/* 발생원인 */}
+            <div>
+              <label className={labelCls}>발생원인</label>
+              <textarea value={cause} onChange={e => setCause(e.target.value)}
+                rows={2} className={`${inputCls} resize-none leading-relaxed`} />
+            </div>
+
+            {/* 조치사항 */}
+            <div>
+              <label className={labelCls}>조치사항</label>
+              <textarea value={action} onChange={e => setAction(e.target.value)}
+                rows={2} className={`${inputCls} resize-none leading-relaxed`} />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 하단 버튼 바 */}
+      {/* 하단 버튼 바 formbar */}
       <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default shrink-0 flex gap-2">
         <button onClick={onClose}
           className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
