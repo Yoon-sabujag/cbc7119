@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<style>
+  :root{--surface-raised:#1a1f27;--surface-sunken:#232a33;--text-primary:#e6edf3;--text-secondary:#adb6c0;--border-default:rgba(255,255,255,.14);--border-strong:rgba(255,255,255,.22);--info:#38bdf8;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;}
+  body{background:#0a0d12;color:var(--text-primary);padding:24px;display:flex;flex-direction:column;gap:22px;}
+  .lab{font-size:13px;font-weight:700;color:var(--text-secondary);}
+  .pane{width:760px;border:1px solid var(--border-default);border-radius:8px;overflow:hidden;background:#0a0d12;}
+  .h{border-bottom:1px solid var(--border-default);background:var(--surface-raised);display:flex;align-items:center;}
+  /* current 72px */
+  .h.cur{gap:10px;padding:12px 20px;}
+  .h.cur .back{width:48px;height:48px;border-radius:8px;background:var(--surface-sunken);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex:0 0 auto;font-size:16px;}
+  /* compact 54px */
+  .h.cmp{gap:10px;padding:11px 16px;}
+  .h.cmp .back{width:32px;height:32px;border-radius:7px;background:var(--surface-sunken);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex:0 0 auto;font-size:16px;}
+  .title{flex:1;display:flex;align-items:center;gap:6px;font-size:16px;font-weight:700;}
+  .toggle{display:inline-flex;align-items:center;gap:9px;border-radius:99px;padding:6px 9px 6px 14px;font-size:13px;font-weight:700;color:var(--text-secondary);background:var(--surface-sunken);border:1px solid var(--border-default);flex:0 0 auto;}
+  .sw{position:relative;width:38px;height:22px;border-radius:99px;background:var(--border-default);}
+  .sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;}
+  .body{height:120px;background:#000;display:flex;align-items:center;justify-content:center;color:#4b5563;font-size:12px;}
+  .ruler{font-size:11px;color:var(--text-tertiary);margin-top:4px;}
+</style></head><body>
+  <div>
+    <div class="lab">A · 현재 (FIX-2 적용 = 형제 상세 pane 과 동일, ≈72px)</div>
+    <div class="pane">
+      <div class="h cur">
+        <div class="back">‹</div>
+        <div class="title">🔔 화재수신반</div>
+        <div class="toggle">🔕 점검모드 <span class="sw"></span></div>
+      </div>
+      <div class="body">수신반 화면 로딩 · 미연결</div>
+    </div>
+    <div class="ruler">back 48px · px-5 py-3 · 헤더 ≈72px (조치상세/카테고리 상세 pane 과 일치)</div>
+  </div>
+  <div>
+    <div class="lab">B · 컴팩트 (back 32px, ≈54px) — 화재수신반만 or 전체 상세 pane</div>
+    <div class="pane">
+      <div class="h cmp">
+        <div class="back">‹</div>
+        <div class="title">🔔 화재수신반</div>
+        <div class="toggle">🔕 점검모드 <span class="sw"></span></div>
+      </div>
+      <div class="body">수신반 화면 로딩 · 미연결</div>
+    </div>
+    <div class="ruler">back 32px · px-4 py-[11px] · 헤더 ≈54px (점검모드 토글 34px 수용)</div>
+  </div>
+</body></html>

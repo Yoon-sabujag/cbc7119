@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<style>
+  :root{--surface-raised:#1a1f27;--surface-sunken:#232a33;--text-primary:#e6edf3;--text-secondary:#adb6c0;--text-tertiary:#8b949e;--border-default:rgba(255,255,255,.14);--accent:#3b82f6;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;}
+  body{background:#0a0d12;color:var(--text-primary);padding:24px;display:flex;flex-direction:column;gap:14px;width:900px;}
+  .lab{font-size:13px;font-weight:700;color:var(--text-secondary);}
+  .pane{border:1px solid var(--border-default);border-radius:8px;overflow:hidden;}
+  .h{border-bottom:1px solid var(--border-default);background:var(--surface-raised);display:flex;align-items:center;gap:10px;}
+  /* CATEGORY detail header (6632): px-5 py-3, icon20 + title + 정상제외 btn + count */
+  .cat{padding:12px 20px;}
+  .cat .icn{width:20px;height:20px;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .cat .ti{flex:1;font-size:14px;font-weight:700;}
+  .cat .btn{padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid var(--border-default);background:var(--surface-sunken);color:var(--text-tertiary);}
+  .cat .cnt{font-size:12px;color:var(--text-tertiary);}
+  /* PANEL header candidate: px-5 py-2 + back w-7(32) + title + toggle */
+  .pan{padding:8px 20px;}
+  .pan .back{width:32px;height:32px;border-radius:7px;background:var(--surface-sunken);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex:0 0 auto;font-size:16px;}
+  .pan .ti{flex:1;display:flex;align-items:center;gap:6px;font-size:16px;font-weight:700;}
+  .toggle{display:inline-flex;align-items:center;gap:9px;border-radius:99px;padding:6px 9px 6px 14px;font-size:13px;font-weight:700;color:var(--text-secondary);background:var(--surface-sunken);border:1px solid var(--border-default);flex:0 0 auto;}
+  .sw{position:relative;width:38px;height:22px;border-radius:99px;background:var(--border-default);}
+  .sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;}
+  .body{height:60px;background:#000;}
+  #out{position:fixed;top:8px;right:8px;background:rgba(0,0,0,.9);color:#0f0;font-family:monospace;font-size:14px;padding:8px 12px;border:1px solid #0f0;white-space:pre;}
+</style></head><body>
+  <div class="lab">카테고리 상세 헤더 (6632, 다른 점검 항목 페이지 기준)</div>
+  <div class="pane"><div class="h cat" id="cat"><div class="icn">🧯</div><div class="ti">소화기</div><div class="btn">정상 제외</div><div class="cnt">107건</div></div><div class="body"></div></div>
+
+  <div class="lab">화재수신반 헤더 후보 (px-5 py-2 · back 32px · 토글 유지)</div>
+  <div class="pane"><div class="h pan" id="pan"><div class="back">‹</div><div class="ti">🔔 화재수신반</div><div class="toggle">🔕 점검모드 <span class="sw"></span></div></div><div class="body"></div></div>
+<div id="out"></div>
+<script>
+  const cat=document.getElementById('cat').getBoundingClientRect();
+  const pan=document.getElementById('pan').getBoundingClientRect();
+  document.getElementById('out').textContent=`카테고리 헤더 height = ${cat.height.toFixed(0)}\n화재수신반 후보 height = ${pan.height.toFixed(0)}\n차 = ${(pan.height-cat.height).toFixed(0)}`;
+</script>
+</body></html>

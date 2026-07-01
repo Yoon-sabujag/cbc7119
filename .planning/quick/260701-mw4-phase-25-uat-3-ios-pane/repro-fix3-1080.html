@@ -1,0 +1,119 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<style>
+  :root{--surface-page:#0a0d12;--surface-raised:#1a1f27;--surface-sunken:#232a33;--text-primary:#e6edf3;--text-secondary:#adb6c0;--text-tertiary:#8b949e;--border-default:rgba(255,255,255,.14);--danger:#f87171;--fire:#fb923c;--safe-bar:#22c55e;--danger-bar:#ef4444;--fire-bar:#f97316;--info-bar:#0ea5e9;--accent:#3b82f6;--info:#38bdf8;--safe:#4ade80;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;}
+  body{background:#000;color:var(--text-primary);}
+  .shell{width:1920px;height:1080px;display:flex;}
+  .side{width:280px;flex:0 0 auto;background:var(--surface-raised);border-right:1px solid var(--border-default);}
+  .content{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
+  .thead{height:54px;flex:0 0 auto;border-bottom:1px solid var(--border-default);background:var(--surface-raised);display:flex;align-items:center;padding:0 20px;font-size:16px;font-weight:700;}
+  .pmain{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+  .dash{width:100%;height:100%;overflow:auto;padding:20px 32px;display:flex;flex-direction:column;gap:16px;}
+  .row0{display:flex;align-items:center;justify-content:space-between;height:30px;font-size:12px;color:var(--text-secondary);}
+  .banner{border-radius:16px;border:1px solid rgba(14,165,233,.3);padding:16px 24px;background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(14,165,233,.05));}
+  .banner .k{font-size:12px;font-weight:700;color:var(--info-bar);text-transform:uppercase;}
+  .banner .v{font-size:14px;font-weight:700;margin-top:4px;}
+  .row2{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .sc{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:16px;padding:20px;position:relative;}
+  .sc .l{font-size:12px;color:var(--text-tertiary);margin-bottom:10px;} .sc .n{font-family:monospace;font-size:36px;font-weight:700;line-height:1;}
+  .row3{display:flex;gap:16px;flex:1;min-height:0;}
+  .left{flex:1;display:flex;flex-direction:column;gap:16px;}
+  .right{width:340px;flex:0 0 auto;display:flex;flex-direction:column;gap:16px;}
+  .card{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:16px;overflow:hidden;}
+  .insp{display:flex;flex-direction:column;flex:1;min-height:0;}
+  .insp .h{display:flex;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border-default);font-size:14px;font-weight:700;}
+  .insp .body{padding:20px 24px;display:flex;flex-direction:column;gap:32px;flex:1;justify-content:center;overflow-y:auto;}
+  .drow{display:flex;justify-content:space-evenly;gap:8px;}
+  .du{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+  .donut{width:76px;height:76px;border-radius:50%;border:6px solid var(--safe-bar);display:flex;align-items:center;justify-content:center;font-size:15px;font-family:monospace;font-weight:700;}
+  .donut.z{border-color:var(--surface-sunken);}
+  .du .lbl{font-size:12px;color:var(--text-secondary);} .du .frac{font-size:12px;font-family:monospace;color:var(--text-tertiary);}
+  .qtools{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex:0 0 auto;}
+  .qt{background:var(--surface-raised);border:1px solid var(--border-default);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;}
+  .qt .ic{width:44px;height:44px;border-radius:12px;background:var(--surface-sunken);} .qt .tl{font-size:13px;font-weight:700;} .qt .td{font-size:12px;color:var(--text-tertiary);margin-top:2px;}
+  /* right — CURRENT deployed FIX-3 (mt-auto) */
+  .topgroup{display:contents;}
+  .live{overflow:hidden;flex:0 0 auto;}
+  .live .h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border-default);font-size:13px;font-weight:700;}
+  .live .vid{background:#000;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:#4b5563;font-size:12px;border-top:1px solid var(--border-default);border-bottom:1px solid var(--border-default);}
+  .live .cap{padding:9px 13px;font-size:13px;font-weight:700;color:var(--safe);}
+  .cal{flex:1;min-height:275px;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;padding:12px 14px;}
+  .cal .ct{text-align:center;font-size:13px;font-weight:700;margin-bottom:10px;}
+  .cg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;}
+  .cg .dow{font-size:12px;font-weight:700;color:var(--text-tertiary);padding:2px 0;}
+  .cg .c{padding:1px 0;position:relative;}
+  .cg .c .d{width:24px;height:24px;line-height:24px;border-radius:50%;margin:0 auto;font-size:11px;}
+  .cg .c.today .d{background:var(--accent);color:#fff;}
+  .cg .c .dot{display:flex;justify-content:center;gap:2px;margin-top:1px;height:5px;}
+  .cg .c .dot i{width:4px;height:4px;border-radius:50%;background:var(--info-bar);}
+  .today{flex:0 0 auto;height:133px;overflow:hidden;display:flex;flex-direction:column;}
+  .today .h{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-default);font-size:13px;font-weight:700;}
+  .today .li{padding:8px 16px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid var(--border-default);}
+  /* measurement overlay */
+  #out{position:fixed;top:60px;left:300px;z-index:99;background:rgba(0,0,0,.85);color:#0f0;font-family:monospace;font-size:15px;padding:10px 14px;border:1px solid #0f0;white-space:pre;}
+  .gl{position:fixed;height:0;border-top:2px dashed;z-index:80;pointer-events:none;}
+</style></head><body>
+<div class="shell">
+  <div class="side"></div>
+  <div class="content">
+    <div class="thead">대시보드</div>
+    <div class="pmain">
+      <div class="dash">
+        <div class="row0"><span>관리자 석현민 · 보조 김병조·박보윤·윤종엽</span><span>연속 50일 점검 달성</span></div>
+        <div class="banner"><div class="k">오늘 점검 대상</div><div class="v">전층 피난계단 점검</div></div>
+        <div class="row2">
+          <div class="sc"><div class="l">점검 미완료</div><div class="n">0</div></div>
+          <div class="sc"><div class="l">미조치 항목</div><div class="n" style="color:var(--fire)">2</div></div>
+          <div class="sc"><div class="l">오늘 일정</div><div class="n">2</div></div>
+          <div class="sc"><div class="l">승강기 고장</div><div class="n">0</div></div>
+        </div>
+        <div class="row3">
+          <div class="left">
+            <div class="card insp" id="insp">
+              <div class="h"><span>이번 달 점검 현황</span><span>2026년 7월</span></div>
+              <div class="body"><div class="drow" id="d1"></div><div class="drow" id="d2"></div><div class="drow" id="d3"></div></div>
+            </div>
+            <div class="qtools" id="qt"></div>
+          </div>
+          <div class="right">
+            <div class="topgroup">
+              <div class="card live"><div class="h">🔔 화재수신반 라이브</div><div class="vid">수신반 화면 로딩 · 미연결</div><div class="cap">● 정상 · 이상 없음 · 지연</div></div>
+              <div class="card cal" id="cal"><div class="ct">2026년 7월</div><div class="cg" id="cg"></div></div>
+            </div>
+            <div class="card today" id="today"><div class="h"><span>오늘 일정</span><span>2건</span></div><div class="li">— 전층 피난계단 점검 · 완료</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="out"></div>
+<script>
+  const L1=[['방화문',0],['특별피난계단',0],['연결송수관',1],['전실제연댐퍼',1],['청정소화약제',1],['컴프레셔',1]];
+  const L2=[['DIV',0],['유도등',0],['배연창',1],['완강기',1],['주차장비',1],['회전문',1]];
+  const L3=[['소방용전원공급반',1],['방화셔터',1],['비상콘센트',1],['소화전',1],['소화기',1],['소방펌프',1]];
+  const mk=a=>a.map(([l,z])=>`<div class="du"><div class="donut ${z?'z':''}">${z?'0%':'100%'}</div><div class="lbl">${l}</div><div class="frac">0/0</div></div>`).join('');
+  d1.innerHTML=mk(L1);d2.innerHTML=mk(L2);d3.innerHTML=mk(L3);
+  const tools=[['도면 점검','층별 도면·유도등·감지기'],['DIV 트렌드','측정점 압력 트렌드 차트'],['고장 접수','승강기 고장 접수·TKE 연결'],['직원 서비스','연차·식사·근무표 통합']];
+  qt.innerHTML=tools.map(([t,d])=>`<div class="qt"><div class="ic"></div><div class="tl">${t}</div><div class="td">${d}</div></div>`).join('');
+  let cg2='';['일','월','화','수','목','금','토'].forEach(d=>cg2+=`<div class="dow">${d}</div>`);
+  for(let i=0;i<3;i++)cg2+='<div class="c"></div>';
+  for(let d=1;d<=31;d++){const hasDot=[1,6,13,17,20,24,27].includes(d);cg2+=`<div class="c ${d===1?'today':''}"><div class="d">${d}</div>${hasDot?'<div class="dot"><i></i></div>':''}</div>`;}
+  cg.innerHTML=cg2;
+  // measure
+  const r=el=>el.getBoundingClientRect();
+  const insp=r(document.getElementById('insp')), cal=r(document.getElementById('cal')), qtb=r(document.getElementById('qt')), tod=r(document.getElementById('today'));
+  const msg=`Row3/좌우 실측 (1920x1080, 사이드바280+헤더55):
+점검현황 bottom = ${insp.bottom.toFixed(0)}   height=${insp.height.toFixed(0)}
+캘린더   bottom = ${cal.bottom.toFixed(0)}   height=${cal.height.toFixed(0)}
+  → 캘린더-점검현황 bottom 차 = ${(cal.bottom-insp.bottom).toFixed(0)} (음수=캘린더가 위)
+빠른도구 top    = ${qtb.top.toFixed(0)}   height=${qtb.height.toFixed(0)}
+오늘일정 top    = ${tod.top.toFixed(0)}
+  → 오늘일정-빠른도구 top 차 = ${(tod.top-qtb.top).toFixed(0)}
+캘린더 content(scrollHeight) = ${document.getElementById("cal").scrollHeight}`;
+  document.getElementById('out').textContent=msg;
+  // guide lines at 점검현황 bottom (green) and 캘린더 bottom (red)
+  const g1=document.createElement('div');g1.className='gl';g1.style.top=insp.bottom+'px';g1.style.left='0';g1.style.right='0';g1.style.borderColor='#0f0';document.body.appendChild(g1);
+  const g2=document.createElement('div');g2.className='gl';g2.style.top=cal.bottom+'px';g2.style.left='0';g2.style.right='0';g2.style.borderColor='#f00';document.body.appendChild(g2);
+</script>
+</body></html>

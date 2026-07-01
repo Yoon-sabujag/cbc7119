@@ -6353,9 +6353,11 @@ function DesktopInspectionView({
           // ── 화재수신반 3분할 상세 pane (Surface 6) ──
           <>
             {/* id-head */}
-            <div className="shrink-0 flex items-center gap-2.5 px-5 py-3 border-b border-border-default bg-surface-raised">
+            {/* 카테고리 상세 pane 헤더(:6632, 다른 점검 항목 페이지)와 높이 정렬 (~50px):
+                py-2 + 백버튼 w-7 h-7(32px). 점검모드 토글(34px) 수용. */}
+            <div className="shrink-0 flex items-center gap-2.5 px-5 py-2 border-b border-border-default bg-surface-raised">
               <button onClick={() => setCategoryIdx(null)}
-                className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default cursor-pointer flex items-center justify-center shrink-0 hover:bg-surface-active transition-colors">
+                className="w-7 h-7 rounded-[7px] bg-surface-sunken border border-border-default cursor-pointer flex items-center justify-center shrink-0 hover:bg-surface-active transition-colors">
                 <ChevronLeft size={14} className="text-text-secondary" />
               </button>
               <div className="flex-1 flex items-center gap-1.5 text-[16px] font-bold text-text-primary min-w-0">
