@@ -418,8 +418,8 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-01
-Stopped at: Phase 25 Wave 2 (25-03) 실행 완료 — InspectionPage FireAlarmModal 을 mobile 화재수신반 페이지로 in-place 확장. 헤더 점검모드 toggle(role=switch, maint 409 active_alarm_requires_confirm -> confirm -> confirmAlarm:true 재시도) + 라이브 카드(LivePanelImage tap->전체화면 줌 뷰어) + 48h 자동감지 이벤트(fire/non/equip badge2) + 3-state 폼(평상시/경보중/점검모드). 저장 2분기: 경보중=alarmApi.resolve(id,{...}) 칩 소멸 / 평상시=fireAlarmApi.create + invalidate(['fire-alarm-recent']). usePinchZoom 줌 뷰어(더블탭/핀치, safe-area pin, body:fixed-free scroll-lock). /inspection?panel=fire-alarm 딥링크 auto-open. DesktopInspectionView + App.tsx 무수정(25-05/04 담당). (3/3 tasks, tsc clean, 68d04c7d/c793570e/c2c3aadd, feature/25-panel-monitoring). 다음: 25-04(fire-alarm route + SW deep-link) 또는 Wave 3 (25-05 desktop / 25-06 sw-push)
-Resume file: .planning/phases/25-panel-monitoring/25-04-PLAN.md
+Stopped at: Phase 25 Wave 2 (25-04) 실행 완료 — 신규 /fire-alarm 경보 풀스크린 페이지(FireAlarmPage.tsx) + App.tsx 배선. fire(빨강/Flame/재발송 경고 "확인을 눌러야 추가 푸시가 멈춥니다") / equip(초록/Settings/단발 "정보성 알림 · 확인 시 닫힘") takeover. 확인=alarmApi.ack(id) optimistic try/catch -> fire=navigate('/inspection?panel=fire-alarm'), equip=navigate('/dashboard'). alarmApi.getActive() try/catch->null -> 활성 없음 시 "경보 없음 · 상황 종료" 중립 상태. LivePanelImage dim 배경 + radial wash(fire blink fawash/faring). 스크롤락 overflow:hidden+touchmove(body:fixed 금지), fixed inset-0 safe-area pin. App.tsx: lazy FireAlarmPage + Route(Auth 래퍼) + '/fire-alarm' 을 MOBILE_NO_NAV_PATHS + DESKTOP_NO_NAV_PATHS 양쪽 등록(전 크롬 숨김). InspectionPage/DashboardPage 무수정. (2/2 tasks, tsc clean, ac71057e/a449e40a, feature/25-panel-monitoring). 다음: Wave 3 (25-05 desktop 3-split / 25-06 sw-push deep-link -> /fire-alarm)
+Resume file: .planning/phases/25-panel-monitoring/25-05-PLAN.md
 
 ---
 *State initialized: 2026-03-28*

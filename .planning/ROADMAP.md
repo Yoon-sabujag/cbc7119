@@ -335,7 +335,7 @@ Plans:
 - [x] 25-01-PLAN.md (Wave 1) — 파운데이션: panelApi/alarmApi + interfaces (api.ts) · LivePanelImage + freshness helper · usePinchZoom hook (3/3 tasks · 98ea76d/ff2cc1b/75c0dc7 · tsc clean · 2026-07-01)
 - [x] 25-02-PLAN.md (Wave 2) — 대시보드: 모바일 16:9 수신반 카드 + 경보/점검 칩 · 데스크톱 라이브 위젯 + 배너 칩 (2/2 tasks · 67bfc10/660cb23 · tsc clean · 2026-07-01)
 - [ ] 25-03-PLAN.md (Wave 2) — 모바일 화재수신반 페이지: FireAlarmModal 확장(점검모드 토글·라이브·48h 이벤트·resolve/create 저장 분기) + 전체화면 줌 뷰어 + 딥링크 auto-open
-- [ ] 25-04-PLAN.md (Wave 2) — 경보 풀스크린 `/fire-alarm` (FireAlarmPage·ACK) + App.tsx 라우트/no-nav 등록
+- [x] 25-04-PLAN.md (Wave 2) — 경보 풀스크린 `/fire-alarm` (FireAlarmPage·ACK) + App.tsx 라우트/no-nav 등록 (2/2 tasks · ac71057e/a449e40a · tsc clean · 2026-07-01)
 - [ ] 25-05-PLAN.md (Wave 3) — 데스크톱 일반점검 3분할 상세 pane(화재수신반) + 경보 takeover modal + 줌 오버레이 (핀치 텍스트 제거)
 - [ ] 25-06-PLAN.md (Wave 3) — Service Worker 딥링크: push url 포워드 + notificationclick 실제 라우팅 (화재→/fire-alarm, 설비→화재수신반 페이지)
 
