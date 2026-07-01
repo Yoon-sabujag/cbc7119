@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import type { ComponentType } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, panelApi, alarmApi, type ExtinguisherDetail, type FloorPlanMarker, type Alarm } from '../utils/api'
@@ -6031,6 +6031,131 @@ function DesktopInspectionView({
 }) {
   const navigate = useNavigate()
 
+  // ── 화재수신반 원격감시 (Surface 6, 데스크톱 3분할 상세 pane) ──
+  const qc = useQueryClient()
+  const FIRE_ALARM_IDX = CATEGORY_GROUPS.findIndex(g => g.categories.includes('화재수신반'))
+  const isPanel = categoryIdx !== null && CATEGORY_GROUPS[categoryIdx].categories.includes('화재수신반')
+
+  // 원격감시 상태 (미배포 -> 평상시 폴백)
+  const { data: panelStatus } = useQuery({
+    queryKey: ['panel-status'],
+    queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
+    refetchInterval: 15_000,
+    retry: false,
+  })
+  const { data: activeAlarm } = useQuery({
+    queryKey: ['alarm-active'],
+    queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
+    refetchInterval: 15_000,
+    retry: false,
+  })
+  const { data: panelEvents = [] } = useQuery({
+    queryKey: ['alarm-events'],
+    queryFn: async () => { try { return await alarmApi.getEvents(48) } catch { return [] as Alarm[] } },
+    refetchInterval: 30_000,
+    retry: false,
+  })
+
+  const maintOn = !!panelStatus?.maint?.enabled
+  const panelMode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm ? 'alarm' : 'normal')
+  const panelFresh = freshnessLabel(panelStatus?.frameUpdatedAt ?? null)
+
+  // 딥링크 자동열기 (FLAG-1): /inspection?panel=fire-alarm -> 화재수신반 pane / &zoom=1 -> 줌 오버레이.
+  // 데스크톱은 모바일 FireAlarmModal 마운트 전에 early-return 하므로 25-03 핸들러가 이 pane 을 열지 못함.
+  const [sp] = useSearchParams()
+  useEffect(() => {
+    if (sp.get('panel') === 'fire-alarm' && FIRE_ALARM_IDX >= 0) {
+      setCategoryIdx(FIRE_ALARM_IDX)
+      setRecordId(null)
+      if (sp.get('zoom') === '1') setPanelZoomOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sp])
+
+  // 화재수신반 폼 상태 (모바일 FireAlarmModal 과 동일 5필드)
+  const nowKst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  const todayStr = `${nowKst.getFullYear()}-${String(nowKst.getMonth()+1).padStart(2,'0')}-${String(nowKst.getDate()).padStart(2,'0')}`
+  const timeStr = `${String(nowKst.getHours()).padStart(2,'0')}:${String(nowKst.getMinutes()).padStart(2,'0')}`
+  const [paType, setPaType] = useState<'fire'|'non_fire'>('non_fire')
+  const [paDate, setPaDate] = useState(todayStr)
+  const [paTime, setPaTime] = useState(timeStr)
+  const [paLocation, setPaLocation] = useState('')
+  const [paCause, setPaCause] = useState('오작동')
+  const [paAction, setPaAction] = useState('자동복구, 현장확인')
+  const [paSaving, setPaSaving] = useState(false)
+  const [maintBusy, setMaintBusy] = useState(false)
+  const [panelZoomOpen, setPanelZoomOpen] = useState(false)
+  const [alarmAcked, setAlarmAcked] = useState(false)
+  const panelZoom = usePinchZoom({ maxScale: 2.2, doubleTapScale: 2.2 })
+
+  // 경보중: activeAlarm.detectedAt -> 발생일시 자동초안 (한번만)
+  const panelPrefilledRef = useRef(false)
+  useEffect(() => {
+    if (panelMode === 'alarm' && activeAlarm && !panelPrefilledRef.current) {
+      panelPrefilledRef.current = true
+      const [d, t] = (activeAlarm.detectedAt || '').split(' ')
+      if (d) setPaDate(d)
+      if (t) setPaTime(t.slice(0, 5))
+      setPaType('non_fire')
+    }
+  }, [panelMode, activeAlarm])
+
+  // 저장 2분기: 경보중 = resolve(칩 소멸) / 평상시 = create(신규)
+  const handlePanelSave = async () => {
+    setPaSaving(true)
+    try {
+      if (panelMode === 'alarm' && activeAlarm) {
+        await alarmApi.resolve(activeAlarm.id, { type: paType, occurredAt: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
+        qc.invalidateQueries({ queryKey: ['alarm-active'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
+      } else {
+        await fireAlarmApi.create({ type: paType, occurred_at: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
+      }
+      toast.success('화재수신반 기록이 저장되었습니다')
+      setCategoryIdx(null)
+    } catch { toast.error('저장 실패') }
+    finally { setPaSaving(false) }
+  }
+
+  // 점검(정비)모드 토글 — PUT /api/panel/maint + 경보중 409 confirm 재시도
+  const handlePanelMaintToggle = async () => {
+    if (maintBusy) return
+    setMaintBusy(true)
+    try {
+      await panelApi.setMaint({ enabled: !maintOn })
+    } catch (e: any) {
+      const is409 = e?.status === 409 || String(e?.message || '').includes('active_alarm_requires_confirm')
+      if (is409) {
+        const ok = window.confirm('경보 진행 중입니다. 점검모드로 전환하면 진행 중 경보가 해제되고 자동초안이 폐기됩니다. 계속할까요?')
+        if (ok) {
+          try { await panelApi.setMaint({ enabled: true, confirmAlarm: true }) } catch { toast.error('점검모드 전환 실패') }
+        }
+      }
+    } finally {
+      qc.invalidateQueries({ queryKey: ['panel-status'] })
+      qc.invalidateQueries({ queryKey: ['alarm-active'] })
+      setMaintBusy(false)
+    }
+  }
+
+  // 경보 인지(ack) — 데스크톱 takeover 모달
+  const handleAlarmAck = async () => {
+    setAlarmAcked(true)
+    if (activeAlarm) { try { await alarmApi.ack(activeAlarm.id); qc.invalidateQueries({ queryKey: ['alarm-active'] }) } catch { /* 미배포 폴백 */ } }
+  }
+
+  const paLabelCls = 'text-caption font-semibold text-text-tertiary mb-1.5 block'
+  const paInputCls = 'w-full box-border px-3 py-2.5 rounded-sm border border-border-default bg-surface-raised text-text-primary text-body-sm outline-none min-w-0 [appearance:none] [-webkit-appearance:none] focus:border-border-focus transition-colors'
+  const paBlink = { animation: 'blink 1s steps(1,end) infinite' }
+
+  // 이벤트 badge2 variant
+  const panelBadge2 = (ev: Alarm) => {
+    if (ev.status === 'active' || ev.status === 'acked') return { label: '감지중', cls: 'text-danger bg-danger-bg' }
+    if (ev.type === 'equip') return { label: '설비동작', cls: 'text-safe bg-safe-bg' }
+    return { label: '비화재보', cls: 'text-text-secondary bg-surface-sunken' }
+  }
+
   // 정상 제외 필터 (우측 리스트용)
   const [excludeNormal, setExcludeNormal] = useState(false)
 
@@ -6092,7 +6217,7 @@ function DesktopInspectionView({
   const fmtDateTime = fmtKstDateTime
 
   return (
-    <div className="flex-1 min-h-0 flex overflow-hidden bg-surface-page">
+    <div className="relative flex-1 min-h-0 flex overflow-hidden bg-surface-page">
 
       {/* ── 좌측: 카테고리 카드 ── */}
       <div className="w-1/2 shrink-0 min-w-0 border-r border-border-default flex flex-col">
@@ -6164,9 +6289,128 @@ function DesktopInspectionView({
         </div>
       </div>
 
-      {/* ── 우측: 내역 목록 또는 상세 ── */}
+      {/* ── 우측: 화재수신반 상세 pane / 내역 목록 / 상세 ── */}
       <div className="w-1/2 shrink-0 min-w-0 flex flex-col">
-        {recordId && detail ? (
+        {isPanel ? (
+          // ── 화재수신반 3분할 상세 pane (Surface 6) ──
+          <>
+            {/* id-head */}
+            <div className="shrink-0 flex items-center gap-[11px] px-4 py-[11px] border-b border-border-default bg-surface-raised">
+              <button onClick={() => setCategoryIdx(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-[7px] bg-surface-sunken text-text-secondary cursor-pointer shrink-0 hover:bg-surface-active transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+              <div className="flex-1 flex items-center gap-1.5 text-[16px] font-bold text-text-primary min-w-0">
+                <BellRing size={16} className="text-text-secondary shrink-0" />
+                <span className="truncate">화재수신반</span>
+              </div>
+              {/* 점검모드 토글 imode-switch — '정상 라이브' pill + '전체화면' 버튼을 대체 */}
+              <button type="button" role="switch" aria-checked={maintOn} onClick={handlePanelMaintToggle}
+                className={`inline-flex items-center gap-[9px] rounded-pill pl-[14px] pr-[9px] py-1.5 text-label font-bold cursor-pointer transition-colors shrink-0 ${
+                  maintOn
+                    ? 'text-text-primary bg-[rgba(173,182,192,.16)] border border-border-strong'
+                    : 'text-text-secondary bg-surface-sunken border border-border-default'
+                }`}>
+                <BellOff size={15} />
+                <span>점검모드</span>
+                <span className={`relative w-[38px] h-[22px] rounded-pill transition-colors ${maintOn ? 'bg-info' : 'bg-border-default'}`}>
+                  <span className="absolute top-0.5 left-0.5 w-[18px] h-[18px] rounded-full bg-white transition-transform"
+                    style={{ transform: maintOn ? 'translateX(16px)' : 'translateX(0)' }} />
+                </span>
+              </button>
+            </div>
+
+            {/* id-body */}
+            <div className="flex-1 flex flex-col gap-[15px] overflow-y-auto p-4 pb-[22px]">
+              {/* PANEL_MAINT_AUTONOTE_ANCHOR */}
+
+              {/* ① biglive */}
+              <div className={`bg-surface-raised border rounded-[14px] overflow-hidden ${
+                panelMode === 'alarm'
+                  ? 'border-danger-bar bg-danger-bg shadow-[0_0_0_1px_rgba(239,68,68,.4)]'
+                  : 'border-border-default'
+              }`} style={panelMode === 'alarm' ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}>
+                <div className="relative w-full aspect-video bg-black cursor-pointer rounded-t-[14px] overflow-hidden" onClick={() => setPanelZoomOpen(true)}>
+                  <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+                  {/* live-badge */}
+                  <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-caption font-extrabold leading-none text-white"
+                    style={{ background: panelMode === 'alarm' ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}>
+                    <span className="w-[6px] h-[6px] rounded-full bg-white" style={paBlink} />
+                    {panelMode === 'alarm' ? '화재' : 'LIVE'}
+                  </div>
+                  {/* live-hint */}
+                  <div className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-black/50 rounded-sm px-2 py-0.5 text-caption text-white pointer-events-none">
+                    <Maximize2 size={13} />
+                    클릭하면 크게 보기
+                  </div>
+                </div>
+                {/* live-status (desktop 14px = text-body-sm) */}
+                <div className="flex items-center gap-1.5 flex-wrap px-3 py-2.5 text-body-sm text-text-secondary tabular-nums">
+                  {panelMode === 'alarm' ? (
+                    <>
+                      <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0" style={paBlink} />
+                      <span className="text-danger font-extrabold">화재 발생</span>
+                      <span className="text-text-tertiary">·</span>
+                      <span>{activeAlarm?.location ?? '위치 확인중'}</span>
+                      <span className="text-text-tertiary">·</span>
+                      <span>{activeAlarm?.detectedAt ?? ''}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-[7px] h-[7px] rounded-full bg-safe-bar shrink-0" style={paBlink} />
+                      <span className="text-safe font-bold">정상</span>
+                      <span className="text-text-tertiary">·</span>
+                      <span>이상 없음</span>
+                      <span className="text-text-tertiary">·</span>
+                      <span>{panelFresh.label}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* PANEL_ALARM_FORM_ANCHOR */}
+
+              {/* ③ evt-card (최근 48시간 자동감지 — 점검모드 조회 유지) */}
+              <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border-default">
+                  <span className="text-caption font-semibold text-text-secondary">최근 이벤트 (자동감지)</span>
+                  {panelMode === 'alarm' ? (
+                    <span className="rounded-pill text-caption font-bold text-danger bg-danger-bg border border-[rgba(239,68,68,.4)] px-2 py-0.5 leading-none">감지중 {panelEvents.filter(e => e.status === 'active' || e.status === 'acked').length || 1}</span>
+                  ) : (
+                    <span className="rounded-pill text-caption text-text-tertiary bg-surface-sunken px-2 py-0.5 leading-none">최근 48시간</span>
+                  )}
+                </div>
+                {panelEvents.length === 0 ? (
+                  <div className="px-3 py-[14px] text-caption text-text-tertiary text-center">최근 48시간 자동감지 이벤트 없음</div>
+                ) : (
+                  panelEvents.map(ev => {
+                    const b = panelBadge2(ev)
+                    return (
+                      <div key={ev.id} className="flex items-start gap-[11px] px-3 py-[9px] border-b border-border-default last:border-b-0">
+                        {/* ethumb 84×48 */}
+                        <div className="w-[84px] h-[48px] shrink-0 rounded-sm overflow-hidden bg-black">
+                          {ev.snapshotUrl
+                            ? <img src={ev.snapshotUrl} alt="이벤트 스냅샷" loading="lazy" className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center text-[9px] text-text-tertiary bg-surface-sunken">미연결</div>}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`shrink-0 rounded-[6px] px-2 py-0.5 text-caption font-extrabold leading-none ${b.cls}`}>{b.label}</span>
+                            <span className="font-mono text-caption text-text-tertiary tabular-nums">{ev.detectedAt}</span>
+                          </div>
+                          <div className="text-body-sm font-semibold text-text-primary mt-0.5 truncate">{ev.location ?? '위치 미상'}</div>
+                          {ev.cause && <div className="text-caption text-text-tertiary truncate">{ev.cause}</div>}
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* PANEL_NORMAL_FORM_ANCHOR */}
+            </div>
+          </>
+        ) : recordId && detail ? (
           // ── 상세 보기 ──
           <>
             <div className="shrink-0 px-5 py-3 border-b border-border-default bg-surface-raised flex items-center gap-2.5">
