@@ -1,11 +1,13 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Map as MapIcon, BarChart3, Siren, Users, Flame, Clock, ClipboardList } from 'lucide-react'
+import { Map as MapIcon, BarChart3, Siren, Users, Flame, BellOff, BellRing, Maximize2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
-import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
+import { dashboardApi, scheduleApi, fireAlarmApi, panelApi, alarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, CatBar } from '../components/ui'
+import LivePanelImage from '../components/panel/LivePanelImage'
+import { freshnessLabel } from '../components/panel/freshness'
 import type { DashboardScheduleItem, Staff } from '../types'
 import { getMonthlySchedule } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
@@ -51,6 +53,49 @@ interface MonthlyItem {
   late_color?: string
 }
 
+// Phase 25: 대시보드 경보/점검 상태 칩 (모바일 배너 + 데스크톱 배너 공용).
+// 경보중 = 빨강 blink 칩, 점검모드 = 회색 no-blink 칩, 평상시 = 렌더 없음.
+// 색 = 의미 고정 (danger / gray). 비-임계치 카드에 status 색 차용 금지 (SS6.2).
+function PanelStateChip({ activeAlarm, maintOn, maintLabel, onClick }: {
+  activeAlarm: { location?: string | null } | null
+  maintOn: boolean
+  maintLabel: string
+  onClick: () => void
+}) {
+  if (activeAlarm) {
+    return (
+      <div
+        onClick={onClick}
+        className="shrink-0 inline-flex items-center gap-2 rounded-pill px-3 py-[7px] text-caption font-extrabold leading-none text-white cursor-pointer"
+        style={{
+          background: 'linear-gradient(135deg,#dc2626,#ef4444)',
+          animation: 'chipblink 1.4s ease-in-out infinite',
+        }}
+      >
+        <span
+          className="w-[7px] h-[7px] rounded-full bg-white shrink-0"
+          style={{ animation: 'blink 1s steps(1,end) infinite' }}
+        />
+        <Flame size={12} />
+        화재 경보 · {activeAlarm.location ?? '장소 확인'}
+      </div>
+    )
+  }
+  if (maintOn) {
+    return (
+      <div
+        onClick={onClick}
+        className="shrink-0 inline-flex items-center gap-2 rounded-pill px-3 py-[7px] text-caption font-extrabold leading-none bg-surface-sunken border border-border-strong text-text-secondary cursor-pointer"
+      >
+        <span className="w-[7px] h-[7px] rounded-full bg-text-tertiary shrink-0" />
+        <BellOff size={12} />
+        {maintLabel}
+      </div>
+    )
+  }
+  return null
+}
+
 export default function DashboardPage() {
   const navigate  = useNavigate()
   const { staff } = useAuthStore()
@@ -59,6 +104,19 @@ export default function DashboardPage() {
 
   const queryClient = useQueryClient()
 
+  // Phase 25 desktop 라이브 위젯: single click -> 일반점검, dblclick -> 줌 오버레이 (240ms 판별)
+  const panelClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handlePanelClick = useCallback(() => {
+    if (panelClickTimer.current) return
+    panelClickTimer.current = setTimeout(() => {
+      panelClickTimer.current = null
+      navigate('/inspection?panel=fire-alarm')
+    }, 240)
+  }, [navigate])
+  const handlePanelDblClick = useCallback(() => {
+    if (panelClickTimer.current) { clearTimeout(panelClickTimer.current); panelClickTimer.current = null }
+    navigate('/inspection?panel=fire-alarm&zoom=1')
+  }, [navigate])
 
   const handleManualComplete = useCallback(async (item: DashboardScheduleItem) => {
     if (!confirm(`"${item.title}"을 완료 처리하시겠습니까?`)) return
@@ -122,6 +180,24 @@ export default function DashboardPage() {
     refetchInterval: 30_000,
   })
   const latestAlarm = (recentAlarms ?? [])[0] as any
+
+  // Phase 25: 화재수신반 상태 + 활성경보 (미배포 트랙 -> try/catch 평상시 fallback)
+  const { data: panelStatus } = useQuery({
+    queryKey: ['panel-status'],
+    queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    retry: false,
+  })
+  const { data: alarmActive } = useQuery({
+    queryKey: ['alarm-active'],
+    queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
+    refetchInterval: 30_000,
+    retry: false,
+  })
+  const activeAlarm = alarmActive ?? panelStatus?.activeAlarm ?? null
+  const maintOn = panelStatus?.maint?.enabled ?? false
+  const frameUpdatedAt = panelStatus?.frameUpdatedAt ?? null
 
   const dutyStaff: Staff[] = staffRows.map(s => ({
     id: s.id, name: s.name, title: s.title,
@@ -255,7 +331,14 @@ export default function DashboardPage() {
             <div className="text-caption font-bold text-info-bar uppercase tracking-wider">오늘 점검 대상</div>
             <div className="text-body-sm font-bold text-text-primary mt-1 leading-snug">{todayTarget}</div>
           </div>
-          {latestAlarm && (
+          <PanelStateChip
+            activeAlarm={activeAlarm}
+            maintOn={maintOn}
+            maintLabel="점검모드 · 17:30 자동복구"
+            onClick={() => navigate('/inspection?panel=fire-alarm')}
+          />
+          {/* 평상시에만 최근 수신반 이력 스니펫 (경보중/점검모드는 PanelStateChip 만) — desktop sketch tgt-recv.only-normal */}
+          {!activeAlarm && !maintOn && latestAlarm && (
             <>
               <div className="w-px h-9 bg-info-bar/20 shrink-0" />
               <div className="text-right shrink-0">
@@ -379,8 +462,62 @@ export default function DashboardPage() {
           {/* 우: 캘린더 + 오늘 일정 (340px) */}
           <div className="w-[340px] shrink-0 flex flex-col gap-4">
 
-            {/* 미니 캘린더 */}
-            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-4 shrink-0">
+            {/* Phase 25: 화재수신반 라이브 위젯 (shrink-0) */}
+            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden shrink-0">
+              <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border-default">
+                <BellRing size={16} className="text-text-secondary" />
+                <span className="text-label font-bold text-text-primary">화재수신반 라이브</span>
+                <span className="ml-auto text-caption text-text-tertiary">방재실 캡처</span>
+              </div>
+              <div
+                onClick={handlePanelClick}
+                onDoubleClick={handlePanelDblClick}
+                className={`relative bg-black aspect-video cursor-pointer border-y ${activeAlarm ? 'border-danger-bar' : 'border-border-default'}`}
+                style={activeAlarm ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}
+              >
+                <LivePanelImage frameUpdatedAt={frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+                {/* LIVE / 화재 배지 (dot span) */}
+                <div
+                  className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
+                  style={{ background: activeAlarm ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}
+                >
+                  <span className="w-[6px] h-[6px] rounded-full bg-white" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
+                  {activeAlarm ? '화재' : 'LIVE'}
+                </div>
+                {/* 더블클릭 확대 힌트 */}
+                <div className="absolute bottom-[7px] right-[7px] inline-flex items-center gap-1 bg-black/50 rounded-sm px-[7px] py-0.5 text-[10px] text-white pointer-events-none">
+                  <Maximize2 size={13} />
+                  더블클릭 확대
+                </div>
+              </div>
+              {/* 캡션 — 평상/경보 (desktop 13px/600 = text-label) */}
+              <div className="flex items-center gap-[7px] px-[13px] py-[9px] text-label text-text-secondary font-semibold">
+                {activeAlarm ? (
+                  <>
+                    <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
+                    <span className="text-danger font-bold">화재 발생</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span className="truncate">{activeAlarm.location ?? '장소 확인'}</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span className="font-mono tabular-nums shrink-0">{activeAlarm.detectedAt}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-[7px] h-[7px] rounded-full bg-safe-bar shrink-0" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
+                    <span className="text-safe font-bold">정상</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span>이상 없음</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span className="font-mono tabular-nums">{freshnessLabel(frameUpdatedAt).label}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 미니 캘린더 — flex-1 로 좌측 점검현황 높이만큼 채워 캘린더 카드 바닥 == 점검현황 카드 바닥 정렬.
+                justify-end 로 그리드를 카드 하단에 붙여 '달력 마지막 주'가 카드 바닥에 닿게(=점검현황 바닥과 정렬).
+                셀 w-6(24px) 컴팩트. dot 많은 달은 overflow-y-auto 로 스크롤(카드 높이는 flex-1 로 항상 정렬 유지). */}
+            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-3 flex-1 min-h-[220px] overflow-y-auto flex flex-col justify-end">
               <div className="text-label font-bold text-text-primary text-center mb-2.5">
                 {calYear}년 {calMonth + 1}월
               </div>
@@ -417,7 +554,7 @@ export default function DashboardPage() {
                   const cellWeight = (isToday || isHoliday) ? 'font-bold' : 'font-normal'
                   return (
                     <div key={d} title={holName} className="py-0.5 relative">
-                      <div className={`w-7 h-7 rounded-full mx-auto flex items-center justify-center text-caption ${cellWeight} ${cellTextColor} ${cellBgClass}`}>
+                      <div className={`w-6 h-6 rounded-full mx-auto flex items-center justify-center text-caption ${cellWeight} ${cellTextColor} ${cellBgClass}`}>
                         {d}
                       </div>
                       {dayCats.length > 0 && (
@@ -434,8 +571,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 오늘 일정 */}
-            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+            {/* 오늘 일정 — shrink-0 h-[126px] (좌측 빠른도구 실측 행 높이 126px 와 일치 → 오늘일정 top==빠른도구 top,
+                캘린더 카드 bottom==점검현황 카드 bottom. 실제 화면 getBoundingClientRect 측정값 기준). */}
+            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col shrink-0 h-[126px]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border-default shrink-0">
                 <span className="text-label font-bold text-text-primary">오늘 일정</span>
                 <span className="text-caption text-text-tertiary bg-surface-sunken px-2.5 py-0.5 rounded-pill">{schedule.length}건</span>
@@ -495,37 +633,45 @@ export default function DashboardPage() {
         // gridTemplateRows 는 IS_ANDROID 동적 분기 — 인라인 허용 키
         style={{
           gridTemplateRows: IS_ANDROID
-            ? 'auto auto auto 1fr minmax(140px, auto)'
-            : 'auto auto auto 1fr auto',
+            ? 'auto auto auto auto minmax(140px, 1fr)'
+            : 'auto auto auto auto minmax(125px, 1fr)',
         }}
       >
 
         {/* ① 오늘 점검 대상 배너 */}
         <div
-          className="rounded-md border border-info-bar/30 px-3 py-2 flex items-center gap-2.5 bg-[linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08))]"
-          // animation 은 keyframe — Tailwind 정의 안 됨, 인라인 허용 키
-          style={{ animation:'slideUp .28s ease-out' }}
+          className="rounded-md border border-info-bar/30 px-3 py-2 flex items-center gap-2.5 bg-[linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08))] [animation:slideUp_.28s_ease-out]"
         >
           <div className="w-1.5 h-1.5 rounded-full bg-info-bar shrink-0 animate-[blink_2s_ease-in-out_infinite]" />
           <div className="flex-1">
             <div className="text-caption font-bold text-info-bar uppercase tracking-wider">오늘 점검 대상</div>
             <div className="text-label font-bold text-text-primary mt-0.5 leading-tight">{todayTarget}</div>
           </div>
-          {latestAlarm && (
-            <>
-              <div className="text-right shrink-0">
-                <div className="text-caption font-bold text-danger-bar uppercase tracking-wider">최근 수신반 이력</div>
-                <div className="text-label font-bold text-text-primary mt-0.5 leading-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">
-                  {latestAlarm.location || '장소 미기록'}
-                </div>
-              </div>
-              <div className="w-1.5 h-1.5 rounded-full bg-danger-bar shrink-0 animate-[blink_1s_ease-in-out_infinite]" />
-            </>
-          )}
+          <PanelStateChip
+            activeAlarm={activeAlarm}
+            maintOn={maintOn}
+            maintLabel="점검 모드 · 알림 중지"
+            onClick={() => navigate('/inspection?panel=fire-alarm')}
+          />
+          {/* 모바일 평상시 우측 = 비움 (최근 이력 스니펫 병행 안 함, 모바일 sketch/UI-SPEC Surface 1) — 경보/점검 칩만 노출 */}
+        </div>
+
+        {/* ①-b 화재수신반 라이브 (16:9 순수 이미지, chrome 0) */}
+        {/* grid item 은 plain block 로 둔다 — aspect-video 를 grid item 에 직접 주면 iOS/Android 에서
+            auto 트랙이 min-content 로 축소돼 라이브가 트랙 밖으로 넘쳐 ②오늘현황과 겹침.
+            16:9 높이는 내부 LivePanelImage 의 aspect-video 가 정의 (데스크톱 위젯과 동일 패턴). */}
+        <div
+          onClick={() => navigate('/inspection?panel=fire-alarm')}
+          className="rounded-md overflow-hidden bg-black cursor-pointer min-h-[180px] [animation:slideUp_.28s_.03s_ease-out_both]"
+        >
+          <LivePanelImage
+            frameUpdatedAt={frameUpdatedAt}
+            imgClassName="w-full h-full object-cover"
+          />
         </div>
 
         {/* ② 오늘 현황 — §6.2 Stat Card negative rule */}
-        <div style={{ animation:'slideUp .28s .06s ease-out both' }}>
+        <div className="[animation:slideUp_.28s_.06s_ease-out_both]">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-caption font-bold text-text-secondary">오늘 현황</span>
             {stats.streakDays > 0 && (
@@ -604,7 +750,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ③ 빠른 도구 모음 — §7.1 일관성: 모두 회색 통일 */}
-        <div style={{ animation:'slideUp .28s .12s ease-out both' }}>
+        <div className="[animation:slideUp_.28s_.12s_ease-out_both]">
           <div className="flex items-center mb-1.5">
             <span className="text-caption font-bold text-text-secondary">빠른 도구 모음</span>
           </div>
@@ -627,39 +773,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ④ 오늘 일정 */}
-        <div
-          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col min-h-0"
-          style={{ animation:'slideUp .28s .16s ease-out both' }}
-        >
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border-default shrink-0">
-            <span className="text-caption font-bold text-text-secondary">오늘 일정</span>
-            <span className="text-caption text-text-tertiary bg-surface-sunken px-2 py-0.5 rounded-pill">{schedule.length}건</span>
-          </div>
-          <div className="overflow-y-auto flex-1">
-            {timed.length > 0 && (
-              <>
-                <div className="px-2.5 pt-1 pb-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase"><Clock size={11} className="inline-block align-text-bottom mr-1" />시간 확정</div>
-                {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
-              </>
-            )}
-            {untimed.length > 0 && (
-              <>
-                <div className="px-2.5 pt-1 pb-0.5 mt-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase border-t border-border-default"><ClipboardList size={11} className="inline-block align-text-bottom mr-1" />시간 미정</div>
-                {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
-              </>
-            )}
-          </div>
-        </div>
-
         {/* ⑤ 이번 달 점검 현황 — 메모리 룰: 가로 스크롤 (flex-nowrap) */}
         <div
-          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col"
-          style={{
-            animation:'slideUp .28s .20s ease-out both',
-            // IS_ANDROID 분기 동적 height — 인라인 허용 키
-            height: IS_ANDROID ? 125 : undefined,
-          }}
+          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col [animation:slideUp_.28s_.20s_ease-out_both]"
+          // IS_ANDROID 분기 동적 height — 인라인 허용 키
+          style={{ height: IS_ANDROID ? 125 : undefined }}
         >
           <div className="flex items-center justify-between px-3 py-1 border-b border-border-default shrink-0">
             <span className="text-caption font-bold text-text-secondary">이번 달 점검 현황</span>
@@ -712,9 +830,7 @@ export default function DashboardPage() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-[400px] bg-surface-raised rounded-t-lg pt-4 px-4"
-            // safe-area-bottom 동적 — 인라인 허용 (calc + var)
-            style={{ paddingBottom: 'calc(16px + var(--sab, 0px))' }}
+            className="w-full max-w-[400px] bg-surface-raised rounded-t-lg pt-4 px-4 pb-[calc(16px+var(--sab,0px))]"
           >
             <div className="text-body-sm font-bold text-text-primary text-center mb-3.5">
               {contactStaff.name}

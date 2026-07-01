@@ -40,10 +40,11 @@ const AnnualPlanPage            = lazy(() => import('./pages/AnnualPlanPage'))
 const DocumentsPage             = lazy(() => import('./pages/DocumentsPage'))
 const WorkLogPage               = lazy(() => import('./pages/WorkLogPage'))
 const StaffManagePage           = lazy(() => import('./pages/StaffManagePage'))
-const HandoverPage              = lazy(() => import('./pages/HandoverPage'))
-const WorkListPage              = lazy(() => import('./pages/WorkListPage'))
 const ExtinguishersListPage     = lazy(() => import('./pages/ExtinguishersListPage'))
 const CctvInfoPage              = lazy(() => import('./pages/CctvInfoPage'))
+const HandoverPage              = lazy(() => import('./pages/HandoverPage'))
+const WorkListPage              = lazy(() => import('./pages/WorkListPage'))
+const FireAlarmPage             = lazy(() => import('./pages/FireAlarmPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -69,10 +70,10 @@ const NAV_PAD_BOTTOM = IS_ANDROID
   : 'calc(54px + var(--sab, 0px))'
 
 // 모바일: 자체 헤더가 있는 페이지는 nav 숨김
-const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/elevator/findings', '/annual-plan']
+const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/elevator/findings', '/annual-plan', '/fire-alarm']
 
-// 데스크톱: 로그인/스플래시만 nav 숨김 — 나머지는 모두 사이드바 표시
-const DESKTOP_NO_NAV_PATHS = ['/', '/login']
+// 데스크톱: 로그인/스플래시 + 경보 풀스크린만 nav 숨김 — 나머지는 모두 사이드바 표시
+const DESKTOP_NO_NAV_PATHS = ['/', '/login', '/fire-alarm']
 
 // 데스크톱: 페이지가 자체 풍부한 헤더(액션 버튼 등)를 가져 App.tsx 의 제목 헤더가 중복인 경로
 const DESKTOP_HEADER_HIDE_PATHS = ['/elevator', '/div', '/floorplan', '/workshift']
@@ -95,14 +96,14 @@ const PAGE_TITLES: Record<string, string> = {
   '/meal': '식사 관리',
   '/education': '보수교육',
   '/staff-manage': '직원 관리',
-  '/handovers': '인수 인계장',
-  '/work-list': '업무 관련 리스트',
   '/legal': '소방 점검 관리',
   '/annual-plan': '연간 업무 추진 계획',
   '/documents': '소방계획서/훈련자료',
   '/worklog': '업무 수행 기록표',
   '/extinguishers': '소화기 관리',
   '/cctv': 'CCTV 현황',
+  '/handovers': '인수 인계장',
+  '/work-list': '업무 관련 리스트',
 }
 
 function Layout() {
@@ -269,6 +270,7 @@ function Layout() {
               <Route path="/dashboard"     element={<Auth><DashboardPage /></Auth>} />
               <Route path="/inspection"    element={<Auth><InspectionPage /></Auth>} />
               <Route path="/inspection/qr" element={<Auth><QRScanPage /></Auth>} />
+              <Route path="/fire-alarm"    element={<Auth><FireAlarmPage /></Auth>} />
               <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
               <Route path="/elevator/findings/:fid" element={<Auth><ElevatorFindingDetailPage /></Auth>} />
               <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />

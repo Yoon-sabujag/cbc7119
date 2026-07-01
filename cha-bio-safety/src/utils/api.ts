@@ -721,3 +721,81 @@ export const workListApi = {
   revisions: (id: string) => api.get<WorkListRevision[]>(`/work-list/${id}/revisions`),
   revert: (id: string, revisionId: string) => api.post<void>(`/work-list/${id}/revert`, { revisionId }),
 }
+
+// ── Phase 25: 화재수신반 원격감시·경보 (panelApi / alarmApi) ──
+// 백엔드 /api/panel/* · /api/alarm/* 는 prod 에 배포됨 (260701-pnl). consumer 는 여전히
+// react-query try/catch 로 평상시/미연결 fallback (에이전트 프레임 없으면 204/빈값 graceful, 크래시 X).
+
+// 활성 경보 요약 (대시보드 칩 / 배너용 최소 필드)
+export interface AlarmSummary {
+  id: string
+  type: 'fire' | 'equip'
+  detectedAt: string
+  location: string | null
+}
+
+// 점검(정비) 모드 상태 — 경보 억제/자동복귀 정보
+export interface MaintState {
+  enabled: boolean
+  source: 'auto' | 'manual'
+  reason?: string
+  autoOffAt?: string | null
+  turnedOnAt?: string | null
+  turnedOnBy?: string | null
+}
+
+// 경보 레코드 (활성/이력 공통 행)
+export interface Alarm {
+  id: string
+  type: 'fire' | 'equip'
+  status: 'active' | 'acked' | 'cleared' | 'suppressed'
+  detectedAt: string
+  source?: 'visual' | 'audio' | null
+  confidence?: number | null
+  snapshotUrl?: string | null
+  ackedBy?: string | null
+  ackedAt?: string | null
+  clearedReason?: string | null
+  draftRecordId?: string | null
+  location?: string | null
+  cause?: string | null
+  action?: string | null
+}
+
+// 이벤트 목록 행 = Alarm 과 동일 shape
+export type AlarmEvent = Alarm
+
+// 수신반 상태 (라이브 프레임 신선도 + 에이전트 온라인 + 활성경보 + 정비모드)
+export interface PanelStatus {
+  frameUpdatedAt: string | null
+  agentOnline: boolean
+  lastHeartbeatAt: string | null
+  activeAlarm: AlarmSummary | null
+  maint: MaintState
+}
+
+export const panelApi = {
+  getStatus: (): Promise<PanelStatus> => api.get<PanelStatus>('/panel/status'),
+  getMaint:  (): Promise<MaintState>  => api.get<MaintState>('/panel/maint'),
+  setMaint:  (body: { enabled: boolean; reason?: string; confirmAlarm?: boolean }): Promise<MaintState> =>
+    api.put<MaintState>('/panel/maint', body),
+  // <img src> 빌더 — fetch 아님. public no-store, Authorization 헤더 없음.
+  // ?t= 값은 frameUpdatedAt 에서 파생 (Date.now() 아님) -> 같은 프레임엔 URL 안정 -> 리마운트/깜빡임 방지.
+  latestFrameUrl: (updatedAt?: string | number | null): string =>
+    `/api/public/panel/latest.jpg?t=${encodeURIComponent(String(updatedAt ?? 0))}`,
+  snapshotUrl: (key: string): string => `/api/public/panel/${key}.jpg`,
+}
+
+export const alarmApi = {
+  getActive: (): Promise<Alarm | null> => api.get<Alarm | null>('/alarm/active'),
+  getEvents: (hours = 48): Promise<AlarmEvent[]> => {
+    const qs = new URLSearchParams({ hours: String(hours) })
+    return api.get<AlarmEvent[]>('/alarm/events?' + qs)
+  },
+  ack: (id: string): Promise<Alarm> => api.post<Alarm>(`/alarm/${id}/ack`, {}),
+  // 경보중 자동초안 '조치완료 후 저장' — in-place UPDATE + record 확정 +
+  // panel_alarm cleared_reason='record_saved' -> 대시보드 칩 소멸.
+  // fireAlarmApi.create (평상시 신규) 와는 DISTINCT.
+  resolve: (id: string, body: { type: 'fire' | 'non_fire'; occurredAt: string; location: string; cause: string; action: string }): Promise<Alarm> =>
+    api.post<Alarm>(`/alarm/${id}/resolve`, body),
+}

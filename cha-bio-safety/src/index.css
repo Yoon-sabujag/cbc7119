@@ -76,6 +76,18 @@
   50%       { opacity: 0.2; }
 }
 
+/* Phase 25: 대시보드 경보 칩 box-shadow 펄스 */
+@keyframes chipblink {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+}
+
+/* Phase 25: 데스크톱 라이브 위젯 경보중 firepulse */
+@keyframes firepulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.45); }
+  50%       { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+}
+
 /* ── sheet_to_html 테이블 스타일 ──────────────────────── */
 #excel-preview-table {
   border-collapse: collapse;
