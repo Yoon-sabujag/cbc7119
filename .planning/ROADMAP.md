@@ -331,7 +331,7 @@ Plans:
 
 Plans:
 - [x] 25-UI-SPEC.md — UI 설계 계약 (spacing/typography/color/copywriting/컴포넌트 인벤토리 · gsd-ui-checker 6차원 검증 · approved 2026-07-01)
-- [ ] 25-01-PLAN.md (Wave 1) — 파운데이션: panelApi/alarmApi + interfaces (api.ts) · LivePanelImage + freshness helper · usePinchZoom hook
+- [x] 25-01-PLAN.md (Wave 1) — 파운데이션: panelApi/alarmApi + interfaces (api.ts) · LivePanelImage + freshness helper · usePinchZoom hook (3/3 tasks · 98ea76d/ff2cc1b/75c0dc7 · tsc clean · 2026-07-01)
 - [ ] 25-02-PLAN.md (Wave 2) — 대시보드: 모바일 16:9 수신반 카드 + 경보/점검 칩 · 데스크톱 라이브 위젯 + 배너 칩
 - [ ] 25-03-PLAN.md (Wave 2) — 모바일 화재수신반 페이지: FireAlarmModal 확장(점검모드 토글·라이브·48h 이벤트·resolve/create 저장 분기) + 전체화면 줌 뷰어 + 딥링크 auto-open
 - [ ] 25-04-PLAN.md (Wave 2) — 경보 풀스크린 `/fire-alarm` (FireAlarmPage·ACK) + App.tsx 라우트/no-nav 등록
