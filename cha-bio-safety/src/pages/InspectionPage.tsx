@@ -6156,6 +6156,64 @@ function DesktopInspectionView({
     return { label: '비화재보', cls: 'text-text-secondary bg-surface-sunken' }
   }
 
+  // 화재수신반 폼 5필드 (평상시/경보중 공용 — 경보중 = need-border/auto tag 데코)
+  const renderPanelFields = (isAlarm: boolean) => (
+    <div className="flex flex-col gap-3.5">
+      {/* 구분 */}
+      <div>
+        <label className={paLabelCls}>
+          구분
+          {isAlarm && <span className="ml-1.5 text-[10.5px] text-info bg-info-bg rounded-sm px-1.5 py-0.5 leading-none">자동선택</span>}
+        </label>
+        <div className="flex gap-2">
+          {([['fire','화재보'],['non_fire','비화재보']] as const).map(([v, l]) => (
+            <button key={v} type="button" onClick={() => setPaType(v)}
+              className={`flex-1 px-0 py-2.5 rounded-sm text-body-sm font-bold cursor-pointer transition-colors ${
+                paType===v
+                  ? (v === 'fire'
+                      ? 'border-2 border-danger-bar bg-danger-bg text-danger'
+                      : 'border-2 border-accent bg-[rgba(59,130,246,.13)] text-[#60a5fa]')
+                  : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+              }`}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* 발생일시 */}
+      <div>
+        <label className={paLabelCls}>
+          발생일시
+          {isAlarm && <span className="ml-1.5 text-[10.5px] text-info bg-info-bg rounded-sm px-1.5 py-0.5 leading-none">자동</span>}
+        </label>
+        <input type="date" value={paDate} onChange={e => setPaDate(e.target.value)}
+          className={`${paInputCls} block mb-1.5 h-input ${isAlarm ? 'border-[#0ea5e9] bg-info-bg' : ''}`} />
+        <input type="time" value={paTime} onChange={e => setPaTime(e.target.value)}
+          className={`${paInputCls} block h-input ${isAlarm ? 'border-[#0ea5e9] bg-info-bg' : ''}`} />
+      </div>
+      {/* 발생장소 */}
+      <div>
+        <label className={paLabelCls}>발생장소{isAlarm && <span className="text-danger font-bold"> · 확인 필요</span>}</label>
+        <textarea value={paLocation} onChange={e => setPaLocation(e.target.value)}
+          placeholder={isAlarm ? '현장 확인 후 입력 (예: B1F-2 DIV 경비과 3F)' : '발생장소를 입력하세요'} rows={2}
+          className={`${paInputCls} resize-none leading-relaxed ${isAlarm ? 'border-danger-bar bg-danger-bg' : ''}`} />
+      </div>
+      {/* 발생원인 */}
+      <div>
+        <label className={paLabelCls}>발생원인{isAlarm && <span className="text-danger font-bold"> · 확인 필요</span>}</label>
+        <textarea value={paCause} onChange={e => setPaCause(e.target.value)}
+          placeholder={isAlarm ? '현장 확인 후 입력 (예: 실화재 / 오작동 / 습기)' : undefined} rows={2}
+          className={`${paInputCls} resize-none leading-relaxed ${isAlarm ? 'border-danger-bar bg-danger-bg' : ''}`} />
+      </div>
+      {/* 조치사항 */}
+      <div>
+        <label className={paLabelCls}>조치사항{isAlarm && <span className="text-info font-bold"> · 입력 대기</span>}</label>
+        <textarea value={paAction} onChange={e => setPaAction(e.target.value)} rows={2}
+          className={`${paInputCls} resize-none leading-relaxed ${isAlarm ? 'border-[#0ea5e9] bg-info-bg' : ''}`} />
+      </div>
+    </div>
+  )
+
   // 정상 제외 필터 (우측 리스트용)
   const [excludeNormal, setExcludeNormal] = useState(false)
 
@@ -6322,7 +6380,13 @@ function DesktopInspectionView({
 
             {/* id-body */}
             <div className="flex-1 flex flex-col gap-[15px] overflow-y-auto p-4 pb-[22px]">
-              {/* PANEL_MAINT_AUTONOTE_ANCHOR */}
+              {/* maint-autonote (점검모드 only, biglive 위 배너) */}
+              {panelMode === 'maint' && (
+                <div className="flex gap-2 px-[11px] py-2 rounded-[10px] bg-surface-sunken border border-border-strong text-caption text-text-tertiary leading-normal">
+                  <RefreshCw size={13} className="shrink-0 mt-0.5" />
+                  <span>자동 ON/복구 · 월간 점검 계획에 소방점검 일정이 잡힌 날은 일과 시작 시 자동 ON. 야간 일정 없으면 17:30, 있으면 21:00 자동 복구. 필요 시 위 토글로 직접 켜고 끌 수 있습니다.</span>
+                </div>
+              )}
 
               {/* ① biglive */}
               <div className={`bg-surface-raised border rounded-[14px] overflow-hidden ${
@@ -6368,7 +6432,41 @@ function DesktopInspectionView({
                 </div>
               </div>
 
-              {/* PANEL_ALARM_FORM_ANCHOR */}
+              {/* ② panel-notice + form-card (경보중 only) — NO red banner below header */}
+              {panelMode === 'alarm' && (
+                <div className="flex flex-col gap-[15px]">
+                  {/* panel-notice */}
+                  <div className="flex gap-2 px-[11px] py-[9px] rounded-[10px] bg-danger-bg border border-[rgba(239,68,68,.4)] text-caption text-danger leading-normal">
+                    <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0 mt-1" style={paBlink} />
+                    <span>경보 자동감지 — 비화재보 기록 초안이 생성됐습니다. 수신반 활성화는 대부분 오작동이라 비화재보로 자동선택됩니다. 현장 확인·조치 후 발생장소·원인·조치를 보완해 저장하고, 실화재면 화재보로 바꾸세요.</span>
+                  </div>
+                  {/* auto-draft form-card */}
+                  <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
+                    <div className="flex items-center gap-1.5 px-3.5 py-3 border-b border-border-default text-label font-bold">
+                      <AlertTriangle size={15} className="text-danger shrink-0" />
+                      <span className="text-danger">자동 생성 초안 — 보완 필요</span>
+                    </div>
+                    <div className="px-3.5 py-3.5">
+                      {renderPanelFields(true)}
+                    </div>
+                    {/* form-bar */}
+                    <div className="flex gap-2 px-3.5 py-3 bg-surface-raised border-t border-border-default">
+                      <button type="button" onClick={() => setCategoryIdx(null)}
+                        className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-body-sm font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
+                        나중에
+                      </button>
+                      <button type="button" onClick={handlePanelSave} disabled={paSaving}
+                        className={`flex-1 py-3.5 rounded-md border-0 text-text-on-accent text-body font-bold transition-shadow ${
+                          paSaving
+                            ? 'bg-border-default cursor-default'
+                            : 'bg-[linear-gradient(135deg,#dc2626,#ef4444)] cursor-pointer shadow-[0_2px_8px_rgba(239,68,68,0.3)]'
+                        }`}>
+                        {paSaving ? '저장 중...' : '조치완료 후 저장'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ③ evt-card (최근 48시간 자동감지 — 점검모드 조회 유지) */}
               <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
@@ -6407,7 +6505,33 @@ function DesktopInspectionView({
                 )}
               </div>
 
-              {/* PANEL_NORMAL_FORM_ANCHOR */}
+              {/* ④ form-card (수기, 평상시 only) */}
+              {panelMode === 'normal' && (
+                <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
+                  <div className="flex items-center gap-1.5 px-3.5 py-3 border-b border-border-default text-label font-bold">
+                    <Plus size={15} className="text-text-secondary shrink-0" />
+                    <span className="text-text-primary">수동 기록 추가</span>
+                  </div>
+                  <div className="px-3.5 py-3.5">
+                    {renderPanelFields(false)}
+                  </div>
+                  {/* form-bar */}
+                  <div className="flex gap-2 px-3.5 py-3 bg-surface-raised border-t border-border-default">
+                    <button type="button" onClick={() => setCategoryIdx(null)}
+                      className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-body-sm font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
+                      취소
+                    </button>
+                    <button type="button" onClick={handlePanelSave} disabled={paSaving}
+                      className={`flex-1 py-3.5 rounded-md border-0 text-text-on-accent text-body font-bold transition-shadow ${
+                        paSaving
+                          ? 'bg-border-default cursor-default'
+                          : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] cursor-pointer shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
+                      }`}>
+                      {paSaving ? '저장 중...' : '점검 기록 저장'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : recordId && detail ? (
