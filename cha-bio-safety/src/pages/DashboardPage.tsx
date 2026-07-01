@@ -337,7 +337,8 @@ export default function DashboardPage() {
             maintLabel="점검모드 · 17:30 자동복구"
             onClick={() => navigate('/inspection?panel=fire-alarm')}
           />
-          {latestAlarm && (
+          {/* 평상시에만 최근 수신반 이력 스니펫 (경보중/점검모드는 PanelStateChip 만) — desktop sketch tgt-recv.only-normal */}
+          {!activeAlarm && !maintOn && latestAlarm && (
             <>
               <div className="w-px h-9 bg-info-bar/20 shrink-0" />
               <div className="text-right shrink-0">
@@ -645,17 +646,7 @@ export default function DashboardPage() {
             maintLabel="점검 모드 · 알림 중지"
             onClick={() => navigate('/inspection?panel=fire-alarm')}
           />
-          {latestAlarm && (
-            <>
-              <div className="text-right shrink-0">
-                <div className="text-caption font-bold text-danger-bar uppercase tracking-wider">최근 수신반 이력</div>
-                <div className="text-label font-bold text-text-primary mt-0.5 leading-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">
-                  {latestAlarm.location || '장소 미기록'}
-                </div>
-              </div>
-              <div className="w-1.5 h-1.5 rounded-full bg-danger-bar shrink-0 animate-[blink_1s_ease-in-out_infinite]" />
-            </>
-          )}
+          {/* 모바일 평상시 우측 = 비움 (최근 이력 스니펫 병행 안 함, 모바일 sketch/UI-SPEC Surface 1) — 경보/점검 칩만 노출 */}
         </div>
 
         {/* ①-b 화재수신반 라이브 (16:9 순수 이미지, chrome 0) */}
