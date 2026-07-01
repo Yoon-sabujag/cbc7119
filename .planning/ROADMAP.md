@@ -7,6 +7,7 @@
 - ✅ **v1.2 UX 개선 + 다운로드** — Phases 12-15 (shipped 2026-04-06)
 - ✅ **v1.3 설정 페이지** — Phases 16-19 (shipped 2026-04-08)
 - 🚧 **v1.4 문서 관리** — Phases 20-22 (started 2026-04-08)
+- 🔔 **v1.5 화재수신반 원격감시** — Phase 25 (started 2026-06-30)
 
 ## Phases
 
@@ -67,181 +68,240 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 
 - [x] **Phase 23: Observation-Mode Bug Fixes** — 2026-04-23~24 운영 관찰 중 발견된 3건 즉시 수정 (푸시 cron 침묵 복구 / 교육 알림 D-60 재설계 + 신규교육 트리거 추가 / 대시보드-모바일 점검 카드 기준 통일). GSD 밖에서 작업 후 소급 기록. 세부: `.planning/phases/23-obs-mode-bugfixes/`
 
+### 🔔 v1.5 화재수신반 원격감시 (Phase 25)
+
+- [ ] **Phase 25: 화재수신반 원격감시·경보 UI (시안→TSX)** — 방재실 수신반 미러링 라이브뷰 + 색 기반 경보(빨강=화재/초록=설비) 감지 UI. 모바일(대시보드 수신반 카드·경보칩 / 화재수신반 페이지 / 경보 풀스크린 / 줌 뷰어) + 데스크톱(라이브 위젯 / 일반점검 3분할 상세 pane). 순수 시각(sketch→TSX), 백엔드·데이터·에이전트는 별도 트랙(cbc7119-data). 세부: `.planning/phases/25-panel-monitoring/`
+
 ## Phase Details
 
 <details>
 <summary>Archived phase details (Phases 12-19 — v1.2/v1.3)</summary>
 
 See milestone archives:
+
 - `.planning/milestones/v1.2-ROADMAP.md` (Phases 12-15)
 - `.planning/milestones/v1.3-ROADMAP.md` (Phases 16-19)
 
 </details>
 
 ### Phase 20: Document Storage Infrastructure
+
 **Goal**: 소방 문서를 R2에 안전하게 업로드/다운로드하고 메타데이터를 D1에서 조회할 수 있는 백엔드 인프라가 존재한다
 **Depends on**: Phase 19 (v1.3 complete)
 **Requirements**: DOC-07 (부분), DOC-02·DOC-05 백엔드 (admin 업로드), DOC-01·DOC-03·DOC-04·DOC-06 백엔드 (다운로드/이력)
 **Success Criteria** (what must be TRUE):
+
   1. D1 `documents` 테이블이 존재하고 (id, type, year, title, filename, r2_key, size, uploaded_by, uploaded_at) 구조로 메타데이터를 보존한다
   2. admin 권한 staff만 호출 가능한 R2 presigned upload URL 발급 API가 존재하여, 클라이언트가 ~130MB 소방훈련자료를 Workers 100MB request 제한을 우회해 직접 R2에 PUT할 수 있다
   3. 업로드 완료 후 메타데이터를 등록하는 commit API가 admin 권한으로 동작하고, 일반 staff는 401/403을 받는다
   4. 모든 staff가 호출 가능한 list API가 type별·연도별 정렬된 문서 목록을 반환하고, download API가 R2에서 파일을 스트리밍 또는 presigned download URL로 제공한다
+
 **Plans:** 3/3 plans complete
 Plans:
+
 - [x] 20-01-PLAN.md — Migration 0046_documents.sql + shared helpers (_helpers.ts)
 - [x] 20-02-PLAN.md — R2 multipart upload endpoints (create/upload-part/complete/abort)
 - [x] 20-03-PLAN.md — List + download endpoints + production deploy + smoke test
 
 ### Phase 21: Documents Page UI
+
 **Goal**: 사용자가 문서 관리 페이지에서 소방계획서·소방훈련자료를 업로드(admin)·다운로드(전체)·연도별로 조회할 수 있다
 **Depends on**: Phase 20
 **Requirements**: DOC-01, DOC-02, DOC-03, DOC-04, DOC-05, DOC-06, DOC-07 (UI/wire 부분)
 **Success Criteria** (what must be TRUE):
+
   1. SideMenu에서 "문서 관리" 항목으로 진입하는 DocumentsPage 라우트가 존재한다
   2. 모든 staff가 소방계획서/소방훈련자료의 최신본을 탭 한 번으로 다운로드할 수 있다 (iOS PWA 호환 — window.open 패턴 재사용)
   3. admin staff에게만 업로드 버튼이 노출되며, 연도·제목 입력 후 R2 presigned URL을 통해 직접 업로드(진행률 표시)되고 완료 시 목록에 즉시 반영된다
   4. 연도별 이력 섹션에서 과거 버전을 선택해 다운로드할 수 있다 (소방계획서·소방훈련자료 각각)
   5. 일반 staff가 업로드 API를 직접 호출해도 권한 거부로 차단된다
+
 **Plans:** 5/6 plans executed
 Plans:
+
 - [x] 21-01-PLAN.md — documentsApi namespace + uploadPartRaw in api.ts
 - [x] 21-02-PLAN.md — downloadBlob.ts authenticated Blob download utility
 - [x] 21-03-PLAN.md — multipartUpload.ts orchestrator (create/parts/complete/abort + progress)
 - [x] 21-04-PLAN.md — Menu integration (SideMenu + DesktopSidebar + DEFAULT_SIDE_MENU + migrate fix + App.tsx route)
 - [x] 21-05-PLAN.md — DocumentsPage + DocumentSection + DocumentUploadForm UI
 - [ ] 21-06-PLAN.md — Production deploy + human UAT smoke test
+
 **UI hint**: yes
 
 ### Phase 22: 업무수행기록표 Form + Excel Output
+
 **Goal**: 사용자가 소방안전관리자 업무수행기록표를 앱에서 작성·저장하고 기존 양식과 동일한 .xlsx로 출력할 수 있다
 **Depends on**: Phase 21
 **Requirements**: WORKLOG-01, WORKLOG-02, WORKLOG-03
 **Success Criteria** (what must be TRUE):
+
   1. D1 `work_logs` 테이블이 존재하여 월(year_month)·작성자·필드별 본문을 저장한다
   2. 사용자가 업무수행기록표 작성 페이지에서 대상 월과 각 항목 필드를 입력하고 저장할 수 있다
   3. 저장한 월의 기록을 다시 열어 수정하고 재저장할 수 있다 (월별 단일 레코드)
   4. "엑셀 출력" 버튼 탭 시 기존 양식 파일과 동일한 셀 구조·서식의 .xlsx 파일이 xlsx-js-style 기반으로 즉시 다운로드된다 (기존 `src/utils/generateExcel.ts` 패턴 재사용, 신규 라이브러리 추가 금지)
+
 **Plans:** 2/2 plans complete
 Plans:
+
 - [x] 22-01-PLAN.md — Migration + types + workLogApi + API route handlers (list/read/upsert/preview)
 - [x] 22-02-PLAN.md — Template + generateWorkLogExcel + WorkLogPage UI + menu wiring + deploy
+
 **UI hint**: yes
 
 <!-- ARCHIVED_PHASES_START
 
 ### Phase 12: Multi-Photo Infrastructure
+
 **Goal**: 지적사항·조치 사진을 최대 5장 저장·표시하는 공유 인프라가 존재한다
 **Depends on**: Phase 11
 **Requirements**: PHOTO-01, PHOTO-02, PHOTO-03
 **Success Criteria** (what must be TRUE):
+
   1. 지적사항 또는 조치 사진을 최대 5장까지 업로드할 수 있다
   2. 업로드된 사진이 썸네일 그리드로 표시된다
   3. 썸네일을 탭하면 라이트박스로 풀스크린 확대보기된다
   4. 기존 단일 사진(photo_key) 데이터가 기존과 동일하게 표시된다 (하위 호환)
+
 **Plans:** 2/2 plans executed
 Plans:
+
 - [x] 12-01-PLAN.md — Migration + dependency + types + useMultiPhotoUpload hook + PhotoGrid component
 - [x] 12-02-PLAN.md — API handler updates + LegalFindingDetailPage integration + deploy
+
 **UI hint**: yes
 
 ### Phase 13: Finding BottomSheet Restructure
+
 **Goal**: 지적사항 등록 시 공통 항목 선택과 구조화된 위치 입력이 가능하다
 **Depends on**: Phase 12
 **Requirements**: FIND-01, FIND-02
 **Success Criteria** (what must be TRUE):
+
   1. 지적사항 등록 화면에서 공통 점검항목 목록에서 선택하거나 직접 입력할 수 있다
   2. 위치를 구역→층→상세위치 3단계 드롭다운으로 입력할 수 있다
   3. 지적사항 등록 시 사진을 최대 5장까지 첨부할 수 있다 (Phase 12 PhotoGrid 활용)
+
 **Plans:** 1/1 plans complete
 Plans:
+
 - [x] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
+
 **UI hint**: yes
 
 ### Phase 14: Schedule Date Range
+
 **Goal**: 법적 점검 연속 일정을 시작일/종료일 범위로 한번에 등록할 수 있다
 **Depends on**: Phase 11
 **Requirements**: SCHED-01, SCHED-02
 **Success Criteria** (what must be TRUE):
+
   1. 일정 추가 시 종료일 입력 필드가 나타나고 날짜 범위를 선택할 수 있다
   2. 범위 선택 시 "N일 일정이 추가됩니다" 미리보기가 실시간으로 표시된다
   3. 확인 후 해당 기간의 각 날짜에 일정이 개별적으로 등록된다
+
 **Plans:** 1 plan
 Plans:
+
 - [x] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
+
 **UI hint**: yes
 
 ### Phase 15: Finding Download
+
 **Goal**: 지적사항 내용과 사진을 건별 또는 일괄로 다운로드할 수 있다
 **Depends on**: Phase 12
 **Requirements**: DL-01, DL-02, DL-03
 **Success Criteria** (what must be TRUE):
+
   1. 지적사항 상세 화면에서 건별 다운로드 버튼으로 내용+사진을 내려받을 수 있다
   2. 라운드 목록에서 일괄 다운로드 버튼으로 전체 지적사항을 ZIP으로 내려받을 수 있다
   3. iOS PWA 홈 화면 모드에서 다운로드가 정상 동작한다 (window.open + 공유시트)
+
 **Plans:** 2/2 plans complete
 Plans:
+
 - [x] 15-01-PLAN.md — findingDownload.ts 유틸리티 + LegalFindingDetailPage 건별 다운로드 버튼
 - [x] 15-02-PLAN.md — LegalFindingsPage 일괄 ZIP 다운로드 + 프로덕션 배포/검증
+
 **UI hint**: yes
 
 ### Phase 16: Settings Page + Profile
+
 **Goal**: 사용자가 설정 페이지에서 비밀번호·이름을 변경하고 로그아웃할 수 있다
 **Depends on**: Phase 15
 **Requirements**: PROF-01, PROF-02, APP-03
 **Success Criteria** (what must be TRUE):
+
   1. SideMenu 또는 BottomNav에서 설정 페이지로 진입할 수 있다
   2. 설정 페이지에서 현재 비밀번호 확인 후 새 비밀번호로 변경할 수 있다
   3. 설정 페이지에서 자신의 이름을 수정하고 저장할 수 있다
   4. 설정 페이지에서 로그아웃 버튼으로 세션을 종료하고 로그인 화면으로 이동한다
+
 **Plans:** 2/2 plans complete
 Plans:
+
 - [x] 16-01-PLAN.md — Profile API + authStore update + SettingsPage component
 - [x] 16-02-PLAN.md — App.tsx wiring + SideMenu/DesktopSidebar cleanup + deploy
+
 **UI hint**: yes
 
 ### Phase 17: Push Notification Settings
+
 **Goal**: 사용자가 PWA 푸시 알림을 구독하고 알림 유형별로 활성화 여부를 제어할 수 있다
 **Depends on**: Phase 16
 **Requirements**: NOTI-01, NOTI-02, NOTI-03
 **Success Criteria** (what must be TRUE):
+
   1. 설정 페이지에서 PWA 푸시 알림을 구독하거나 해제할 수 있다
   2. 점검 일정 알림을 개별적으로 켜고 끌 수 있다
   3. 미조치 이슈 알림을 개별적으로 켜고 끌 수 있다
   4. 알림 구독 상태(허용/차단/미설정)가 설정 화면에 시각적으로 표시된다
+
 **Plans:** 3/3 plans complete
 Plans:
+
 - [x] 17-01-PLAN.md — D1 migration + API endpoints + VitePWA injectManifest + custom service worker
 - [x] 17-02-PLAN.md — pushApi client + SettingsPanel notification toggles with permission flow
 - [x] 17-03-PLAN.md — Cron Worker project + VAPID keys + production deploy + E2E verification
+
 **UI hint**: yes
 
 ### Phase 18: Menu Customization
+
 **Goal**: 사용자가 SideMenu 항목 순서와 표시/숨김을 divider 모델로 커스터마이징할 수 있다 (BottomNav는 Phase 18에서 5개 고정)
 **Depends on**: Phase 16
 **Requirements**: MENU-01, MENU-02
 **Success Criteria** (what must be TRUE):
+
   1. 설정 페이지의 MenuSettingsSection에서 SideMenu 항목 순서를 위/아래 버튼으로 변경하고 divider(그룹 구분선)를 추가/편집/삭제할 수 있다
   2. 설정 페이지에서 SideMenu 항목별 표시/숨김 토글을 켜고 끌 수 있다
   3. "설정 저장" 버튼으로 저장한 메뉴 설정이 서버에 퍼시스트되어 앱을 닫고 다시 열어도 유지된다
+
 **Plans:** 3/3 plans complete
 Plans:
+
 - [x] 18-01-PLAN.md — MenuConfig types (divider model) + DEFAULT_SIDE_MENU + legacy migration + SideMenu read-only refactor
 - [x] 18-02-PLAN.md — MenuSettingsSection editor component (move/toggle/rename/add/delete/reset/save)
 - [x] 18-03-PLAN.md — Mount in SettingsPanel + production deploy + human verification
+
 **UI hint**: yes
 
 ### Phase 19: App Info & Cache
+
 **Goal**: 사용자가 빌드 버전을 확인하고 서비스워커 캐시를 직접 초기화할 수 있다
 **Depends on**: Phase 16
 **Requirements**: APP-01, APP-02
 **Success Criteria** (what must be TRUE):
+
   1. 설정 페이지에서 현재 앱 빌드 버전을 확인할 수 있다
   2. 캐시 초기화 버튼을 탭하면 서비스워커 캐시가 삭제되고 완료 메시지가 표시된다
   3. 캐시 초기화 후 앱이 최신 리소스로 새로고침된다
+
 **Plans:** 1/1 plans complete
 Plans:
+
 - [x] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
+
 **UI hint**: yes
 
 ARCHIVED_PHASES_END -->
@@ -272,6 +332,7 @@ ARCHIVED_PHASES_END -->
 | 20. Document Storage Infrastructure | v1.4 | 3/3 | Complete   | 2026-04-08 |
 | 21. Documents Page UI | v1.4 | 5/6 | In Progress|  |
 | 22. 업무수행기록표 Form + Excel | v1.4 | 2/2 | Complete    | 2026-04-11 |
+| 25. 화재수신반 원격감시·경보 UI | v1.5 | 6/6 | Complete   | 2026-07-01 |
 
 ## Backlog
 
@@ -290,6 +351,7 @@ ARCHIVED_PHASES_END -->
 **Plans:** 6/6 plans complete — shipped 2026-05-02 v0.2.1
 
 **Success Criteria:**
+
 1. 소화기 리스트 페이지에서 신규 등록·수정(≤3필드)·삭제·폐기·분리 가능
 2. 도면 마커 편집에서 위치 추가·개소명 수정·매핑/분리/스왑 가능
 3. 소화기 교체 시 폐기 보존 + 새 자산 등록·매핑 흐름이 자연스러움
@@ -299,12 +361,42 @@ ARCHIVED_PHASES_END -->
 7. 기존 1:1 데이터가 손실 없이 새 모델로 보존됨
 
 Plans:
+
 - [x] 24-01-PLAN.md — Migration 0079_extinguisher_asset_split.sql (status + extinguisher_id 컬럼 + 인덱스 + 백필)
 - [x] 24-02-PLAN.md — Backend API (assign/unassign/swap/dispose/PUT/DELETE) + records 스냅샷 + cascade 정책 변경 + extinguisherApi 확장
 - [x] 24-03-PLAN.md — ExtinguishersListPage + 메뉴/라우트 wiring + sketches (filter bar + 카드 4상태 + 5종 모달)
 - [x] 24-04-PLAN.md — FloorPlanPage 마커 모달 단순화 + ❓ 빈 마커 + 범례 미배치 + URL state machine + 점검 카드 sub-action
 - [x] 24-05-PLAN.md — InspectionPage + 새로 등록 버튼 + extDetail 카드 sub-action (정보 수정 / 분리)
 - [x] 24-06-PLAN.md — Production deploy (--branch=production) + version bump + 7 success criteria UAT
+
+### Phase 25: 화재수신반 원격감시·경보 UI (시안→TSX)
+
+**Goal:** 방재실 화재수신반 미러링 라이브뷰와 색 기반 경보(빨강=화재 / 초록=설비동작) UI를 모바일·데스크톱에 구현한다. 순수 시각(sketch→TSX) — 표시 로직·라벨·상태 전이는 HANDOFF §1 API 계약 기준으로 렌더하고, 백엔드·데이터·맥 에이전트는 별도 트랙(cbc7119-data)이 담당한다. 이 콘솔은 wrangler 금지 · main push → cbc7119-preview 자동배포로만 확인.
+**Requirements**: PANEL-UI-01~07 (this phase)
+**Depends on:** Phase 24 (InspectionPage 화재수신반 카드 / FireAlarmModal / 데스크톱 3분할 DesktopInspectionView)
+**Track:** cbc7119-design (시각 전용)
+**Source 시안 (개념 참고 · repo 밖):** `~/Desktop/수신반-미리보기/index.html`(모바일) · `desktop.html`(데스크톱) · 설계·룰 SSOT: `~/Desktop/수신반-미리보기/HANDOFF.md` §2
+
+**Success Criteria:**
+
+1. 모바일 대시보드 — '오늘 점검 대상' 바로 아래 순수 16:9 수신반 화면 카드(상태줄·LIVE·버튼 없음, 탭→화재수신반) + '오늘 점검 대상' 우측 경보 전용 영역(경보중=빨강 blink chip·해제/조치완료 저장 시 소멸 / 점검모드=회색 무점멸 chip / 평상시=비움)
+2. 모바일 화재수신반 페이지 — 헤더 점검모드 토글(단일 조작점) + 라이브 카드(탭→줌 뷰어) + 최근 이벤트(48h) + 수기폼(기존 `FireAlarmModal` 확장). 경보중=비화재보 자동초안 안내+폼, 점검모드=자동화 안내문+라이브/이벤트 유지·수기폼 숨김
+3. 경보 풀스크린 `/fire-alarm` (푸시 탭 목적지) — 빨강(화재)/초록(설비) takeover + '확인'(ACK). 화재=재발송 경고 문구, 설비=단발
+4. 전체화면 줌 뷰어 — 라이브 16:9 + 더블탭/핀치 줌(FloorPlanPage 패턴 재사용), body:fixed 금지 스크롤락
+5. 데스크톱 대시보드 — 우측 컬럼 최상단 수신반 라이브 위젯(클릭→일반점검, 더블클릭→줌 오버레이) + 상태별 정상/화재 캡션
+6. 데스크톱 일반점검 3분할 — 화재수신반 상세 pane(라이브→(경보중)비화재보 초안 안내+폼→최근 이벤트→(평상시)수기폼) + 상세 헤더 점검모드 토글(정상라이브 pill·전체화면 버튼 제거) + 헤더 아래 경보배너 없음(라이브 빨강+초안 안내로만) + 화면 내 경보 takeover modal
+7. 아이콘 lucide-react 통일·이모지 0, 앱 다크 토큰·헤더 크롬 룰 준수, 색=의미 고정(경보 danger #ef4444 / 설비 safe #22c55e / 점검 gray), 라이브/상태/이벤트는 API(§1 계약) 기준 렌더 + 미배포 엔드포인트 204/빈응답 graceful(placeholder)
+8. 푸시 딥링크 — `src/sw.ts` push 핸들러가 payload `url` 포워드 + `notificationclick`이 `data.url` 읽어 실제 라우팅(화재→경보 풀스크린 `/fire-alarm` / 설비→화재수신반 페이지). 현재 항상 `/` 여는 동작 대체 (HANDOFF §2.0b, blocker 아님)
+
+Plans:
+
+- [x] 25-UI-SPEC.md — UI 설계 계약 (spacing/typography/color/copywriting/컴포넌트 인벤토리 · gsd-ui-checker 6차원 검증 · approved 2026-07-01)
+- [x] 25-01-PLAN.md (Wave 1) — 파운데이션: panelApi/alarmApi + interfaces (api.ts) · LivePanelImage + freshness helper · usePinchZoom hook (3/3 tasks · 98ea76d/ff2cc1b/75c0dc7 · tsc clean · 2026-07-01)
+- [x] 25-02-PLAN.md (Wave 2) — 대시보드: 모바일 16:9 수신반 카드 + 경보/점검 칩 · 데스크톱 라이브 위젯 + 배너 칩 (2/2 tasks · 67bfc10/660cb23 · tsc clean · 2026-07-01)
+- [x] 25-03-PLAN.md (Wave 2) — 모바일 화재수신반 페이지: FireAlarmModal 확장(점검모드 토글·라이브·48h 이벤트·resolve/create 저장 분기) + 전체화면 줌 뷰어 + 딥링크 auto-open
+- [x] 25-04-PLAN.md (Wave 2) — 경보 풀스크린 `/fire-alarm` (FireAlarmPage·ACK) + App.tsx 라우트/no-nav 등록 (2/2 tasks · ac71057e/a449e40a · tsc clean · 2026-07-01)
+- [x] 25-05-PLAN.md (Wave 3) — 데스크톱 일반점검 3분할 상세 pane(화재수신반) + 경보 takeover modal + 줌 오버레이 (핀치 텍스트 제거) (3/3 tasks · 5423935/0634827/311b588 · tsc clean · 2026-07-01)
+- [x] 25-06-PLAN.md (Wave 3) — Service Worker 딥링크: push url 포워드 + notificationclick 실제 라우팅 (화재→/fire-alarm, 설비→화재수신반 페이지)
 
 ---
 *Roadmap created: 2026-03-28*

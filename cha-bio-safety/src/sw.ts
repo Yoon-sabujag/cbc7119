@@ -34,14 +34,16 @@ registerRoute(
 self.addEventListener('push', (event: PushEvent) => {
   if (!event.data) return
   try {
-    const { title, body, type } = event.data.json()
+    // 백엔드 §1.4 superset payload {kind,alarmType,alarmId,location,detectedAt,url} 중
+    // 딥링크에 필요한 url + alarmType 을 notification.data 로 전달 (구 payload 는 undefined 로 안전)
+    const { title, body, type, url, alarmType } = event.data.json()
     event.waitUntil(
       self.registration.showNotification(title || 'CBC 방재', {
         body: body || '',
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
         tag: type || 'default',
-        data: { type },
+        data: { type, url, alarmType },
       })
     )
   } catch (e) {
@@ -49,16 +51,27 @@ self.addEventListener('push', (event: PushEvent) => {
   }
 })
 
-// ── 알림 클릭 핸들러 — 앱 루트 열기 ─────────────────────────
+// ── 알림 클릭 핸들러 — 딥링크 이동 ─────────────────────────
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
+  // 목적지: data.url (백엔드 per-type url) 우선, 없으면 fallback
+  //   fire -> /fire-alarm (화재 takeover), equip -> /inspection?panel=fire-alarm (화재수신반 페이지)
+  const data = event.notification.data || {}
+  const fallback =
+    data.alarmType === 'equip' || data.type === 'equip'
+      ? '/inspection?panel=fire-alarm'
+      : '/fire-alarm'
+  const url = data.url || fallback
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
       const existing = clients.find(c => c.url.includes(self.location.origin))
       if (existing) {
-        return existing.focus()
+        // navigate 후 focus (WindowClient.navigate 미지원 환경은 focus 로 폴백)
+        return typeof existing.navigate === 'function'
+          ? existing.navigate(url).then(c => (c ? c.focus() : existing.focus()))
+          : existing.focus()
       }
-      return self.clients.openWindow('/')
+      return self.clients.openWindow(url)
     })
   )
 })
