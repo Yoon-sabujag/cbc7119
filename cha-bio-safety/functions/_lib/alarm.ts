@@ -36,6 +36,7 @@ export function mapAlarm(r: AlarmRow) {
     type: r.type,
     status: r.status,
     detectedAt: r.detected_at,
+    location: LOCATION_LABEL,
     source: r.source,
     confidence: r.confidence,
     snapshotUrl: r.snapshot_key ? `/api/public/panel/${r.snapshot_key}.jpg` : null,
