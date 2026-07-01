@@ -418,8 +418,8 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-07-01
-Stopped at: Phase 25 Wave 2 (25-02) 실행 완료 — DashboardPage 모바일 16:9 수신반 라이브 카드 + 경보/점검 칩(PanelStateChip) + 그리드 트랙 5->6, 데스크톱 shrink-0 라이브 위젯(LIVE/화재 dot badge, live-cap, firepulse, click->일반점검/dblclick->zoom=1 240ms) + 배너 칩. panel-state react-query(['panel-status']+['alarm-active']) 평상시 fallback. chipblink/firepulse keyframes(index.css). (2/2 tasks, tsc clean, 67bfc10/660cb23, feature/25-panel-monitoring). 다음: 25-03/04 (Wave 2 잔여) 또는 Wave 3 (25-05/06)
-Resume file: .planning/phases/25-panel-monitoring/25-03-PLAN.md
+Stopped at: Phase 25 Wave 2 (25-03) 실행 완료 — InspectionPage FireAlarmModal 을 mobile 화재수신반 페이지로 in-place 확장. 헤더 점검모드 toggle(role=switch, maint 409 active_alarm_requires_confirm -> confirm -> confirmAlarm:true 재시도) + 라이브 카드(LivePanelImage tap->전체화면 줌 뷰어) + 48h 자동감지 이벤트(fire/non/equip badge2) + 3-state 폼(평상시/경보중/점검모드). 저장 2분기: 경보중=alarmApi.resolve(id,{...}) 칩 소멸 / 평상시=fireAlarmApi.create + invalidate(['fire-alarm-recent']). usePinchZoom 줌 뷰어(더블탭/핀치, safe-area pin, body:fixed-free scroll-lock). /inspection?panel=fire-alarm 딥링크 auto-open. DesktopInspectionView + App.tsx 무수정(25-05/04 담당). (3/3 tasks, tsc clean, 68d04c7d/c793570e/c2c3aadd, feature/25-panel-monitoring). 다음: 25-04(fire-alarm route + SW deep-link) 또는 Wave 3 (25-05 desktop / 25-06 sw-push)
+Resume file: .planning/phases/25-panel-monitoring/25-04-PLAN.md
 
 ---
 *State initialized: 2026-03-28*

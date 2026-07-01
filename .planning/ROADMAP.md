@@ -277,6 +277,7 @@ ARCHIVED_PHASES_END -->
 | 20. Document Storage Infrastructure | v1.4 | 3/3 | Complete   | 2026-04-08 |
 | 21. Documents Page UI | v1.4 | 5/6 | In Progress|  |
 | 22. 업무수행기록표 Form + Excel | v1.4 | 2/2 | Complete    | 2026-04-11 |
+| 25. 화재수신반 원격감시·경보 UI | v1.5 | 3/6 | In Progress |  |
 
 ## Backlog
 
