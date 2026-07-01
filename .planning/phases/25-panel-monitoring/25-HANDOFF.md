@@ -216,6 +216,7 @@ created_at TEXT NOT NULL DEFAULT (datetime('now'))
 > - **점검모드 자동화 (§3④ 폐기 → 온디맨드 계산):** 스케줄러 토글 대신 `GET/PUT maint`·`trigger` 시점에 `enabled = (오늘 소방점검일 && 현재 일과시작~[야간일정 없으면 17:30 / 있으면 21:00] 사이) || 수동override유효` 계산. **cron 불필요**, 드리프트 없음. 수동 override(on/off+만료시각)만 D1 저장.
 > - **연결 감시 (§3⑤ 축소):** v1 = 조회 응답에 `lastSeenAt` 포함 → **PWA 온디맨드 표시**('모니터링 중단 · 마지막 신호 N분 전'). **프로액티브 push 는 prod `cbc-cron-worker` 로 이연**(staging 검증 대상 아님, 새 Worker 회피).
 > → 아래 **§3③④⑤ 는 이 박스로 대체.** §3①·②·⑥은 유효하되 — ②에 `POST /api/alarm/renotify` 추가, DO 바인딩/cron/`scheduled()` 관련은 전부 제거. `next_push_at`·`push_count` 상태필드는 유지(에이전트-티커가 이걸로 판단).
+> - **`POST /api/alarm/:id/resolve` 추가 (계약 갭 보완, 2026-07-01 승인):** §1.6 `cleared_reason='record_saved'` + §2.3 "저장 시 칩 소멸"을 실제 동작시키는 엔드포인트가 §3② 표에 없었음 → **자동초안 in-place UPDATE**(발생장소/원인/조치 보완) + `fire_alarm_record` 확정 + `panel_alarm status=cleared, cleared_reason='record_saved'`(칩 소멸). ★**design 트랙: 화재수신반 자동초안 '저장' 버튼은 신규 `POST /api/fire-alarm` 이 아니라 이 `resolve` 를 호출**해야 칩이 사라짐.
 
 ### 3.① D1 스키마 (다음 순번 migration, 모두 IF NOT EXISTS)
 

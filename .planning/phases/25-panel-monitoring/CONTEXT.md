@@ -75,7 +75,9 @@
 - 상태 = `GET /api/panel/status` (frameUpdatedAt·agentOnline·activeAlarm·maint). 프레시니스 = frameUpdatedAt vs now → '방금 / N초 전 / 지연'.
 - 경보칩 = `GET /api/alarm/active`; 이벤트(48h) = `GET /api/alarm/events?hours=48` (점검모드에서도 조회); ACK = `POST /api/alarm/:id/ack`; 점검모드 = `GET/PUT /api/panel/maint`.
 - **경보 중 점검모드 ON** → 서버 409 `active_alarm_requires_confirm` → 프론트 확인 팝업 → `confirmAlarm:true` 재요청 (HANDOFF §1.5).
-- 수기 기록 저장 = 기존 `fireAlarmApi.create` 그대로. **저장 후 `invalidateQueries(['fire-alarm-recent'])` 추가** (현재 누락된 갭).
+- **저장 endpoint 2분기 (HANDOFF §3, 2026-07-01):**
+  - **평상시 수기폼 저장** = 기존 `fireAlarmApi.create` (`POST /api/fire-alarm`, 신규 record) + `invalidateQueries(['fire-alarm-recent'])` (현재 누락된 갭 보강).
+  - **경보중 자동초안 저장** ('조치완료 후 저장') = **`POST /api/alarm/:id/resolve`** (`:id` = `/api/alarm/active` 의 활성 경보 id) — 자동초안 in-place UPDATE(장소/원인/조치/구분 보완) + `fire_alarm_record` 확정 + `panel_alarm status=cleared, cleared_reason='record_saved'` → **대시보드 경보칩 소멸**. ⚠ 신규 `create` 호출 금지(그러면 칩 안 사라짐). 저장 후 `invalidateQueries(['alarm-active','fire-alarm-recent'])`.
 - **엔드포인트 미배포(this repo에 panel/alarm 라우트 없음) 시 graceful**: 라이브 204→placeholder, 상태/이벤트/active 실패→빈/평상시 폴백, 토글은 낙관적. UI가 500/404로 깨지면 안 됨.
 
 ## Service Worker 딥링크 (HANDOFF §2.0b · 이 트랙 범위)

@@ -164,7 +164,7 @@ Dark theme. `:root` in both sketches === app `tokens.css` (verified). **Color = 
 - `.eh` header `flex items-center justify-between p-[7px_12px] border-b border-border-default`: `sec-cap` "최근 이벤트 (자동감지)" + pill "최근 48시간" (`bg-surface-sunken rounded-pill text-caption(11) text-text-tertiary px-2`). 경보중: red pill "감지중 1" (`text-danger bg-danger-bg border-[rgba(239,68,68,.4)]`). `cite` L216-217.
 - `.evt` rows `flex items-start gap-[9px] p-[9px_12px] border-b`: `.badge2` (10.5px font-extrabold rounded-[6px] px-[7px]) — `.fire` (감지중, danger) / `.non` (비화재보, gray `text-text-secondary bg-surface-sunken`) / equip (safe). `.e-time` mono 11.5px text-tertiary · `.e-loc` 13px font-semibold text-primary · `.e-desc` text-caption text-tertiary · `.e-auto` info tag. Data from `/api/alarm/events?hours=48`. `cite` L218-227.
 
-**form** `.card formsec` (`.hide-maint`): `.fh` header — 평상시 `Plus` "수동 기록 추가" / 경보중 `AlertTriangle` `text-danger` "자동 생성 초안 — 보완 필요". Fields (existing 5, `fireAlarmApi.create`):
+**form** `.card formsec` (`.hide-maint`): `.fh` header — 평상시 `Plus` "수동 기록 추가" / 경보중 `AlertTriangle` `text-danger` "자동 생성 초안 — 보완 필요". Fields (existing 5). **저장 endpoint 2분기 (HANDOFF §3, 2026-07-01):** 평상시 신규 = `POST /api/fire-alarm`; 경보중 자동초안 보완 = `POST /api/alarm/:id/resolve`:
 1. 구분 `.seg`: `[화재보][비화재보]` toggle. **default 비화재보** — `.sel-non` = `border-2 border-accent bg-[rgba(59,130,246,.13)] text-[#60a5fa]`; 화재보 selected = `.sel-fire border-2 border-danger-bar bg-danger-bg text-danger`. 경보중 adds `autotag` "자동선택" on 비화재보. `cite .seg` L242-246.
 2. 발생일시 date+time `.inp`. 경보중: `autotag` "자동" + info-tinted border, prefilled from `detectedAt`.
 3. 발생장소 textarea. 경보중: `.inp.need` (`border-danger-bar bg-danger-bg`) + label `.req` "· 확인 필요".
@@ -174,7 +174,9 @@ Dark theme. `:root` in both sketches === app `tokens.css` (verified). **Color = 
 
 **formbar** `.formbar` (`.hide-maint`) = `flex gap-2 p-[11px_14px] bg-surface-raised border-t border-border-default`:
 - `.btn-close` "닫기" (`bg-surface-page border border-border-strong text-text-secondary rounded-md`).
-- `.btn-save` gradient (`#1d4ed8→#0ea5e9` inline): 평상시 "점검 기록 저장" / 경보중 "조치완료 후 저장". On save → `fireAlarmApi.create` + **`invalidateQueries(['fire-alarm-recent'])`** (fixes known gap) → 경보 chip 소멸. `cite` L247-249, L632-636.
+- `.btn-save` gradient (`#1d4ed8→#0ea5e9` inline).
+  - **평상시** "점검 기록 저장" → `fireAlarmApi.create` (`POST /api/fire-alarm`, 신규 record) + `invalidateQueries(['fire-alarm-recent'])`.
+  - **경보중** "조치완료 후 저장" → **`alarmApi.resolve(activeAlarmId, {type, occurredAt, location, cause, action})`** (`POST /api/alarm/:id/resolve` — 자동초안 in-place UPDATE + `fire_alarm_record` 확정 + `panel_alarm status=cleared, cleared_reason='record_saved'`) + `invalidateQueries(['alarm-active','fire-alarm-recent'])` → **대시보드 경보 chip 소멸**. ⚠ 경보중 저장은 신규 `create` 아님(그러면 칩이 안 사라짐). `activeAlarmId` = `/api/alarm/active` 의 `id`. `cite` L247-249, L632-636; HANDOFF §3 resolve box.
 
 ### Surface 3 — MOBILE 경보 풀스크린 (`/fire-alarm`, push destination)
 New route `FireAlarmPage.tsx`; add `/fire-alarm` to BOTH `MOBILE_NO_NAV_PATHS` + `DESKTOP_NO_NAV_PATHS`. Full takeover, chrome hidden. `cite .fa` L252-273.
@@ -224,9 +226,9 @@ Scroll-lock: `overflow:hidden` + touchmove block (NO `body.position:fixed`).
 |-------|-------|-------|-------|
 | — | maint-autonote | 점검모드 only | `RefreshCw` + 자동화 안내문, **as a banner above live** (mobile style). `cite` L119-121, L665-668 |
 | ① | biglive (live 16:9) | all (라이브 유지 in 점검모드) | `.bigscreen aspect-video rounded-t-[14px]` click → **줌 오버레이**. live-badge LIVE/화재 dot span. `.live-status` 정상/화재. 경보중 = `biglive-card` firepulse. `cite` L305-315, L671-681 |
-| ② | panel-notice + form-card | 경보중 only | notice (`bg-danger-bg text-danger` + dot) → auto-draft form (`.fh.alarm` `AlertTriangle`, 5 fields, 비화재보 자동선택, need-borders) → form-bar "나중에" + `.btn-save.alarm` red gradient "조치완료 후 저장". `cite` L684-704 |
+| ② | panel-notice + form-card | 경보중 only | notice (`bg-danger-bg text-danger` + dot) → auto-draft form (`.fh.alarm` `AlertTriangle`, 5 fields, 비화재보 자동선택, need-borders) → form-bar "나중에" + `.btn-save.alarm` red gradient "조치완료 후 저장" → **`alarmApi.resolve(activeAlarmId, {...})`** (`POST /api/alarm/:id/resolve`, NOT create) → 경보 chip 소멸. `cite` L684-704 |
 | ③ | evt-card (48h) | all (점검모드 조회 유지) | rows w/ `.ethumb` 84×48 snapshot thumb + badge2 fire/non/equip. `cite` L317-332, L707-751 |
-| ④ | form-card (수기) | 평상시 only | `.fh` `Plus` "수동 기록 추가", 5 fields, form-bar "취소" + `.btn-save` blue gradient "점검 기록 저장". `cite` L753-770 |
+| ④ | form-card (수기) | 평상시 only | `.fh` `Plus` "수동 기록 추가", 5 fields, form-bar "취소" + `.btn-save` blue gradient "점검 기록 저장" → `fireAlarmApi.create` (`POST /api/fire-alarm`, 신규). `cite` L753-770 |
 
 **Rules:** NO red banner below header — alarm shown via live-red + draft-notice only. `cite` L508.
 
@@ -243,11 +245,11 @@ Scroll-lock: `overflow:hidden` + touchmove block (NO `body.position:fixed`).
 | Element | Copy |
 |---------|------|
 | Primary CTA (평상시) | **점검 기록 저장** (mobile & desktop) |
-| Primary CTA (경보중) | **조치완료 후 저장** (mobile `.btn-save.only-alarm`, desktop `.btn-save.alarm`) |
+| Primary CTA (경보중) | **조치완료 후 저장** (mobile `.btn-save.only-alarm`, desktop `.btn-save.alarm`) — action = `POST /api/alarm/:id/resolve` (초안 보완+확정+칩 소멸), **NOT** `POST /api/fire-alarm` |
 | Secondary buttons | **닫기** (mobile) / **취소** (desktop 평상시) / **나중에** (desktop 경보중) |
 | 경보 자동감지 안내 (panel-notice) | **경보 자동감지 — 비화재보 기록 초안이 생성됐습니다.** 수신반 활성화는 대부분 오작동이라 **비화재보**로 자동선택됩니다. 현장 확인·조치 후 발생장소·원인·조치를 보완해 저장하고, 실화재면 **화재보**로 바꾸세요. |
 | 점검모드 자동화 안내문 (maint-autonote) | 자동 ON/복구 · 월간 점검 계획에 소방점검 일정이 잡힌 날은 일과 시작 시 자동 ON. 야간 일정 없으면 17:30, 있으면 21:00 자동 복구. 필요 시 위 토글로 직접 켜고 끌 수 있습니다. |
-| 대시보드 경보칩 (mobile/desktop) | 화재 경보 · {location} — chip 소멸 시점: 경보 해제 OR 화재수신반 기록 조치완료+저장 |
+| 대시보드 경보칩 (mobile/desktop) | 화재 경보 · {location} — chip 소멸 시점: 경보 해제(status ≠ active/acked) OR 화재수신반 자동초안 저장(`resolve` → `cleared_reason='record_saved'`). `/api/alarm/active` 재조회로 반영 |
 | 대시보드 점검칩 (mobile) | 점검 모드 · 알림 중지 |
 | 대시보드 점검칩 (desktop) | 점검모드 · 17:30 자동복구 |
 | 비화재보 auto tag | **자동선택** (구분 toggle) · **자동** (발생일시) |
