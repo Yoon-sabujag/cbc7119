@@ -6085,7 +6085,7 @@ function DesktopInspectionView({
   const [paSaving, setPaSaving] = useState(false)
   const [maintBusy, setMaintBusy] = useState(false)
   const [panelZoomOpen, setPanelZoomOpen] = useState(false)
-  const [alarmAcked, setAlarmAcked] = useState(false)
+  const [ackedId, setAckedId] = useState<string | null>(null)
   const panelZoom = usePinchZoom({ maxScale: 2.2, doubleTapScale: 2.2 })
 
   // 경보중: activeAlarm.detectedAt -> 발생일시 자동초안 (한번만)
@@ -6139,10 +6139,12 @@ function DesktopInspectionView({
     }
   }
 
+  // P2-1: ackedId=인지한 alarm.id — 두번째(다른 id) 경보는 takeover 재노출
   // 경보 인지(ack) — 데스크톱 takeover 모달
   const handleAlarmAck = async () => {
-    setAlarmAcked(true)
-    if (activeAlarm) { try { await alarmApi.ack(activeAlarm.id); qc.invalidateQueries({ queryKey: ['alarm-active'] }) } catch { /* 미배포 폴백 */ } }
+    const ackId = activeAlarm?.id ?? null
+    setAckedId(ackId)
+    if (ackId) { try { await alarmApi.ack(ackId); qc.invalidateQueries({ queryKey: ['alarm-active'] }) } catch { /* 미배포 폴백 */ } }
   }
 
   const paLabelCls = 'text-caption font-semibold text-text-tertiary mb-1.5 block'
@@ -6706,7 +6708,7 @@ function DesktopInspectionView({
       </div>
 
       {/* ── 데스크톱 경보 takeover 모달 (dash view only, !acked) ── */}
-      {activeAlarm && categoryIdx === null && !alarmAcked && (
+      {activeAlarm && categoryIdx === null && ackedId !== activeAlarm.id && (
         <div className="alarm-modal absolute inset-0 z-[90] flex items-center justify-center p-6"
           style={{ background: 'radial-gradient(circle at 50% 40%, rgba(239,68,68,.28), rgba(10,13,18,.92))' }}>
           <div className="am-card w-[560px] max-w-full rounded-[18px] border border-[rgba(239,68,68,.4)] bg-[rgba(26,31,39,.82)] backdrop-blur-md px-8 py-9 text-center shadow-[0_20px_60px_rgba(0,0,0,.5)]">
