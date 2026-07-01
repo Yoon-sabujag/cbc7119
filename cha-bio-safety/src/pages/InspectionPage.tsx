@@ -5380,25 +5380,52 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const [maintBusy, setMaintBusy] = useState(false)
   const [zoomOpen, setZoomOpen] = useState(false)
 
+  // 경보중: activeAlarm.detectedAt -> 발생일시 자동초안 (한번만)
+  const prefilledRef = useRef(false)
+  useEffect(() => {
+    if (mode === 'alarm' && activeAlarm && !prefilledRef.current) {
+      prefilledRef.current = true
+      const [d, t] = (activeAlarm.detectedAt || '').split(' ')
+      if (d) setDate(d)
+      if (t) setTime(t.slice(0, 5))
+      setType('non_fire')
+    }
+  }, [mode, activeAlarm])
+
+  // ── 저장 2분기: 경보중 = resolve(칩 소멸) / 평상시 = create(신규) ──
   const handleSave = async () => {
     setSaving(true)
     try {
-      await fireAlarmApi.create({ type, occurred_at: `${date} ${time}:00`, location, cause, action })
-      qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
+      if (mode === 'alarm' && activeAlarm) {
+        // 경보중 자동초안 보완 -> in-place UPDATE + 확정 + panel_alarm cleared -> 대시보드 칩 소멸
+        await alarmApi.resolve(activeAlarm.id, { type, occurredAt: `${date} ${time}:00`, location, cause, action })
+        qc.invalidateQueries({ queryKey: ['alarm-active'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
+      } else {
+        await fireAlarmApi.create({ type, occurred_at: `${date} ${time}:00`, location, cause, action })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
+      }
       toast.success('화재수신반 기록이 저장되었습니다')
       onClose()
     } catch { toast.error('저장 실패') }
     finally { setSaving(false) }
   }
 
-  // ── 점검(정비)모드 토글 — PUT /api/panel/maint (409 confirm 은 Task 2) ──
+  // ── 점검(정비)모드 토글 — PUT /api/panel/maint + 경보중 409 confirm 재시도 ──
   const handleMaintToggle = async () => {
     if (maintBusy) return
     setMaintBusy(true)
     try {
       await panelApi.setMaint({ enabled: !maintOn })
-    } catch {
-      // 미배포/네트워크 -> 조용히 무시 (평상시 폴백)
+    } catch (e: any) {
+      const is409 = e?.status === 409 || String(e?.message || '').includes('active_alarm_requires_confirm')
+      if (is409) {
+        const ok = window.confirm('경보 진행 중입니다. 점검모드로 전환하면 진행 중 경보가 해제되고 자동초안이 폐기됩니다. 계속할까요?')
+        if (ok) {
+          try { await panelApi.setMaint({ enabled: true, confirmAlarm: true }) } catch { toast.error('점검모드 전환 실패') }
+        }
+      }
+      // 그 외 미배포/네트워크 -> 조용히 무시 (평상시 폴백)
     } finally {
       qc.invalidateQueries({ queryKey: ['panel-status'] })
       qc.invalidateQueries({ queryKey: ['alarm-active'] })
@@ -5450,6 +5477,20 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
       {/* 스크롤 본문 scroll > cont */}
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-2.5 px-3 py-3">
+          {/* maint-autonote (점검모드 only) */}
+          {mode === 'maint' && (
+            <div className="flex gap-2 p-2 px-[11px] rounded-[10px] bg-surface-sunken border border-border-strong text-caption text-text-tertiary leading-normal">
+              <RefreshCw size={13} className="shrink-0 mt-0.5" />
+              <span>자동 ON/복구 · 월간 점검 계획에 소방점검 일정이 잡힌 날은 일과 시작 시 자동 ON. 야간 일정 없으면 17:30, 있으면 21:00 자동 복구. 필요 시 위 토글로 직접 켜고 끌 수 있습니다.</span>
+            </div>
+          )}
+          {/* panel-notice (경보중 only) */}
+          {mode === 'alarm' && (
+            <div className="flex gap-2 p-[9px_11px] rounded-[10px] bg-danger-bg border border-[rgba(239,68,68,.4)] text-caption text-danger leading-normal">
+              <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0 mt-1" style={blinkStyle} />
+              <span>경보 자동감지 — 비화재보 기록 초안이 생성됐습니다. 수신반 활성화는 대부분 오작동이라 비화재보로 자동선택됩니다. 현장 확인·조치 후 발생장소·원인·조치를 보완해 저장하고, 실화재면 화재보로 바꾸세요.</span>
+            </div>
+          )}
           {/* live-card */}
           <div className={`bg-surface-raised border rounded-md overflow-hidden ${
             mode === 'alarm'
@@ -5526,11 +5567,30 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          {/* 폼 (Task 2 에서 3-state 확장) */}
+          {/* 폼 (점검모드에선 숨김 — 자동기록만 멈춤) */}
+          {mode !== 'maint' && (
           <div className="flex flex-col gap-3.5">
+            {/* fh header */}
+            <div className="flex items-center gap-1.5 text-label font-bold">
+              {mode === 'alarm' ? (
+                <>
+                  <AlertTriangle size={15} className="text-danger shrink-0" />
+                  <span className="text-danger">자동 생성 초안 — 보완 필요</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={15} className="text-text-secondary shrink-0" />
+                  <span className="text-text-primary">수동 기록 추가</span>
+                </>
+              )}
+            </div>
+
             {/* 구분 */}
             <div>
-              <label className={labelCls}>구분</label>
+              <label className={labelCls}>
+                구분
+                {mode === 'alarm' && <span className="ml-1.5 text-[10.5px] text-info bg-info-bg rounded-sm px-1.5 py-0.5 leading-none">자동선택</span>}
+              </label>
               <div className="flex gap-2">
                 {([['fire','화재보'],['non_fire','비화재보']] as const).map(([v, l]) => (
                   <button key={v} onClick={() => setType(v)}
@@ -5549,39 +5609,45 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
 
             {/* 발생일시 */}
             <div>
-              <label className={labelCls}>발생일시</label>
+              <label className={labelCls}>
+                발생일시
+                {mode === 'alarm' && <span className="ml-1.5 text-[10.5px] text-info bg-info-bg rounded-sm px-1.5 py-0.5 leading-none">자동</span>}
+              </label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                className={`${inputCls} block mb-1.5 h-input`} />
+                className={`${inputCls} block mb-1.5 h-input ${mode === 'alarm' ? 'border-[#0ea5e9] bg-info-bg' : ''}`} />
               <input type="time" value={time} onChange={e => setTime(e.target.value)}
-                className={`${inputCls} block h-input`} />
+                className={`${inputCls} block h-input ${mode === 'alarm' ? 'border-[#0ea5e9] bg-info-bg' : ''}`} />
             </div>
 
             {/* 발생장소 */}
             <div>
-              <label className={labelCls}>발생장소</label>
+              <label className={labelCls}>발생장소{mode === 'alarm' && <span className="text-danger font-bold"> · 확인 필요</span>}</label>
               <textarea value={location} onChange={e => setLocation(e.target.value)}
-                placeholder="발생장소를 입력하세요" rows={2}
-                className={`${inputCls} resize-none leading-relaxed`} />
+                placeholder={mode === 'alarm' ? '현장 확인 후 입력 (예: B1F-2 DIV 경비과 3F)' : '발생장소를 입력하세요'} rows={2}
+                className={`${inputCls} resize-none leading-relaxed ${mode === 'alarm' ? 'border-danger-bar bg-danger-bg' : ''}`} />
             </div>
 
             {/* 발생원인 */}
             <div>
-              <label className={labelCls}>발생원인</label>
+              <label className={labelCls}>발생원인{mode === 'alarm' && <span className="text-danger font-bold"> · 확인 필요</span>}</label>
               <textarea value={cause} onChange={e => setCause(e.target.value)}
-                rows={2} className={`${inputCls} resize-none leading-relaxed`} />
+                placeholder={mode === 'alarm' ? '현장 확인 후 입력 (예: 실화재 / 오작동 / 습기)' : undefined}
+                rows={2} className={`${inputCls} resize-none leading-relaxed ${mode === 'alarm' ? 'border-danger-bar bg-danger-bg' : ''}`} />
             </div>
 
             {/* 조치사항 */}
             <div>
-              <label className={labelCls}>조치사항</label>
+              <label className={labelCls}>조치사항{mode === 'alarm' && <span className="text-info font-bold"> · 입력 대기</span>}</label>
               <textarea value={action} onChange={e => setAction(e.target.value)}
-                rows={2} className={`${inputCls} resize-none leading-relaxed`} />
+                rows={2} className={`${inputCls} resize-none leading-relaxed ${mode === 'alarm' ? 'border-[#0ea5e9] bg-info-bg' : ''}`} />
             </div>
           </div>
+          )}
         </div>
       </div>
 
-      {/* 하단 버튼 바 formbar */}
+      {/* 하단 버튼 바 formbar (점검모드에선 숨김) */}
+      {mode !== 'maint' && (
       <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default shrink-0 flex gap-2">
         <button onClick={onClose}
           className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
@@ -5593,9 +5659,10 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
               ? 'bg-border-default cursor-default'
               : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] cursor-pointer shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
           }`}>
-          {saving ? '저장 중...' : '점검 기록 저장'}
+          {saving ? '저장 중...' : (mode === 'alarm' ? '조치완료 후 저장' : '점검 기록 저장')}
         </button>
       </div>
+      )}
     </div>
   )
 }
