@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, panelApi, alarmApi, type ExtinguisherDetail, type FloorPlanMarker, type Alarm } from '../utils/api'
 import LivePanelImage from '../components/panel/LivePanelImage'
 import { freshnessLabel } from '../components/panel/freshness'
+import { usePinchZoom } from '../hooks/usePinchZoom'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
@@ -4693,6 +4694,13 @@ export default function InspectionPage() {
   const [resolveTarget,    setResolveTarget]    = useState<{ cpId: string; recordId: string; result: CheckResult; photoKey?: string; memo?: string } | null>(null)
   const [detailTarget,     setDetailTarget]     = useState<{ cpId: string } | null>(null)
 
+  // ── 딥링크 auto-open: /inspection?panel=fire-alarm (대시보드 tap + SW push 목적지) ──
+  useEffect(() => {
+    if (new URLSearchParams(routeLocation.search).get('panel') === 'fire-alarm') {
+      setShowFireAlarm(true)
+    }
+  }, [routeLocation.search])
+
   // ── 이번 달 schedule_items — 재진입 팝업 판정에 사용 (SummaryCard 와 queryKey 공유) ──
   const currentMonth = useMemo(() => {
     const n = new Date()
@@ -5379,6 +5387,25 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false)
   const [maintBusy, setMaintBusy] = useState(false)
   const [zoomOpen, setZoomOpen] = useState(false)
+  const zoom = usePinchZoom()
+
+  // 줌 뷰어 스크롤 잠금 — SideMenu 패턴 (overflow:hidden + touchmove 차단, NEVER body:fixed)
+  useEffect(() => {
+    if (!zoomOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const prevent = (e: TouchEvent) => {
+      const frame = document.getElementById('panel-zoom-frame')
+      if (frame && frame.contains(e.target as Node)) return
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', prevent, { passive: false })
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener('touchmove', prevent)
+      zoom.reset()
+    }
+  }, [zoomOpen])
 
   // 경보중: activeAlarm.detectedAt -> 발생일시 자동초안 (한번만)
   const prefilledRef = useRef(false)
@@ -5447,6 +5474,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
+    <>
     <div className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]">
       {/* 헤더 gh */}
       <div className="flex items-center h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
@@ -5664,6 +5692,44 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
       </div>
       )}
     </div>
+
+    {/* 전체화면 줌 뷰어 fsv (safe-area pin, body:fixed-free lock) */}
+    {zoomOpen && (
+      <div className="fixed left-0 right-0 z-[100] flex flex-col bg-[#05070a] text-white top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]">
+        {/* fsv-close */}
+        <button onClick={() => setZoomOpen(false)}
+          className="absolute top-[11px] right-3 w-[34px] h-[34px] flex items-center justify-center rounded-full bg-white/[.12] text-white cursor-pointer z-10">
+          <X size={17} />
+        </button>
+        {/* fsv-top */}
+        <div className="flex items-center gap-2 p-[13px_16px] shrink-0">
+          <span className="inline-flex items-center gap-1.5 text-caption font-extrabold">
+            <span className="w-[7px] h-[7px] rounded-full shrink-0"
+              style={{ ...blinkStyle, background: mode === 'alarm' ? '#ef4444' : '#22c55e' }} />
+            {mode === 'alarm' ? '화재' : 'LIVE'}
+          </span>
+          <span className="text-caption text-white/70">
+            {mode === 'alarm' ? '화재 발생 · 자세히 보기' : '실시간 수신반 화면 · 자세히 보기'}
+          </span>
+        </div>
+        {/* fsv-frame */}
+        <div className="flex-1 flex items-center justify-center px-3 pb-3 min-h-0">
+          <div
+            id="panel-zoom-frame"
+            ref={zoom.containerRef}
+            {...zoom.bind}
+            style={{ touchAction: 'none', transform: zoom.transform }}
+            className="w-full aspect-video rounded-md bg-black overflow-hidden cursor-zoom-in">
+            <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+          </div>
+        </div>
+        {/* fsv-hint (mobile keeps text) */}
+        <div className="shrink-0 text-center text-caption text-white/60 p-[10px_16px_16px]">
+          화면을 <b className="text-white/85">더블탭(두 번 터치)</b>하면 확대 · 다시 <b className="text-white/85">더블탭</b>하면 원복
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
