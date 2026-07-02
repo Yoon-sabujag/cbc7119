@@ -19,6 +19,7 @@ export interface AlarmRow {
   red_ratio: number | null
   green_ratio: number | null
   snapshot_key: string | null
+  location: string | null
   acked_by: string | null
   acked_at: string | null
   push_count: number
@@ -36,7 +37,7 @@ export function mapAlarm(r: AlarmRow) {
     type: r.type,
     status: r.status,
     detectedAt: r.detected_at,
-    location: LOCATION_LABEL,
+    location: r.location ?? LOCATION_LABEL,
     source: r.source,
     confidence: r.confidence,
     snapshotUrl: r.snapshot_key ? `/api/public/panel/${r.snapshot_key}.jpg` : null,
@@ -49,5 +50,5 @@ export function mapAlarm(r: AlarmRow) {
 
 // AlarmSummary (§1.6) — status.activeAlarm 용. location 은 고정 상수.
 export function mapAlarmSummary(r: AlarmRow) {
-  return { id: r.id, type: r.type, detectedAt: r.detected_at, location: LOCATION_LABEL }
+  return { id: r.id, type: r.type, detectedAt: r.detected_at, location: r.location ?? LOCATION_LABEL }
 }

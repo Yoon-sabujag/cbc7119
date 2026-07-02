@@ -4131,6 +4131,12 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   // 경보 takeover(빨강 '화재'+화재보/비화재보 초안)는 fire 전용. 고장/설비는 push+풀스크린만 → 기록 페이지는 normal 유지.
   const mode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm?.type === 'fire' ? 'alarm' : 'normal')
   const fresh = freshnessLabel(status?.frameUpdatedAt ?? null)
+  // 라이브 카드 상태 표기 = 실제 경보 타입 (기록 takeover=mode 는 fire 전용이나, 상태 표기는 전 타입). maint 시 억제.
+  const liveDisp = maintOn ? null
+    : activeAlarm?.type === 'fire' ? { label: '화재 경보', text: 'text-danger', dot: 'bg-danger-bar', badge: '화재', badgeBg: 'rgba(239,68,68,.9)', border: 'border-danger-bar bg-danger-bg shadow-[0_0_0_1px_rgba(239,68,68,.4)]', pulse: true }
+    : activeAlarm?.type === 'equip' ? { label: '설비 동작', text: 'text-safe', dot: 'bg-safe-bar', badge: '설비', badgeBg: 'rgba(34,197,94,.9)', border: 'border-safe-bar bg-safe-bg', pulse: false }
+    : activeAlarm?.type === 'fault' ? { label: '고장', text: 'text-warning', dot: 'bg-warning-bar', badge: '고장', badgeBg: 'rgba(245,158,11,.9)', border: 'border-warning-bar bg-warning-bg', pulse: false }
+    : null
 
   // ── form state (기존 5필드 유지) ──
   const [type, setType] = useState<'fire'|'non_fire'>('non_fire')
@@ -4227,13 +4233,12 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
 
   // 이벤트 badge2 variant
   const badge2 = (ev: Alarm) => {
-    if (ev.status === 'active' || ev.status === 'acked')
-      return { label: '감지중', cls: 'text-danger bg-danger-bg' }
+    // 칩 = 감지된 타입 (설비동작/화재/고장). '감지중' 없음. 화재보/비화재보 구분은 기록 폼에서.
     if (ev.type === 'fault')
       return { label: '고장', cls: 'text-warning bg-warning-bg' }
     if (ev.type === 'equip')
       return { label: '설비동작', cls: 'text-safe bg-safe-bg' }
-    return { label: '비화재보', cls: 'text-text-secondary bg-surface-sunken' }
+    return { label: '화재', cls: 'text-danger bg-danger-bg' }
   }
 
   return (
@@ -4283,18 +4288,15 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
           {/* live-card */}
-          <div className={`bg-surface-raised border rounded-md overflow-hidden ${
-            mode === 'alarm'
-              ? 'border-danger-bar bg-danger-bg shadow-[0_0_0_1px_rgba(239,68,68,.4)]'
-              : 'border-border-default'
-          }`} style={mode === 'alarm' ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}>
+          <div className={`bg-surface-raised border rounded-md overflow-hidden ${liveDisp ? liveDisp.border : 'border-border-default'}`}
+            style={liveDisp?.pulse ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}>
             <div className="relative w-full aspect-video bg-black cursor-pointer" onClick={() => setZoomOpen(true)}>
               <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
               {/* LIVE 배지 live-ov */}
               <div className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white"
-                style={{ background: mode === 'alarm' ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}>
+                style={{ background: liveDisp ? liveDisp.badgeBg : 'rgba(34,197,94,.85)' }}>
                 <span className="w-[6px] h-[6px] rounded-full bg-white" style={blinkStyle} />
-                {mode === 'alarm' ? '화재' : 'LIVE'}
+                {liveDisp ? liveDisp.badge : 'LIVE'}
               </div>
               {/* fshint */}
               <div className="absolute bottom-[7px] right-[7px] inline-flex items-center gap-1 bg-black/50 rounded-sm px-[7px] py-0.5 text-[10px] text-white pointer-events-none">
@@ -4304,10 +4306,10 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             </div>
             {/* live-status */}
             <div className="flex items-center gap-1.5 flex-wrap p-2 px-[11px] text-caption text-text-secondary tabular-nums">
-              {mode === 'alarm' ? (
+              {liveDisp ? (
                 <>
-                  <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0" style={blinkStyle} />
-                  <span className="text-danger font-extrabold">화재 발생</span>
+                  <span className={`w-[7px] h-[7px] rounded-full ${liveDisp.dot} shrink-0`} style={blinkStyle} />
+                  <span className={`${liveDisp.text} font-extrabold`}>{liveDisp.label}</span>
                   <span className="text-text-tertiary">·</span>
                   <span>{activeAlarm?.location ?? '위치 확인중'}</span>
                   <span className="text-text-tertiary">·</span>
@@ -4829,6 +4831,12 @@ function DesktopInspectionView({
   // fire 전용 (mode 와 동일 룰) — 고장/설비는 화재수신반 pane 을 alarm 으로 만들지 않음.
   const panelMode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm?.type === 'fire' ? 'alarm' : 'normal')
   const panelFresh = freshnessLabel(panelStatus?.frameUpdatedAt ?? null)
+  // 라이브 카드 상태 표기 = 실제 경보 타입 (panelMode 는 fire 전용, 표기는 전 타입). maint 시 억제.
+  const panelLiveDisp = maintOn ? null
+    : activeAlarm?.type === 'fire' ? { label: '화재 경보', text: 'text-danger', dot: 'bg-danger-bar', badge: '화재', badgeBg: 'rgba(239,68,68,.9)', border: 'border-danger-bar bg-danger-bg shadow-[0_0_0_1px_rgba(239,68,68,.4)]', pulse: true }
+    : activeAlarm?.type === 'equip' ? { label: '설비 동작', text: 'text-safe', dot: 'bg-safe-bar', badge: '설비', badgeBg: 'rgba(34,197,94,.9)', border: 'border-safe-bar bg-safe-bg', pulse: false }
+    : activeAlarm?.type === 'fault' ? { label: '고장', text: 'text-warning', dot: 'bg-warning-bar', badge: '고장', badgeBg: 'rgba(245,158,11,.9)', border: 'border-warning-bar bg-warning-bg', pulse: false }
+    : null
 
   // 딥링크 자동열기 (FLAG-1): /inspection?panel=fire-alarm -> 화재수신반 pane / &zoom=1 -> 줌 오버레이.
   // 데스크톱은 모바일 FireAlarmModal 마운트 전에 early-return 하므로 25-03 핸들러가 이 pane 을 열지 못함.
@@ -4934,10 +4942,10 @@ function DesktopInspectionView({
 
   // 이벤트 badge2 variant
   const panelBadge2 = (ev: Alarm) => {
-    if (ev.status === 'active' || ev.status === 'acked') return { label: '감지중', cls: 'text-danger bg-danger-bg' }
+    // 칩 = 감지된 타입 (설비동작/화재/고장). '감지중' 없음.
     if (ev.type === 'fault') return { label: '고장', cls: 'text-warning bg-warning-bg' }
     if (ev.type === 'equip') return { label: '설비동작', cls: 'text-safe bg-safe-bg' }
-    return { label: '비화재보', cls: 'text-text-secondary bg-surface-sunken' }
+    return { label: '화재', cls: 'text-danger bg-danger-bg' }
   }
 
   // 화재수신반 폼 5필드 (평상시/경보중 공용 — 경보중 = need-border/auto tag 데코)
@@ -5178,18 +5186,15 @@ function DesktopInspectionView({
               )}
 
               {/* ① biglive */}
-              <div className={`bg-surface-raised border rounded-[14px] overflow-hidden ${
-                panelMode === 'alarm'
-                  ? 'border-danger-bar bg-danger-bg shadow-[0_0_0_1px_rgba(239,68,68,.4)]'
-                  : 'border-border-default'
-              }`} style={panelMode === 'alarm' ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}>
+              <div className={`bg-surface-raised border rounded-[14px] overflow-hidden ${panelLiveDisp ? panelLiveDisp.border : 'border-border-default'}`}
+                style={panelLiveDisp?.pulse ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}>
                 <div className="relative w-full aspect-video bg-black cursor-pointer rounded-t-[14px] overflow-hidden" onClick={() => setPanelZoomOpen(true)}>
                   <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
                   {/* live-badge */}
                   <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-caption font-extrabold leading-none text-white"
-                    style={{ background: panelMode === 'alarm' ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}>
+                    style={{ background: panelLiveDisp ? panelLiveDisp.badgeBg : 'rgba(34,197,94,.85)' }}>
                     <span className="w-[6px] h-[6px] rounded-full bg-white" style={paBlink} />
-                    {panelMode === 'alarm' ? '화재' : 'LIVE'}
+                    {panelLiveDisp ? panelLiveDisp.badge : 'LIVE'}
                   </div>
                   {/* live-hint */}
                   <div className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-black/50 rounded-sm px-2 py-0.5 text-caption text-white pointer-events-none">
@@ -5199,10 +5204,10 @@ function DesktopInspectionView({
                 </div>
                 {/* live-status (desktop 14px = text-body-sm) */}
                 <div className="flex items-center gap-1.5 flex-wrap px-3 py-2.5 text-body-sm text-text-secondary tabular-nums">
-                  {panelMode === 'alarm' ? (
+                  {panelLiveDisp ? (
                     <>
-                      <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0" style={paBlink} />
-                      <span className="text-danger font-extrabold">화재 발생</span>
+                      <span className={`w-[7px] h-[7px] rounded-full ${panelLiveDisp.dot} shrink-0`} style={paBlink} />
+                      <span className={`${panelLiveDisp.text} font-extrabold`}>{panelLiveDisp.label}</span>
                       <span className="text-text-tertiary">·</span>
                       <span>{activeAlarm?.location ?? '위치 확인중'}</span>
                       <span className="text-text-tertiary">·</span>
