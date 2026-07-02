@@ -662,12 +662,12 @@ export default function DashboardPage() {
             16:9 높이는 내부 LivePanelImage 의 aspect-video 가 정의 (데스크톱 위젯과 동일 패턴). */}
         <div
           onClick={() => navigate('/inspection?panel=fire-alarm')}
-          // iOS=고정 120px(짜부, 점검현황 공간 확보 딱맞음) / Android=수정 전 높이(min-h-180+내부 2.06:1 aspect) 유지해 점검현황 밑 여백 방지. 둘 다 object-fill 로 층표시 크롭 방지.
-          className={`rounded-md overflow-hidden bg-black cursor-pointer ${IS_ANDROID ? 'min-h-[180px]' : 'h-[120px]'} [animation:slideUp_.28s_.03s_ease-out_both]`}
+          // iOS/Android 공통 고정 120px + object-fill(짜부) — 층표시까지 크롭 없이 압축해 담김. 축소로 남는 세로 여백은 아래 점검현황 카드가 grid stretch 로 흡수(Android).
+          className="rounded-md overflow-hidden bg-black cursor-pointer h-[120px] [animation:slideUp_.28s_.03s_ease-out_both]"
         >
           <LivePanelImage
             frameUpdatedAt={frameUpdatedAt}
-            aspectClass={IS_ANDROID ? 'aspect-[1920/932]' : 'h-full'}
+            aspectClass="h-full"
             objectClass="object-fill"
           />
         </div>
@@ -778,8 +778,8 @@ export default function DashboardPage() {
         {/* ⑤ 이번 달 점검 현황 — 메모리 룰: 가로 스크롤 (flex-nowrap) */}
         <div
           className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col [animation:slideUp_.28s_.20s_ease-out_both]"
-          // iOS/Android 공통 고정높이 — iOS 는 grid 행에 맡기면(undefined) 도넛만 남고 라벨/숫자 잘림(안드로이드는 멀쩡) → 명시적 높이 통일
-          style={{ height: 125 }}
+          // iOS=고정 125(grid 행에 맡기면 눌려서 라벨 잘림 → 명시). Android=undefined 로 grid cell stretch(라이브 축소로 남는 세로 여백 흡수, 밑 여백 방지 — Android 는 minmax 존중해 안 눌림).
+          style={{ height: IS_ANDROID ? undefined : 125 }}
         >
           <div className="flex items-center justify-between px-3 py-1 border-b border-border-default shrink-0">
             <span className="text-caption font-bold text-text-secondary">이번 달 점검 현황</span>
