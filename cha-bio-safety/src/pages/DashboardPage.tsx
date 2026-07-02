@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Map as MapIcon, BarChart3, Siren, Users, Flame, BellOff, BellRing, Maximize2, AlertTriangle, Settings } from 'lucide-react'
+import { Map as MapIcon, BarChart3, Siren, Users, Flame, BellOff, BellRing, Maximize2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi, panelApi, alarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, CatBar } from '../components/ui'
@@ -62,33 +62,23 @@ function PanelStateChip({ activeAlarm, maintOn, maintLabel, onClick }: {
   maintLabel: string
   onClick: () => void
 }) {
-  if (activeAlarm) {
-    // 3-way: fire=빨강 화재(점멸) / fault=노랑 고장(정적) / equip=초록 설비(정적)
-    const t = activeAlarm.type
-    const isFire = t === 'fire'
-    const isFault = t === 'fault'
-    const grad = isFire
-      ? 'linear-gradient(135deg,#dc2626,#ef4444)'
-      : isFault
-      ? 'linear-gradient(135deg,#d97706,#f59e0b)'
-      : 'linear-gradient(135deg,#16a34a,#22c55e)'
-    const label = isFire ? '화재 경보' : isFault ? '고장' : '설비 동작'
-    const Icon = isFire ? Flame : isFault ? AlertTriangle : Settings
+  // 칩 = 화재(fire)만 — 조치/기록이 필요한 경보. 고장/설비는 push+풀스크린만(단발), 대시보드 칩 없음.
+  if (activeAlarm?.type === 'fire') {
     return (
       <div
         onClick={onClick}
         className="shrink-0 inline-flex items-center gap-2 rounded-pill px-3 py-[7px] text-caption font-extrabold leading-none text-white cursor-pointer"
         style={{
-          background: grad,
-          animation: isFire ? 'chipblink 1.4s ease-in-out infinite' : undefined,
+          background: 'linear-gradient(135deg,#dc2626,#ef4444)',
+          animation: 'chipblink 1.4s ease-in-out infinite',
         }}
       >
         <span
           className="w-[7px] h-[7px] rounded-full bg-white shrink-0"
-          style={isFire ? { animation: 'blink 1s steps(1,end) infinite' } : undefined}
+          style={{ animation: 'blink 1s steps(1,end) infinite' }}
         />
-        <Icon size={12} />
-        {label} · {activeAlarm.location ?? '장소 확인'}
+        <Flame size={12} />
+        화재 경보 · {activeAlarm.location ?? '장소 확인'}
       </div>
     )
   }

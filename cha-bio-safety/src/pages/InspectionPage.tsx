@@ -4128,7 +4128,8 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   })
 
   const maintOn = !!status?.maint?.enabled
-  const mode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm ? 'alarm' : 'normal')
+  // 경보 takeover(빨강 '화재'+화재보/비화재보 초안)는 fire 전용. 고장/설비는 push+풀스크린만 → 기록 페이지는 normal 유지.
+  const mode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm?.type === 'fire' ? 'alarm' : 'normal')
   const fresh = freshnessLabel(status?.frameUpdatedAt ?? null)
 
   // ── form state (기존 5필드 유지) ──
@@ -4166,7 +4167,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const prefilledRef = useRef(false)
   useEffect(() => {
     if (openAlarmRef.current === undefined && activeAlarm !== undefined) {
-      openAlarmRef.current = maintOn ? null : (activeAlarm ?? null)
+      openAlarmRef.current = maintOn ? null : (activeAlarm?.type === 'fire' ? activeAlarm : null)
       const snap = openAlarmRef.current
       if (snap && !prefilledRef.current) {
         prefilledRef.current = true
@@ -4825,7 +4826,8 @@ function DesktopInspectionView({
   })
 
   const maintOn = !!panelStatus?.maint?.enabled
-  const panelMode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm ? 'alarm' : 'normal')
+  // fire 전용 (mode 와 동일 룰) — 고장/설비는 화재수신반 pane 을 alarm 으로 만들지 않음.
+  const panelMode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm?.type === 'fire' ? 'alarm' : 'normal')
   const panelFresh = freshnessLabel(panelStatus?.frameUpdatedAt ?? null)
 
   // 딥링크 자동열기 (FLAG-1): /inspection?panel=fire-alarm -> 화재수신반 pane / &zoom=1 -> 줌 오버레이.
@@ -4862,7 +4864,7 @@ function DesktopInspectionView({
   useEffect(() => {
     if (isPanel) {
       if (panelOpenAlarmRef.current === undefined && activeAlarm !== undefined) {
-        panelOpenAlarmRef.current = maintOn ? null : (activeAlarm ?? null)
+        panelOpenAlarmRef.current = maintOn ? null : (activeAlarm?.type === 'fire' ? activeAlarm : null)
         const snap = panelOpenAlarmRef.current
         if (snap && !panelPrefilledRef.current) {
           panelPrefilledRef.current = true
@@ -5490,8 +5492,8 @@ function DesktopInspectionView({
         )}
       </div>
 
-      {/* ── 데스크톱 경보 takeover 모달 (dash view only, !acked) ── */}
-      {activeAlarm && categoryIdx === null && ackedId !== activeAlarm.id && (
+      {/* ── 데스크톱 경보 takeover 모달 (fire 전용, dash view only, !acked) — 고장/설비는 push+풀스크린만 ── */}
+      {activeAlarm?.type === 'fire' && categoryIdx === null && ackedId !== activeAlarm.id && (
         <div className="alarm-modal absolute inset-0 z-[90] flex items-center justify-center p-6"
           style={{ background: 'radial-gradient(circle at 50% 40%, rgba(239,68,68,.28), rgba(10,13,18,.92))' }}>
           <div className="am-card w-[560px] max-w-full rounded-[18px] border border-[rgba(239,68,68,.4)] bg-[rgba(26,31,39,.82)] backdrop-blur-md px-8 py-9 text-center shadow-[0_20px_60px_rgba(0,0,0,.5)]">

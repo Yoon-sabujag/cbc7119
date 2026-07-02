@@ -78,7 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       await env.DB.prepare('UPDATE panel_alarms SET draft_record_id = ? WHERE id = ?').bind(draftRecordId, alarmId).run()
     }
 
-    // 4) 1차 push (근무자 전원).
+    // 4) 1차 push (경보 시각 실재실 근무자).
     const payload = buildPanelPayload({ alarmType: type, alarmId, location: LOCATION_LABEL, detectedAt: body.detectedAt })
     const sent = await pushToWorkingStaff(env, kst, dateStr, payload)
     await logTelemetry(env, 'panel-trigger', { detail: JSON.stringify({ alarmId, type, sent }) })
