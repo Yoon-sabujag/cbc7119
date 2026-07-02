@@ -630,9 +630,11 @@ export default function DashboardPage() {
       {/* ══ 메인 그리드 ══ */}
       <main
         className="flex-1 min-h-0 overflow-y-auto grid gap-[7px] px-[11px] py-[7px]"
-        // gridTemplateRows 인라인 허용 키 (iOS/Android 공통 minmax(125px,1fr))
+        // gridTemplateRows 인라인 허용 키. Android 만 라이브(2번째) 트랙 minmax(0,189px) 로 축소 허용(작은 화면 짜부). 점검현황(5번째) 공통 minmax(125,1fr).
         style={{
-          gridTemplateRows: 'auto auto auto auto minmax(125px, 1fr)',
+          gridTemplateRows: IS_ANDROID
+            ? 'auto minmax(0,189px) auto auto minmax(125px,1fr)'
+            : 'auto auto auto auto minmax(125px, 1fr)',
         }}
       >
 
@@ -660,12 +662,12 @@ export default function DashboardPage() {
             16:9 높이는 내부 LivePanelImage 의 aspect-video 가 정의 (데스크톱 위젯과 동일 패턴). */}
         <div
           onClick={() => navigate('/inspection?panel=fire-alarm')}
-          // iOS=고정 120px+h-full+object-fill(짜부) / Android=aspect-[1920/932] 자연비율(~189px, 에이전트 크롭 매칭)
+          // 라이브 높이 = grid 트랙이 결정. iOS=h-[120px] 고정 트랙 / Android=minmax(0,189px) 트랙(공간 부족하면 축소). 이미지는 object-fill 로 트랙 높이에 짜부(클립 X).
           className={`rounded-md overflow-hidden bg-black cursor-pointer ${IS_ANDROID ? '' : 'h-[120px]'} [animation:slideUp_.28s_.03s_ease-out_both]`}
         >
           <LivePanelImage
             frameUpdatedAt={frameUpdatedAt}
-            aspectClass={IS_ANDROID ? 'aspect-[1920/932]' : 'h-full'}
+            aspectClass="h-full"
             objectClass="object-fill"
           />
         </div>
