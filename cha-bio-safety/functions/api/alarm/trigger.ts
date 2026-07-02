@@ -6,7 +6,7 @@ import { nanoid, LOCATION_LABEL, type AlarmRow } from '../../_lib/alarm'
 import { nowKST, nowKstSql } from '../../utils/kst'
 
 interface TriggerBody {
-  type: 'fire' | 'equip'
+  type: 'fire' | 'equip' | 'fault'
   detectedAt: string
   source?: 'visual' | 'audio'
   snapshotKey?: string
@@ -22,8 +22,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (bad) return bad
   try {
     const body = await request.json<TriggerBody>()
-    if (!body.type || !['fire', 'equip'].includes(body.type)) {
-      return Response.json({ success: false, error: 'type is fire|equip' }, { status: 400 })
+    if (!body.type || !['fire', 'equip', 'fault'].includes(body.type)) {
+      return Response.json({ success: false, error: 'type is fire|equip|fault' }, { status: 400 })
     }
     if (!body.detectedAt) {
       return Response.json({ success: false, error: 'detectedAt required' }, { status: 400 })

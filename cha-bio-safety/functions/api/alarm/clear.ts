@@ -7,7 +7,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const bad = assertAgentKey(request, env)
   if (bad) return bad
   try {
-    const body = await request.json<{ type?: 'fire' | 'equip'; at?: string }>().catch(() => ({}) as { type?: 'fire' | 'equip'; at?: string })
+    const body = await request.json<{ type?: 'fire' | 'equip' | 'fault'; at?: string }>().catch(() => ({}) as { type?: 'fire' | 'equip' | 'fault'; at?: string })
     const at = body.at || nowKstSql()
     const stmt = body.type
       ? env.DB.prepare(

@@ -729,7 +729,7 @@ export const workListApi = {
 // 활성 경보 요약 (대시보드 칩 / 배너용 최소 필드)
 export interface AlarmSummary {
   id: string
-  type: 'fire' | 'equip'
+  type: 'fire' | 'equip' | 'fault'
   detectedAt: string
   location: string | null
 }
@@ -747,7 +747,7 @@ export interface MaintState {
 // 경보 레코드 (활성/이력 공통 행)
 export interface Alarm {
   id: string
-  type: 'fire' | 'equip'
+  type: 'fire' | 'equip' | 'fault'
   status: 'active' | 'acked' | 'cleared' | 'suppressed'
   detectedAt: string
   source?: 'visual' | 'audio' | null

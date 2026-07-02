@@ -11,7 +11,7 @@ export const LOCATION_LABEL = '방재실 화재수신반'
 
 export interface AlarmRow {
   id: string
-  type: 'fire' | 'equip'
+  type: 'fire' | 'equip' | 'fault'
   status: 'active' | 'acked' | 'cleared' | 'suppressed'
   detected_at: string
   source: string | null

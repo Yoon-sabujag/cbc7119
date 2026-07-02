@@ -4228,6 +4228,8 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const badge2 = (ev: Alarm) => {
     if (ev.status === 'active' || ev.status === 'acked')
       return { label: '감지중', cls: 'text-danger bg-danger-bg' }
+    if (ev.type === 'fault')
+      return { label: '고장', cls: 'text-warning bg-warning-bg' }
     if (ev.type === 'equip')
       return { label: '설비동작', cls: 'text-safe bg-safe-bg' }
     return { label: '비화재보', cls: 'text-text-secondary bg-surface-sunken' }
@@ -4931,6 +4933,7 @@ function DesktopInspectionView({
   // 이벤트 badge2 variant
   const panelBadge2 = (ev: Alarm) => {
     if (ev.status === 'active' || ev.status === 'acked') return { label: '감지중', cls: 'text-danger bg-danger-bg' }
+    if (ev.type === 'fault') return { label: '고장', cls: 'text-warning bg-warning-bg' }
     if (ev.type === 'equip') return { label: '설비동작', cls: 'text-safe bg-safe-bg' }
     return { label: '비화재보', cls: 'text-text-secondary bg-surface-sunken' }
   }

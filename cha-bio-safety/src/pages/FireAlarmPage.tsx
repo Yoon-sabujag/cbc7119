@@ -46,8 +46,9 @@ export default function FireAlarmPage() {
     }
   }, [])
 
-  const kind = alarm?.type // 'fire' | 'equip' | undefined
+  const kind = alarm?.type // 'fire' | 'equip' | 'fault' | undefined
   const isFire = kind === 'fire'
+  const isFault = kind === 'fault'
 
   // id 파라미터 우선, 없으면 활성 경보 id 사용
   const ackId = idParam || alarm?.id || null
@@ -108,12 +109,14 @@ export default function FireAlarmPage() {
     )
   }
 
-  // 색 = 고정 의미 (fire danger #ef4444 / equip safe #22c55e)
+  // 색 = 고정 의미 (fire danger #ef4444 / fault warning #f59e0b / equip safe #22c55e)
   const washBg = isFire
     ? 'radial-gradient(circle at center, rgba(239,68,68,.5), rgba(110,8,8,.93))'
+    : isFault
+    ? 'radial-gradient(circle at center, rgba(245,158,11,.45), rgba(120,72,8,.93))'
     : 'radial-gradient(circle at center, rgba(34,197,94,.32), rgba(7,38,21,.93))'
-  const iconBg = isFire ? '#ef4444' : '#22c55e'
-  const frameFilter = isFire ? 'brightness(.42) saturate(1.2)' : 'brightness(.4)'
+  const iconBg = isFire ? '#ef4444' : isFault ? '#f59e0b' : '#22c55e'
+  const frameFilter = isFire ? 'brightness(.42) saturate(1.2)' : isFault ? 'brightness(.42) saturate(1.15)' : 'brightness(.4)'
 
   return (
     <div
@@ -153,14 +156,14 @@ export default function FireAlarmPage() {
             className="relative rounded-full flex items-center justify-center"
             style={{ width: 96, height: 96, background: iconBg }}
           >
-            {isFire ? <Flame size={46} className="text-white" /> : <Settings size={44} className="text-white" />}
+            {isFire ? <Flame size={46} className="text-white" /> : isFault ? <AlertTriangle size={46} className="text-white" /> : <Settings size={44} className="text-white" />}
           </span>
         </div>
 
-        {/* fa-kind — 화재 발생 / 설비 동작 */}
+        {/* fa-kind — 화재 발생 / 고장 발생 / 설비 동작 */}
         <div className="flex items-center gap-2 text-[30px] font-extrabold">
-          {isFire ? <Flame size={28} /> : <Settings size={28} />}
-          <span>{isFire ? '화재 발생' : '설비 동작'}</span>
+          {isFire ? <Flame size={28} /> : isFault ? <AlertTriangle size={28} /> : <Settings size={28} />}
+          <span>{isFire ? '화재 발생' : isFault ? '고장 발생' : '설비 동작'}</span>
         </div>
 
         {/* fa-loc */}
@@ -177,6 +180,8 @@ export default function FireAlarmPage() {
         <div className="text-body opacity-90 max-w-md">
           {isFire
             ? '현장 확인 및 조치 후 화재수신반 페이지에서 초안을 보완하세요'
+            : isFault
+            ? '수신반 고장 신호 감지 · 정보성 알림 (단발 · 재발송 없음)'
             : '설비 동작 감지 · 정보성 알림 (단발 · 재발송 없음)'}
         </div>
 
@@ -184,14 +189,14 @@ export default function FireAlarmPage() {
         <button
           onClick={onAck}
           className="mt-2 px-12 py-4 rounded-full bg-white font-extrabold text-[20px]"
-          style={{ color: isFire ? '#b91c1c' : '#15803d' }}
+          style={{ color: isFire ? '#b91c1c' : isFault ? '#b45309' : '#15803d' }}
         >
           확인
         </button>
 
         {/* fa-note */}
         <div className="flex items-center gap-1.5 text-caption opacity-85">
-          {isFire && <AlertTriangle size={15} />}
+          {(isFire || isFault) && <AlertTriangle size={15} />}
           <span>
             {isFire
               ? '확인을 눌러야 추가 푸시가 멈춥니다'

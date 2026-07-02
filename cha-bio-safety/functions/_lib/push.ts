@@ -203,16 +203,18 @@ export async function pushToWorkingStaff(
 // 패널 경보 push payload — superset: 현재 SW 는 title/body/type 만 읽고, 나머지(kind/alarmId/url…)는
 // data 로 실려 forward-compatible (딥링크 실동작은 design 트랙 SW 업데이트).
 export function buildPanelPayload(a: {
-  alarmType: 'fire' | 'equip'
+  alarmType: 'fire' | 'equip' | 'fault'
   alarmId: string
   location: string | null
   detectedAt: string
 }): Record<string, unknown> & { title: string; body: string; type: string } {
-  const isFire = a.alarmType === 'fire'
+  const t = a.alarmType
   const loc = a.location ? ` · ${a.location}` : ''
+  const title = t === 'fire' ? '🔴 화재수신반 경보' : t === 'fault' ? '🟡 화재수신반 고장' : '설비 동작 감지'
+  const bodyHead = t === 'fire' ? '화재 신호 감지' : t === 'fault' ? '고장 신호 감지' : '설비 동작 감지'
   return {
-    title: isFire ? '🔴 화재수신반 경보' : '설비 동작 감지',
-    body: `${isFire ? '화재 신호 감지' : '설비 동작 감지'} (${a.detectedAt})${loc}`,
+    title,
+    body: `${bodyHead} (${a.detectedAt})${loc}`,
     type: 'panel_alarm',
     kind: 'panel_alarm',
     alarmType: a.alarmType,
