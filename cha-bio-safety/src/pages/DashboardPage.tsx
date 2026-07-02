@@ -662,11 +662,12 @@ export default function DashboardPage() {
             16:9 높이는 내부 LivePanelImage 의 aspect-video 가 정의 (데스크톱 위젯과 동일 패턴). */}
         <div
           onClick={() => navigate('/inspection?panel=fire-alarm')}
-          className="rounded-md overflow-hidden bg-black cursor-pointer h-[120px] [animation:slideUp_.28s_.03s_ease-out_both]"
+          // iOS=고정 120px(짜부, 점검현황 공간 확보 딱맞음) / Android=수정 전 높이(min-h-180+내부 2.06:1 aspect) 유지해 점검현황 밑 여백 방지. 둘 다 object-fill 로 층표시 크롭 방지.
+          className={`rounded-md overflow-hidden bg-black cursor-pointer ${IS_ANDROID ? 'min-h-[180px]' : 'h-[120px]'} [animation:slideUp_.28s_.03s_ease-out_both]`}
         >
           <LivePanelImage
             frameUpdatedAt={frameUpdatedAt}
-            aspectClass="h-full"
+            aspectClass={IS_ANDROID ? 'aspect-[1920/932]' : 'h-full'}
             objectClass="object-fill"
           />
         </div>
