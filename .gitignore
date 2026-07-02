@@ -27,3 +27,7 @@ cha-bio-r2_delta_*.zip
 
 # wrangler 작업 캐시 (루트에서 wrangler d1/deploy 실행 시 생성 — 커밋 대상 아님)
 .wrangler/
+
+# 수신반 상태 레퍼런스 캡처 (맥 에이전트 튜닝용, git 추적 불필요)
+설비\ 동작.jpeg
+화재\ 발생.png

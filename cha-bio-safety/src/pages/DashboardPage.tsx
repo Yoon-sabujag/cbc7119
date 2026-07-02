@@ -630,11 +630,9 @@ export default function DashboardPage() {
       {/* ══ 메인 그리드 ══ */}
       <main
         className="flex-1 min-h-0 overflow-y-auto grid gap-[7px] px-[11px] py-[7px]"
-        // gridTemplateRows 는 IS_ANDROID 동적 분기 — 인라인 허용 키
+        // gridTemplateRows 인라인 허용 키 (iOS/Android 공통 minmax(125px,1fr))
         style={{
-          gridTemplateRows: IS_ANDROID
-            ? 'auto auto auto auto minmax(140px, 1fr)'
-            : 'auto auto auto auto minmax(125px, 1fr)',
+          gridTemplateRows: 'auto auto auto auto minmax(125px, 1fr)',
         }}
       >
 
@@ -662,12 +660,12 @@ export default function DashboardPage() {
             16:9 높이는 내부 LivePanelImage 의 aspect-video 가 정의 (데스크톱 위젯과 동일 패턴). */}
         <div
           onClick={() => navigate('/inspection?panel=fire-alarm')}
-          // iOS/Android 공통 고정 120px + object-fill(짜부) — 층표시까지 크롭 없이 압축해 담김. 축소로 남는 세로 여백은 아래 점검현황 카드가 grid stretch 로 흡수(Android).
-          className="rounded-md overflow-hidden bg-black cursor-pointer h-[120px] [animation:slideUp_.28s_.03s_ease-out_both]"
+          // iOS=고정 120px+h-full+object-fill(짜부) / Android=aspect-[1920/932] 자연비율(~189px, 에이전트 크롭 매칭)
+          className={`rounded-md overflow-hidden bg-black cursor-pointer ${IS_ANDROID ? '' : 'h-[120px]'} [animation:slideUp_.28s_.03s_ease-out_both]`}
         >
           <LivePanelImage
             frameUpdatedAt={frameUpdatedAt}
-            aspectClass="h-full"
+            aspectClass={IS_ANDROID ? 'aspect-[1920/932]' : 'h-full'}
             objectClass="object-fill"
           />
         </div>
@@ -778,8 +776,8 @@ export default function DashboardPage() {
         {/* ⑤ 이번 달 점검 현황 — 메모리 룰: 가로 스크롤 (flex-nowrap) */}
         <div
           className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col [animation:slideUp_.28s_.20s_ease-out_both]"
-          // iOS=고정 125(grid 행에 맡기면 눌려서 라벨 잘림 → 명시). Android=undefined 로 grid cell stretch(라이브 축소로 남는 세로 여백 흡수, 밑 여백 방지 — Android 는 minmax 존중해 안 눌림).
-          style={{ height: IS_ANDROID ? undefined : 125 }}
+          // iOS/Android 공통 고정 125 — grid 1fr 셀이 커져도 카드 자체는 125px 유지. Android 는 라이브 자연비율(~189px)로 남는 공간이 적어 stretch 불필요.
+          style={{ height: 125 }}
         >
           <div className="flex items-center justify-between px-3 py-1 border-b border-border-default shrink-0">
             <span className="text-caption font-bold text-text-secondary">이번 달 점검 현황</span>
