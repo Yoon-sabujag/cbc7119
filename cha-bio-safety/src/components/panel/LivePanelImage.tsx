@@ -13,6 +13,8 @@ interface LivePanelImageProps {
   alt?: string
   className?: string
   imgClassName?: string
+  aspectClass?: string   // 프레임 비율/높이 (기본 16:9 aspect-video). 고정높이(h-[..]) 로 오버라이드.
+  objectClass?: string   // object-fit (기본 cover). object-fill = 짜부(비율 무시 박스 채움).
   onClick?: () => void
 }
 
@@ -22,6 +24,8 @@ export default function LivePanelImage({
   alt = '화재수신반 라이브 화면',
   className = '',
   imgClassName = '',
+  aspectClass = 'aspect-video',
+  objectClass = 'object-cover',
   onClick,
 }: LivePanelImageProps) {
   const src = snapshotKey
@@ -33,7 +37,7 @@ export default function LivePanelImage({
 
   return (
     <div
-      className={`relative w-full aspect-video bg-black overflow-hidden ${className}`}
+      className={`relative w-full ${aspectClass} bg-black overflow-hidden ${className}`}
       onClick={onClick}
     >
       {!errored ? (
@@ -42,7 +46,7 @@ export default function LivePanelImage({
           alt={alt}
           loading="lazy"
           onError={() => setErrored(true)}
-          className={`w-full h-full object-cover ${imgClassName}`}
+          className={`w-full h-full ${objectClass} ${imgClassName}`}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-surface-sunken text-text-tertiary text-caption">
