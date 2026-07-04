@@ -5253,7 +5253,7 @@ function DesktopInspectionView({
                 {mergedPanelEvents.length === 0 ? (
                   <div className="px-3 py-[14px] text-caption text-text-tertiary text-center">최근 48시간 이벤트 없음</div>
                 ) : (
-                  mergedPanelEvents.map(ev => <PanelEventRow key={ev.id} item={ev} />)
+                  mergedPanelEvents.map(ev => <PanelEventRow key={ev.id} item={ev} thumb />)
                 )}
               </div>
 

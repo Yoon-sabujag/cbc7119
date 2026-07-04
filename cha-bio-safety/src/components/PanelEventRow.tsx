@@ -2,10 +2,20 @@
 // 좌측 세로 스택: [종류칩] 위/아래 [자동감지|수동] 칩으로 출처 구분.
 import { KIND_BADGE, type PanelEventItem } from '../utils/panelEvents'
 
-export function PanelEventRow({ item }: { item: PanelEventItem }) {
+export function PanelEventRow({ item, thumb }: { item: PanelEventItem; thumb?: boolean }) {
   const badge = KIND_BADGE[item.kind]
   return (
     <div className="flex items-start gap-[9px] px-3 py-[9px] border-b border-border-default last:border-b-0">
+      {/* 썸네일 (데스크톱 전용, thumb) */}
+      {thumb && (
+        <div className="w-[84px] h-[48px] shrink-0 rounded-sm overflow-hidden bg-black self-start mt-0.5">
+          {item.snapshotUrl ? (
+            <img src={item.snapshotUrl} alt="이벤트 스냅샷" loading="lazy" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[9px] text-text-tertiary bg-surface-sunken">{item.source === 'manual' ? '수기' : '미연결'}</div>
+          )}
+        </div>
+      )}
       {/* 좌측 세로 스택 (lc) */}
       <div className="flex flex-col gap-1 items-start shrink-0 mt-0.5">
         <span className={`rounded-[6px] px-[7px] py-0.5 text-[10.5px] font-extrabold leading-none ${badge.cls}`}>{badge.label}</span>

@@ -12,6 +12,7 @@ export interface PanelEventItem {
   location: string | null
   cause: string | null
   source: 'auto' | 'manual'
+  snapshotUrl: string | null
 }
 
 // 종류칩 매핑 (InspectionPage badge2 / panelBadge2 와 동일).
@@ -30,6 +31,7 @@ function normalizeAuto(alarms: Alarm[]): PanelEventItem[] {
     location: a.location ?? null,
     cause: a.cause ?? null,
     source: 'auto' as const,
+    snapshotUrl: a.snapshotUrl ?? null,
   }))
 }
 
@@ -46,6 +48,7 @@ function normalizeManual(records: any[]): PanelEventItem[] {
       location: r.location ?? null,
       cause: r.cause ?? null,
       source: 'manual' as const,
+      snapshotUrl: null,
     }))
 }
 
