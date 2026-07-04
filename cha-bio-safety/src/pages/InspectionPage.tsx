@@ -4,6 +4,9 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, panelApi, alarmApi, type ExtinguisherDetail, type FloorPlanMarker, type Alarm } from '../utils/api'
+import { PanelEventRow } from '../components/PanelEventRow'
+import { useRecentPanelEvents } from '../utils/panelEvents'
+import { FireAlarmHistoryView } from './FireAlarmHistoryPage'
 import LivePanelImage from '../components/panel/LivePanelImage'
 import { freshnessLabel } from '../components/panel/freshness'
 import { usePinchZoom } from '../hooks/usePinchZoom'
@@ -5349,6 +5352,7 @@ export default function InspectionPage() {
 // 백엔드 /api/panel|alarm/* 은 이 디자인 트랙 미배포 -> 모든 query try/catch 평상시 폴백.
 function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
@@ -5372,6 +5376,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     refetchInterval: 30_000,
     retry: false,
   })
+  const mergedEvents = useRecentPanelEvents(events)
 
   const maintOn = !!status?.maint?.enabled
   const mode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm ? 'alarm' : 'normal')
@@ -5572,32 +5577,17 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
           {/* evt-card (최근 48시간 자동감지) */}
           <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
             <div className="flex items-center justify-between p-[7px_12px] border-b border-border-default">
-              <span className="text-caption font-semibold text-text-secondary">최근 이벤트 (자동감지)</span>
+              <span className="text-caption font-semibold text-text-secondary">최근 이벤트 (최근 48시간)</span>
               {mode === 'alarm' ? (
                 <span className="rounded-pill text-[11px] font-bold text-danger bg-danger-bg border border-[rgba(239,68,68,.4)] px-2 py-0.5 leading-none">감지중 {events.filter(e => e.status === 'active' || e.status === 'acked').length || 1}</span>
               ) : (
-                <span className="rounded-pill text-[11px] text-text-tertiary bg-surface-sunken px-2 py-0.5 leading-none">최근 48시간</span>
+                <button onClick={() => navigate('/fire-alarm-history')} className="inline-flex items-center gap-[3px] rounded-pill text-[11px] font-bold text-text-secondary bg-surface-sunken border border-border-default pl-2.5 pr-2 py-1 leading-none cursor-pointer">전체 이력<ChevronRight size={13} /></button>
               )}
             </div>
-            {events.length === 0 ? (
-              <div className="p-[14px_12px] text-caption text-text-tertiary text-center">최근 48시간 자동감지 이벤트 없음</div>
+            {mergedEvents.length === 0 ? (
+              <div className="p-[14px_12px] text-caption text-text-tertiary text-center">최근 48시간 이벤트 없음</div>
             ) : (
-              events.map(ev => {
-                const b = badge2(ev)
-                return (
-                  <div key={ev.id} className="flex items-start gap-[9px] p-[9px_12px] border-b border-border-default last:border-b-0">
-                    <span className={`shrink-0 rounded-[6px] px-[7px] py-0.5 text-[10.5px] font-extrabold leading-none mt-0.5 ${b.cls}`}>{b.label}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono text-[11.5px] text-text-tertiary tabular-nums">{ev.detectedAt}</span>
-                        <span className="text-[13px] font-semibold text-text-primary">{ev.location ?? '위치 미상'}</span>
-                      </div>
-                      {ev.cause && <div className="text-caption text-text-tertiary mt-0.5">{ev.cause}</div>}
-                      <span className="inline-block mt-1 text-[10.5px] text-info bg-info-bg rounded-sm px-1.5 py-0.5 leading-none">자동감지</span>
-                    </div>
-                  </div>
-                )
-              })
+              mergedEvents.map(ev => <PanelEventRow key={ev.id} item={ev} />)
             )}
           </div>
 
@@ -6061,6 +6051,7 @@ function DesktopInspectionView({
     refetchInterval: 30_000,
     retry: false,
   })
+  const mergedPanelEvents = useRecentPanelEvents(panelEvents)
 
   const maintOn = !!panelStatus?.maint?.enabled
   const panelMode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm ? 'alarm' : 'normal')
@@ -6082,6 +6073,7 @@ function DesktopInspectionView({
   const nowKst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   const todayStr = `${nowKst.getFullYear()}-${String(nowKst.getMonth()+1).padStart(2,'0')}-${String(nowKst.getDate()).padStart(2,'0')}`
   const timeStr = `${String(nowKst.getHours()).padStart(2,'0')}:${String(nowKst.getMinutes()).padStart(2,'0')}`
+  const [panelHistoryOpen, setPanelHistoryOpen] = useState(false)
   const [paType, setPaType] = useState<'fire'|'non_fire'>('non_fire')
   const [paDate, setPaDate] = useState(todayStr)
   const [paTime, setPaTime] = useState(timeStr)
@@ -6369,6 +6361,22 @@ function DesktopInspectionView({
       {/* ── 우측: 화재수신반 상세 pane / 내역 목록 / 상세 ── */}
       <div className="w-1/2 shrink-0 min-w-0 flex flex-col">
         {isPanel ? (
+          panelHistoryOpen ? (
+            <>
+              <div className="shrink-0 flex items-center gap-2.5 px-5 py-2 border-b border-border-default bg-surface-raised">
+                <button onClick={() => setPanelHistoryOpen(false)} className="w-7 h-7 rounded-[7px] bg-surface-sunken border border-border-default cursor-pointer flex items-center justify-center shrink-0 hover:bg-surface-active transition-colors">
+                  <ChevronLeft size={14} className="text-text-secondary" />
+                </button>
+                <div className="flex-1 flex items-center gap-1.5 text-[16px] font-bold text-text-primary min-w-0">
+                  <BellRing size={16} className="text-text-secondary shrink-0" />
+                  <span className="truncate">화재수신반 이력</span>
+                </div>
+              </div>
+              <div className="flex-1 min-h-0">
+                <FireAlarmHistoryView thumb />
+              </div>
+            </>
+          ) : (
           // ── 화재수신반 3분할 상세 pane (Surface 6) ──
           <>
             {/* id-head */}
@@ -6492,37 +6500,17 @@ function DesktopInspectionView({
               {/* ③ evt-card (최근 48시간 자동감지 — 점검모드 조회 유지) */}
               <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border-default">
-                  <span className="text-caption font-semibold text-text-secondary">최근 이벤트 (자동감지)</span>
+                  <span className="text-caption font-semibold text-text-secondary">최근 이벤트 (최근 48시간)</span>
                   {panelMode === 'alarm' ? (
                     <span className="rounded-pill text-caption font-bold text-danger bg-danger-bg border border-[rgba(239,68,68,.4)] px-2 py-0.5 leading-none">감지중 {panelEvents.filter(e => e.status === 'active' || e.status === 'acked').length || 1}</span>
                   ) : (
-                    <span className="rounded-pill text-caption text-text-tertiary bg-surface-sunken px-2 py-0.5 leading-none">최근 48시간</span>
+                    <button onClick={() => setPanelHistoryOpen(true)} className="inline-flex items-center gap-[3px] rounded-pill text-[11px] font-bold text-text-secondary bg-surface-sunken border border-border-default pl-2.5 pr-2 py-1 leading-none cursor-pointer">전체 이력<ChevronRight size={13} /></button>
                   )}
                 </div>
-                {panelEvents.length === 0 ? (
-                  <div className="px-3 py-[14px] text-caption text-text-tertiary text-center">최근 48시간 자동감지 이벤트 없음</div>
+                {mergedPanelEvents.length === 0 ? (
+                  <div className="px-3 py-[14px] text-caption text-text-tertiary text-center">최근 48시간 이벤트 없음</div>
                 ) : (
-                  panelEvents.map(ev => {
-                    const b = panelBadge2(ev)
-                    return (
-                      <div key={ev.id} className="flex items-start gap-[11px] px-3 py-[9px] border-b border-border-default last:border-b-0">
-                        {/* ethumb 84×48 */}
-                        <div className="w-[84px] h-[48px] shrink-0 rounded-sm overflow-hidden bg-black">
-                          {ev.snapshotUrl
-                            ? <img src={ev.snapshotUrl} alt="이벤트 스냅샷" loading="lazy" className="w-full h-full object-cover" />
-                            : <div className="w-full h-full flex items-center justify-center text-[9px] text-text-tertiary bg-surface-sunken">미연결</div>}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className={`shrink-0 rounded-[6px] px-2 py-0.5 text-caption font-extrabold leading-none ${b.cls}`}>{b.label}</span>
-                            <span className="font-mono text-caption text-text-tertiary tabular-nums">{ev.detectedAt}</span>
-                          </div>
-                          <div className="text-body-sm font-semibold text-text-primary mt-0.5 truncate">{ev.location ?? '위치 미상'}</div>
-                          {ev.cause && <div className="text-caption text-text-tertiary truncate">{ev.cause}</div>}
-                        </div>
-                      </div>
-                    )
-                  })
+                  mergedPanelEvents.map(ev => <PanelEventRow key={ev.id} item={ev} thumb />)
                 )}
               </div>
 
@@ -6555,6 +6543,7 @@ function DesktopInspectionView({
               )}
             </div>
           </>
+          )
         ) : recordId && detail ? (
           // ── 상세 보기 ──
           <>
