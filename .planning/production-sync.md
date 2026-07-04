@@ -9,17 +9,32 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 최신: **고장(fault) 경보 3번째 케이스 구현+배포**(푸시+풀스크린+칩+D1 CHECK migration, 260702-p22, 0afae824). 화재/설비에 이어 고장 추가(단발 1회, 회로차단 제외). 여전히 dormant(맥 에이전트 노란색 감지 미배포 → 실발현 전). **다음 = 맥 에이전트 노란색(고장) HSV 감지 추가 + 라이브뷰 연동.**
-진행 작업:       맥 에이전트(캡처보드 프레임 R2 업로드 + red/green/yellow 3-class 감지) 연동 = 라이브뷰/경보 실발현 진입점. 백엔드(fire/equip/fault)·AGENT_KEY·D1 prod 준비 완료.
-기준 production: `0afae824` (고장 경보 3번째 케이스) — 직전 d5d65567(sync)+1494dc46(Android 짜부)+5ff1d932(자연비율)+…
-마지막 동기화:   2026-07-02
-마지막 배포 URL: https://56e5ece1.cbc7119.pages.dev (production alias = cbc7119.pages.dev). D1 migration 0093 수동 적용 완료(CHECK +fault).
-⚠️ staging 분기: 260626-7vq 는 staging(cbc7119-data 260626-5hm)에 있으나 **260626-b5v(반쪽 윈도우)는 prod 전용** — staging 미적용(사용자가 b5v staging 생략 결정). 차후 staging-first 작업 시 cbc7119-data 에 b5v(getMarkerStatus 반쪽 게이트 + inspectionProgress export) 재적용 필요할 수 있음
+상태:           안정 (SYNCED) — 최신: **화재수신반 최근이벤트 병합 + 전체이력 페이지 + 데스크톱 썸네일/in-pane**(260704-0xr/fh2, 배포 41241772) → 그 위 **3-트랙 동기 완료**(260704-hzz 이관: prod↔design↔staging 전부 적용). 경보 자체는 여전히 dormant(맥 에이전트 노란색 감지 미배포 → 실발현 전). **다음 = 맥 에이전트 노란색(고장) HSV 감지 추가 + 라이브뷰 연동 (남은 유일 트랙).**
+진행 작업:       (없음) — 맥 에이전트 3-class(red/green/yellow) 감지가 경보 실발현 남은 유일 진입점. 백엔드(fire/equip/fault)·AGENT_KEY·D1 prod(0093 CHECK+0094 location 실측 확인) 준비 완료.
+기준 production: `b7846e8d` (quick-260704-hzz 이관 핸드오프 문서, docs-only) — 아래 a4e89772(GSD config)+260704-fh2(썸네일/in-pane cf08be76/c4255ac8)+260704-0xr(병합/이력 cf019347/687464ac)+260702-p22(fault 외)…
+마지막 동기화:   2026-07-04
+마지막 배포 URL: https://41241772.cbc7119.pages.dev (production alias = cbc7119.pages.dev). D1 0093(CHECK +fault)+0094(location) prod 적용 **실측 확인**. design=cbc7119-preview(origin/main 260704-io8 자동), staging=cbc7119-data(fb3f833).
+⚠️ 분기/미결 잔여: **260626-b5v(반쪽 윈도우: getMarkerStatus 반쪽 게이트 + inspectionProgress export)는 prod 전용·staging 미적용** + **events.ts 720h(30일) 캡 해제 미착수**(staging-first 예정). 차후 staging 작업 시 함께.
 ```
 
 **상태 의미**:
 - `안정 (SYNCED)` — 직원 도메인이 표 마지막 entry 와 일치. 새 작업 들어와도 OK.
 - `작업중 (IN_PROGRESS)` — cherry-pick / 배포가 진행 중이거나 중단됨. 새 작업 들어오면 STOP, 먼저 진행 중인 거 마무리.
+
+---
+
+## 화재수신반 최근이벤트 병합 + 전체이력 + 3-트랙 동기 완료 (2026-07-04, 0xr/fh2/hzz)
+
+**프론트(prod 직접, 260704-0xr/fh2, 배포 41241772)**: InspectionPage "최근 이벤트" 카드 자동감지→**자동+수동 48h 병합**(`panelEvents.ts` mergePanelEvents, created_by≠panel-agent dedup) + **FireAlarmHistoryPage**(`/fire-alarm-history`, 월 스테퍼) + `PanelEventRow` 공유행 + 데스크톱 썸네일/in-pane 이력. 백엔드 무변경. 시안 001-B/002-A 승인 → GSD quick(worktree OFF·prod 직접).
+
+**3-트랙 동기 (260704-hzz 이관 핸드오프 → 각 콘솔 적용 완료, 실측 검증)**:
+- **design/main** = `260704-io8`(2aec9355+4df43c86+54b769e2+c4f3d0e6+7c2232cb): 병합모듈 3파일 cp + api.ts fault + InspectionPage 카드/in-pane + Android 라이브카드 + FireAlarmPage fault variant. origin/main push → cbc7119-preview 자동. 신규 3파일(panelEvents/PanelEventRow/FireAlarmHistoryPage) 존재 확인.
+- **staging/cbc7119-data** = `fb3f833`: 마이그 0093·0094 + functions 5파일(alarm/push/trigger/clear/renotify) fault+location. cha-bio-db-staging 적용.
+- 이관 지시서: `.planning/quick/260704-hzz-prod-to-staging-and-prod-to-design-panel/{STAGING,DESIGN}-HANDOFF.md`.
+
+**⚠️ 분기 정체(future 세션 필독)**: production 의 260702-p22/260704-0xr/fh2 패널 commits ↔ design 의 `260704-io8` 은 **같은 기능의 병렬 commit(미러)**. main↔production diff 에서 양쪽 다 보여도 폐기 아님 — 동일 기능. cherry-pick 재적용 금지.
+
+**미결(경보 실발현 게이트)**: 맥 에이전트 노란색(fault) HSV 감지 미배포. `events.ts` 720h 캡 미해제(staging-first 예정).
 
 ---
 
