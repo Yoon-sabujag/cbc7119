@@ -9,8 +9,8 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 최신: **화재수신반 최근이벤트 병합 + 전체이력 페이지 + 데스크톱 썸네일/in-pane**(260704-0xr/fh2, 배포 41241772) → 그 위 **3-트랙 동기 완료**(260704-hzz 이관: prod↔design↔staging 전부 적용). 경보 자체는 여전히 dormant(맥 에이전트 노란색 감지 미배포 → 실발현 전). **다음 = 맥 에이전트 노란색(고장) HSV 감지 추가 + 라이브뷰 연동 (남은 유일 트랙).**
-진행 작업:       (없음) — 맥 에이전트 3-class(red/green/yellow) 감지가 경보 실발현 남은 유일 진입점. 백엔드(fire/equip/fault)·AGENT_KEY·D1 prod(0093 CHECK+0094 location 실측 확인) 준비 완료.
+상태:           안정 (SYNCED) — 최신: **화재수신반 최근이벤트 병합 + 전체이력 페이지 + 데스크톱 썸네일/in-pane**(260704-0xr/fh2, 배포 41241772) → 그 위 **3-트랙 동기 완료**(260704-hzz 이관: prod↔design↔staging 전부 적용) → **맥 에이전트 fault 감지 LIVE·검증 확인**(아래 정정). 경보 3-class(fire/equip/**fault**) 전부 **감지 LIVE**(맥 에이전트 v1.1.0-detect, DETECT_MODE=live). 실발현 0건은 실제 경보 미발생일 뿐(패널 정상). **남은 구현 없음 — 화재수신반 원격감시 end-to-end 완성.**
+진행 작업:       (없음) — 3-class 감지 LIVE·color_probe 실측 검증 완료(실물 fault 사진 yellow 2.06%≥1.3 → fault 정상분류). 백엔드(fire/equip/fault)·AGENT_KEY·D1 prod(0093 CHECK+0094 location 실측)·프론트·에이전트 전부 준비. ⚠️ **정정**: 이 노트가 7/2 에 멈춰 "노란색 감지 미배포"로 오기재돼 있었음 — 실제로는 7/3 03:30 부터 3-class LIVE. 2026-07-04 실측으로 정정.
 기준 production: `b7846e8d` (quick-260704-hzz 이관 핸드오프 문서, docs-only) — 아래 a4e89772(GSD config)+260704-fh2(썸네일/in-pane cf08be76/c4255ac8)+260704-0xr(병합/이력 cf019347/687464ac)+260702-p22(fault 외)…
 마지막 동기화:   2026-07-04
 마지막 배포 URL: https://41241772.cbc7119.pages.dev (production alias = cbc7119.pages.dev). D1 0093(CHECK +fault)+0094(location) prod 적용 **실측 확인**. design=cbc7119-preview(origin/main 260704-io8 자동), staging=cbc7119-data(fb3f833).
@@ -34,7 +34,7 @@
 
 **⚠️ 분기 정체(future 세션 필독)**: production 의 260702-p22/260704-0xr/fh2 패널 commits ↔ design 의 `260704-io8` 은 **같은 기능의 병렬 commit(미러)**. main↔production diff 에서 양쪽 다 보여도 폐기 아님 — 동일 기능. cherry-pick 재적용 금지.
 
-**미결(경보 실발현 게이트)**: 맥 에이전트 노란색(fault) HSV 감지 미배포. `events.ts` 720h 캡 미해제(staging-first 예정).
+**미결**: (경보 게이트 해소 — 맥 에이전트 fault 감지 LIVE·검증, 아래 fault 섹션 참조.) 잔여 = `events.ts` 720h 캡 해제 + b5v 재적용, 둘 다 staging-first 예정(이 콘솔 아님).
 
 ---
 
@@ -46,7 +46,7 @@
 
 **적용됨**: 백엔드(alarm.ts/trigger.ts/clear.ts/push.ts type union + fault 문구 '🟡 화재수신반 고장') + migration 0093(prod 적용완료) + 프론트(api.ts type / FireAlarmPage 풀스크린 노랑 3-way / DashboardPage PanelStateChip type-aware 3-way / InspectionPage 이벤트칩 '고장').
 
-**남은 트랙 — 맥 에이전트만**: `~/panel-agent/` 에 HSV **노란색 감지 → `type:'fault'` trigger** 추가 필요(현재 red=fire/green=equip 2-class → yellow 포함 3-class 히스테리시스). 이게 배포돼야 고장 경보가 실발현. 레퍼런스 캡처: `설비 동작.jpeg`(초록)/`화재 발생.png`(빨강) + 고장=노란 박스.
+**맥 에이전트 fault 감지 = 이미 LIVE·검증 완료 (2026-07-04 실측 정정)**: `~/panel-agent/agent.py` **v1.1.0-detect** 가 이미 3-class(red=fire / green=equip / **yellow=fault**, hue 40–70, `DET_YELLOW_MIN=1.3%`, debounce 3/3) LIVE(`DETECT_MODE=live`, 7/3 03:30~, PID 상시). `classify` 우선순위 fire>fault>equip, trigger 가 `type:'fault'` 발송. **color_probe 실측**(실 감지 크롭 DET_CROP 통과): 실물 fault 사진 → **yellow 2.06% ≥ 1.3 → fault 정상분류**(red 0.10%≪3.0 → fire 오분류 없음) / 실 equip 프레임 → green 15.0%, yellow 0.81%(임계 아래 → fault 오발 없음). 7/3 이래 무오탐 0건. **⚠️ 위 "2-class → 3-class 추가 필요"는 stale 오기재였음**(노트가 7/2 에 멈춤). **미검증 잔여(nice-to-have)**: 검증이 폰 사진 기준이라, 실제 캡처보드 fault 프레임 발생 시 로그로 임계 재확인. **임계 변경 금지**(단일 폰샷 근거 불충분, 현 1.3 무오탐 유지).
 
 **알려진 한계**(equip 과 동일, 의도적): InspectionPage 패널 pane takeover(화재수신반 점검 탭)는 여전히 type-agnostic(activeAlarm 있으면 빨강'화재'+화재보/비화재보 폼) — fault 도 여기선 빨강으로 보임. 주 UX 는 풀스크린(FireAlarmPage, 노랑 정확). P2 코드 안정성 위해 pane 딥 3-way 는 보류. 이벤트 이력 칩은 '고장' 정확.
 
