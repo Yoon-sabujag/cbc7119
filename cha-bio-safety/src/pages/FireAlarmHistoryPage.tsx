@@ -29,9 +29,9 @@ function Segment<T extends string>({ value, onChange, options }: {
   )
 }
 
-export default function FireAlarmHistoryPage() {
-  const navigate = useNavigate()
-
+// 이력 뷰 본문 (필터존 + 리스트) — 풀페이지 헤더는 포함하지 않음(context별 상이).
+// thumb: 데스크톱 in-pane 에서 PanelEventRow 썸네일 노출.
+export function FireAlarmHistoryView({ thumb }: { thumb?: boolean }) {
   // 월 상태 (KST 현재연/월 초기값)
   const [ym, setYm] = useState(() => {
     const s = kstStr(new Date())
@@ -83,19 +83,7 @@ export default function FireAlarmHistoryPage() {
   const stepBtn = 'w-[26px] h-[26px] rounded-[7px] bg-surface-sunken border border-border-default text-text-secondary flex items-center justify-center'
 
   return (
-    <div className="flex flex-col h-full bg-surface-page">
-      {/* 헤더 (gh) */}
-      <div className="flex items-center h-12 px-3 bg-surface-page border-b border-border-default shrink-0">
-        <button onClick={() => navigate(-1)}
-          className="w-7 h-7 flex items-center justify-center rounded-[7px] bg-surface-sunken text-text-secondary shrink-0">
-          <ChevronLeft size={18} />
-        </button>
-        <div className="flex-1 flex items-center gap-[7px] pl-2.5 text-title font-semibold text-text-primary min-w-0">
-          <BellRing size={18} className="text-text-secondary shrink-0" />
-          <span className="truncate">화재수신반 이력</span>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-full min-h-0 bg-surface-page">
       {/* 필터존 (fz) */}
       <div className="shrink-0 flex flex-col gap-[9px] px-3 py-2.5 border-b border-border-default bg-surface-page">
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -128,11 +116,32 @@ export default function FireAlarmHistoryPage() {
           groups.map(g => (
             <div key={g.key}>
               <div className="px-3 pt-3 pb-[5px] text-[11px] font-bold text-text-tertiary tracking-wide">{g.label}</div>
-              {g.items.map(item => <PanelEventRow key={item.id} item={item} />)}
+              {g.items.map(item => <PanelEventRow key={item.id} item={item} thumb={thumb} />)}
             </div>
           ))
         )}
       </div>
+    </div>
+  )
+}
+
+// 모바일 route 풀페이지 — h-12 헤더(back) + 이력 뷰(썸네일 없음).
+export default function FireAlarmHistoryPage() {
+  const navigate = useNavigate()
+  return (
+    <div className="flex flex-col h-full bg-surface-page">
+      {/* 헤더 (gh) */}
+      <div className="flex items-center h-12 px-3 bg-surface-page border-b border-border-default shrink-0">
+        <button onClick={() => navigate(-1)}
+          className="w-7 h-7 flex items-center justify-center rounded-[7px] bg-surface-sunken text-text-secondary shrink-0">
+          <ChevronLeft size={18} />
+        </button>
+        <div className="flex-1 flex items-center gap-[7px] pl-2.5 text-title font-semibold text-text-primary min-w-0">
+          <BellRing size={18} className="text-text-secondary shrink-0" />
+          <span className="truncate">화재수신반 이력</span>
+        </div>
+      </div>
+      <FireAlarmHistoryView />
     </div>
   )
 }

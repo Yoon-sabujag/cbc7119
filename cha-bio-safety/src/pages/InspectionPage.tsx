@@ -13,6 +13,7 @@ import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { PanelEventRow } from '../components/PanelEventRow'
 import { useRecentPanelEvents } from '../utils/panelEvents'
+import { FireAlarmHistoryView } from './FireAlarmHistoryPage'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime, todayKstYmd } from '../utils/datetime'
 import { DIV_POINTS as DIV_PTS, type DivPoint as DivPt } from '../constants/divPoints'
@@ -4847,6 +4848,7 @@ function DesktopInspectionView({
   const [paSaving, setPaSaving] = useState(false)
   const [maintBusy, setMaintBusy] = useState(false)
   const [panelZoomOpen, setPanelZoomOpen] = useState(false)
+  const [panelHistoryOpen, setPanelHistoryOpen] = useState(false)
   const [ackedId, setAckedId] = useState<string | null>(null)
   const panelZoom = usePinchZoom({ maxScale: 2.2, doubleTapScale: 2.2 })
 
@@ -4869,6 +4871,7 @@ function DesktopInspectionView({
     } else {
       panelOpenAlarmRef.current = undefined
       panelPrefilledRef.current = false
+      setPanelHistoryOpen(false)  // pane 벗어나면 in-pane 이력 리셋
     }
   }, [isPanel, activeAlarm, maintOn])
 
@@ -5123,6 +5126,25 @@ function DesktopInspectionView({
       {/* ── 우측: 내역 목록 또는 상세 ── */}
       <div className="w-1/2 shrink-0 min-w-0 flex flex-col">
         {isPanel ? (
+          panelHistoryOpen ? (
+            // ── in-pane 전체 이력 (데스크톱, 사용자 선택 A) ──
+            <>
+              {/* 이력 헤더 (pane 컨벤션 재사용) */}
+              <div className="shrink-0 flex items-center gap-2.5 px-5 py-2 border-b border-border-default bg-surface-raised">
+                <button onClick={() => setPanelHistoryOpen(false)}
+                  className="w-7 h-7 rounded-[7px] bg-surface-sunken border border-border-default cursor-pointer flex items-center justify-center shrink-0 hover:bg-surface-active transition-colors">
+                  <ChevronLeft size={14} className="text-text-secondary" />
+                </button>
+                <div className="flex-1 flex items-center gap-1.5 text-[16px] font-bold text-text-primary min-w-0">
+                  <BellRing size={16} className="text-text-secondary shrink-0" />
+                  <span className="truncate">화재수신반 이력</span>
+                </div>
+              </div>
+              <div className="flex-1 min-h-0">
+                <FireAlarmHistoryView thumb />
+              </div>
+            </>
+          ) : (
           // ── 화재수신반 3분할 상세 pane (Surface 6) ──
           <>
             {/* id-head */}
@@ -5247,7 +5269,7 @@ function DesktopInspectionView({
                   {panelMode === 'alarm' ? (
                     <span className="rounded-pill text-caption font-bold text-danger bg-danger-bg border border-[rgba(239,68,68,.4)] px-2 py-0.5 leading-none">감지중 {panelEvents.filter(e => e.status === 'active' || e.status === 'acked').length || 1}</span>
                   ) : (
-                    <button onClick={() => navigate('/fire-alarm-history')} className="inline-flex items-center gap-[3px] rounded-pill text-[11px] font-bold text-text-secondary bg-surface-sunken border border-border-default pl-2.5 pr-2 py-1 leading-none cursor-pointer">전체 이력<ChevronRight size={13} /></button>
+                    <button onClick={() => setPanelHistoryOpen(true)} className="inline-flex items-center gap-[3px] rounded-pill text-[11px] font-bold text-text-secondary bg-surface-sunken border border-border-default pl-2.5 pr-2 py-1 leading-none cursor-pointer">전체 이력<ChevronRight size={13} /></button>
                   )}
                 </div>
                 {mergedPanelEvents.length === 0 ? (
@@ -5286,6 +5308,7 @@ function DesktopInspectionView({
               )}
             </div>
           </>
+          )
         ) : recordId && detail ? (
           // ── 상세 보기 ──
           <>
