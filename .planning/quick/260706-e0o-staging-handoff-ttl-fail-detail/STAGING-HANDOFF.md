@@ -1,0 +1,162 @@
+# STAGING-first 신규 구현 — 승강기 공단 검사이력 동기화 개선 (검사주기 인지형 TTL + 재시도 + 증분 fail-detail + 토스트 완화)
+
+> **읽는 콘솔**: staging = `~/Documents/cbc7119-data` (`cd ~/Documents/cbc7119-data && claude`).
+> **작성 출처**: prod 콘솔(`~/Documents/20260328`), production HEAD `891592d9`, 2026-07-06.
+> staging 은 이 문서만 보고 자기 리포에서 작업. prod 는 직접 안 건드림.
+> **⚠️ staging 레이아웃**: 앱이 **리포 루트**에 있음 (prod 처럼 `cha-bio-safety/` 하위 아님).
+> 즉 staging 경로 = `functions/...`, `src/...` (루트 기준). 아래 prod 라인 번호는 **참고용** — anchor(함수명/기존 코드 조각)로 위치를 지정할 것.
+> **⚠️ 이번 핸드오프는 이전(코드 이식)과 다름 — staging-first 신규 구현 스펙**: prod 에 **아직 이 코드가 없다**. staging 이 이 스펙대로 구현 → 사용자가 staging 도메인에서 검증 → OK 후 prod 콘솔이 staging 검증본을 이식한다.
+
+---
+
+## 배경 / 왜 이 변경이 필요한가
+
+- **증상**: 승강기 관리 페이지 첫 진입마다 토스트 "공단 서버 응답 지연 — 최근 저장된 정보 표시" (id `'koelsa-stale'`). 사용자 체감 1개월+ 지속.
+- **원인 (2026-07-06 조사 확정)**: data.go.kr `B553664/ElevatorInspectsafeService`(검사이력 `getInspectsafeList`/`getInspectFailList`)가 요청의 ~30-70%를 HTTP 404 `<html><body>No service was found.</body></html>` 로 실패시키는 게이트웨이 부분 장애 (실측: 20회 중 6회 404, 16회 중 11회 404, 성공/실패 초 단위 교차). 서비스키·쿼터·코드 무혐의 (같은 키의 SelfCheck/SafeMngr/민원24 전부 정상, 쿼터 에러 마커 0회).
+- **증폭 구조**: 진입만으로 17개 호기 inspect-history useQueries 배치 자동 발화 (`src/pages/ElevatorPage.tsx:364-372`, `enabled: !!ev.cert_no`, `staleTime 6h`). 서버 `min_age` 기본 21600초(6h) 경과 시 호기별 `syncOne` 이 공단 호출 → 요청당 실패율 30%에서 17건 전부 성공 확률 0.7^17≈0.2% → 사실상 매 진입 최소 1건 stale → 토스트.
+- **추가 낭비**: `syncOne` 이 매번 전체 이력(호기당 ~16건)의 fail-detail 을 재조회 → 전체 갱신 1회에 공단 호출 ~290회.
+- **도메인 통찰 (사용자 제안)**: 검사이력은 append-only 이고 새 레코드는 각 호기 유효기간 만료일(`valid_end`) 언저리에만 등록됨 (정기검사 연 1회, 덤웨이터/화물용 2년 1회). 즉 `valid_end` 만 보면 "다음 결과가 올라올 시기"를 예측 가능.
+
+## prod D1 실측 (설계 근거)
+
+- 17대 전부 `valid_end` 보유. `MAX(valid_end)` 분포: 2126799/2126800(에스컬레이터 2대)=2026-09-23, 9대=2027-01-26, 5대(3805665~3805668/3903151)=2027-02-18.
+- 오늘(2026-07-06) 기준 17대 전부 dormant. 가장 이른 검사창 = 2026-07-25 (2126799/2126800, 60일 전 기준).
+- `disp_words` 실제 값 7종: 합격(93) 현장시정조치(53) 조건후합격(46) 조건부합격(46) 보완후합격(17) 보완(17) 불합격(5).
+- **핵심 데이터 시맨틱**: 보완 레코드는 짧은 `valid_end`(보완기한 ~2개월, 예: 검사 2013-11-25 → valid_end 2014-01-24)를 갖고, 재검사 후 보완후합격 레코드(별도 `inspect_date`)가 정식 1년 `valid_end` 를 가짐. 불합격 레코드는 `valid_end=null`. → **`MAX(valid_end)` 하나로 보완/불합격 케이스가 자동으로 active 에 남음. `disp_words` 특수 처리 불필요.**
+
+---
+
+## 변경 스펙 (4건)
+
+> 대상 파일 경로는 **staging 루트 기준**. 라인 번호는 prod 기준 참고용 — 실제 위치는 함수명/기존 코드 조각(anchor)으로 찾을 것.
+
+### 변경 1 — 검사주기 인지형 TTL (`functions/api/elevators/inspect-history.ts`)
+
+현재: `min_age` 파라미터 없으면 기본 21600초(6h) — 라인 239-246 부근 `let minAge = 21600`.
+
+변경: **클라이언트가 `min_age` 를 명시하지 않은 경우에만** 서버가 호기별 스마트 TTL 계산 (명시된 `min_age` 는 기존대로 존중 — 수동 강제 갱신 `?min_age=0` 경로 보존):
+
+```
+// 스마트 TTL 결정 (min_age 미지정 시):
+const maxValidEnd = await env.DB.prepare(
+  "SELECT MAX(valid_end) as mve FROM elevator_inspect_history WHERE elevator_no=? AND valid_end IS NOT NULL"
+).bind(elevatorNo).first()
+
+const WINDOW_BEFORE_DAYS = 60   // 검사창 시작: 유효기간 만료 60일 전
+const ACTIVE_MIN_AGE = 24 * 3600        // 검사창 안: 하루 1회
+const DORMANT_MIN_AGE = 30 * 24 * 3600  // 평시: 30일 1회 (수시검사 안전망)
+
+if (!maxValidEnd?.mve) → ACTIVE (이력 없는 신규 호기 부트스트랩: minAge = 0 취급이 아니라 ACTIVE_MIN_AGE 적용)
+else if (today >= mve - 60일) → minAge = ACTIVE_MIN_AGE
+else → minAge = DORMANT_MIN_AGE
+```
+
+- 날짜 비교는 `valid_end` 가 `'YYYY-MM-DD'` 문자열이므로 Date 파싱 후 ms 비교 (KST/UTC 경계 하루 오차는 60일 버퍼 안에서 무의미).
+- 자동 dormant 복귀: 새 검사 레코드가 저장되면 `MAX(valid_end)`가 1~2년 미래로 점프 → 다음 요청부터 자연히 dormant. 상태 저장 불필요 (순수 파생).
+- 보완(짧은 valid_end)/불합격(null valid_end) → `MAX` 가 가까운 과거/현재에 머묾 → 자동 active 유지. 별도 `disp_words` 분기 금지 (위 데이터 시맨틱 근거).
+- **관측성**: 응답 `data` 에 `syncPolicy: 'active' | 'dormant' | 'explicit'` 와 `windowStart: 'YYYY-MM-DD' | null` 추가 (staging 검증 때 눈으로 확인 용도, UI 변경 없음).
+
+### 변경 2 — 공단 호출 재시도 (`functions/api/elevators/_koelsa-common.ts`)
+
+`fetchKoelsaXml` 에 재시도 최대 2회 (총 3회 시도) 추가:
+
+```ts
+export async function fetchKoelsaXml(url: string): Promise<string> {
+  let lastErr: unknown
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`공단 API HTTP ${res.status}`)
+      const xml = await res.text()
+      checkError(xml)
+      return xml
+    } catch (e) {
+      lastErr = e
+      if (attempt < 3) await new Promise(r => setTimeout(r, 400 * attempt))
+    }
+  }
+  throw lastErr
+}
+```
+
+- 404 실패는 0.05~2.7초로 빨라 재시도 비용 낮음. 요청당 성공률 70% 기준 3회 시도 → 97%.
+- `checkError` throw(쿼터/키 에러 XML)도 재시도 대상에 포함되지만 무해 (현재 쿼터 여유 확인됨). 단순성 우선.
+- 이 함수는 `koelsa.ts`/`safety-manager.ts`/`_inspectsafe.ts` 공용이라 세 경로 모두 자동 수혜.
+
+### 변경 3 — 부적합 상세 증분 동기화 (`functions/api/elevators/inspect-history.ts` 의 `syncOne`)
+
+현재: 라인 126 부근 `const failCds = items.map(i => i.failCd).filter(Boolean)` — 매 동기화마다 전체 이력의 fail-detail 재조회 (호기당 ~16회 추가 호출).
+
+변경: **UPSERT 전에** 기존 이력 `fail_cd` 스냅샷을 뜨고, 신규 + 최근 것만 fail-detail 조회:
+
+```ts
+// syncOne 도입부 (fetchInspectHistory 호출 직후, history UPSERT 루프 전):
+const knownRes = await env.DB.prepare(
+  'SELECT fail_cd, inspect_date FROM elevator_inspect_history WHERE elevator_no=?'
+).bind(elevatorNo).all()
+const knownFailCds = new Set((knownRes.results ?? []).map(r => r.fail_cd))
+
+// fail-detail 대상 선정 (기존 failCds 라인 대체):
+const RECENT_DAYS = 60  // 등록 직후 정정 가능성 창
+const cutoff = Date.now() - RECENT_DAYS * 24 * 3600_000
+const failCds = items
+  .filter(i => i.failCd)
+  .filter(i => {
+    if (!knownFailCds.has(i.failCd)) return true          // 신규 검사건
+    const d = yyyymmdd_to_iso(i.inspctDe)
+    return d ? new Date(d).getTime() >= cutoff : false     // 최근 60일 건은 재확인
+  })
+  .map(i => i.failCd)
+```
+
+- 주의: `elevator_inspect_fails` 에 없는 `fail_cd` 를 "미조회" 로 판단하면 안 됨 — 부적합 0건인 합격 검사는 원래 fails 행이 없음. 반드시 **`elevator_inspect_history` 존재 여부**로 신규 판정.
+- 효과: 평시 동기화 = 호기당 `getInspectsafeList` 1회 + fail-detail 0회. 전체 갱신 ~290회 → ~17회.
+
+### 변경 4 — 토스트 조건 완화 (`src/utils/inspectHistory.ts`)
+
+현재 라인 47-50: `if (data?.stale) toast(...)`.
+
+변경: 캐시 나이 7일 미만이면 토스트 생략 (데이터가 연 주기라 7일이면 실질 최신):
+
+```ts
+const STALE_TOAST_MIN_AGE_MS = 7 * 24 * 3600_000
+if (data?.stale) {
+  const fetchedAt = data.lastFetchedAt ? new Date(data.lastFetchedAt).getTime() : 0
+  if (!fetchedAt || Date.now() - fetchedAt > STALE_TOAST_MIN_AGE_MS) {
+    toast('공단 서버 응답 지연 — 최근 저장된 정보 표시', { id: 'koelsa-stale', icon: '⚠️' })
+  }
+}
+```
+
+- `lastFetchedAt` 은 서버 stale 응답에 이미 포함됨 (`inspect-history.ts:356`).
+- `ElevatorPage.tsx:265`(자체점검)/`495`(안전관리자)의 다른 두 토스트 지점은 이번 스코프 밖 (해당 경로는 현재 발화 자체가 불가함을 실측으로 확인 — 202607 캐시 행 부재/TTL fresh).
+
+---
+
+## staging 검증 시나리오
+
+1. **평시 무호출 확인**: 승강기 페이지 진입 → 응답들의 `syncPolicy='dormant'` 확인 + 토스트 안 뜸 + (staging D1 데이터 기준) 공단 호출 없이 빠른 응답.
+2. **active 판정 확인**: staging D1 에서 한 호기의 `valid_end` 를 오늘+30일 이내로 임시 UPDATE → 그 호기만 `syncPolicy='active'` + 24h TTL 로 공단 호출 (재시도 포함) 동작 확인 → 검증 후 원복.
+3. **수동 강제 갱신 보존**: `/api/elevators/inspect-history?cert_no=XXXX-XXX&min_age=0` → `syncPolicy='explicit'` + 즉시 동기화.
+4. **증분 fail-detail**: 강제 갱신 시 서버 로그/호출 횟수로 fail-detail 이 신규·최근 건만 나가는지 확인 (전체 이력 재조회 없어야 함).
+5. **토스트 7일 조건**: stale 응답이라도 `lastFetchedAt` 이 7일 이내면 토스트 안 뜸 (개발자도구에서 응답 확인).
+
+- staging D1 에 `elevator_inspect_history` 데이터가 없거나 빈약하면 먼저 `?min_age=0` 강제 동기화로 부트스트랩 (공단 장애 중이라 재시도로도 실패 가능 — 그 경우 수회 반복).
+
+## 파라미터 기본값 (사용자 승인 대기 아님 — 확정)
+
+- 검사창 시작: 만료 **60일 전** / active TTL: **24h** / dormant 안전망: **30일** / fail-detail 재확인 창: **60일** / 토스트 억제: 캐시 나이 **7일** 미만.
+- 사용자가 검토 후 조정 원하면 상수만 바꾸면 되도록 각 파일 상단 **명명 상수**로 둘 것.
+
+## 배포 / 검증 흐름
+
+- staging deploy 명령(`wrangler --project-name=cbc7119-data --branch=main`)은 staging `CLAUDE.md` 에 이미 있으므로 그것을 참조.
+- 구현 → staging 도메인 배포 → 위 5개 검증 시나리오 통과 → 사용자 확인 → **그 후** prod 콘솔이 staging 검증본을 이식한다. (prod 에는 지금 이 코드가 없음.)
+
+## ⚠️ 주의 / 함정
+
+- `--project-name` 은 **반드시 `cbc7119-data`**. `cbc7119`(직원 프로그램) 절대 금지.
+- `wrangler d1 execute` 대상은 **`cha-bio-db-staging`**. prod `cha-bio-db` 금지.
+- 변경 3 에서 "미조회" 판정은 **`elevator_inspect_history` 존재 여부**로만. `elevator_inspect_fails` 부재로 판정하면 합격 검사건을 매번 재조회하게 됨 (버그).
+- 변경 1 의 신규 호기(이력 0건) 케이스는 `minAge=0` 이 아니라 `ACTIVE_MIN_AGE` 적용 — 부트스트랩 폭주 방지.
+- 상수는 파일 상단 명명 상수로. 하드코딩 산발 금지.
