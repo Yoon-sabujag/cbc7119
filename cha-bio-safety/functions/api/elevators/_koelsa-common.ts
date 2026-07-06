@@ -28,10 +28,27 @@ export function checkError(xml: string): void {
   }
 }
 
+// 재시도 파라미터 — 공단 게이트웨이 부분 장애(간헐 HTTP 404, 요청의 ~30-70%) 대응.
+// 404 실패는 0.05~2.7초로 빨라 재시도 비용 낮음. 성공률 70% 기준 3회 시도 → ~97%.
+const FETCH_MAX_ATTEMPTS = 3        // 총 시도 횟수 (재시도 최대 2회)
+const FETCH_RETRY_BACKOFF_MS = 400  // 대기 = attempt * 400ms
+
 export async function fetchKoelsaXml(url: string): Promise<string> {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`공단 API HTTP ${res.status}`)
-  const xml = await res.text()
-  checkError(xml)
-  return xml
+  let lastErr: unknown
+  for (let attempt = 1; attempt <= FETCH_MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`공단 API HTTP ${res.status}`)
+      const xml = await res.text()
+      checkError(xml)
+      return xml
+    } catch (e) {
+      // checkError throw(쿼터/키 에러 XML)도 재시도 대상 — 무해(쿼터 여유 확인됨), 단순성 우선
+      lastErr = e
+      if (attempt < FETCH_MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, FETCH_RETRY_BACKOFF_MS * attempt))
+      }
+    }
+  }
+  throw lastErr
 }

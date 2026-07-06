@@ -7,8 +7,9 @@
 // - 민원24 API(별도 핸들러) 와는 독립적 — 서로 데이터 섞지 말 것.
 //
 // 엔드포인트:
-//   GET /api/elevators/inspect-history?cert_no=2114-971              → 단일 호기 동기화 + 반환
+//   GET /api/elevators/inspect-history?cert_no=2114-971              → 단일 호기 동기화 + 반환 (검사주기 인지형 TTL)
 //   GET /api/elevators/inspect-history?cert_no=2114-971&refresh=0    → 캐시 반환(동기화 안 함)
+//   GET /api/elevators/inspect-history?cert_no=2114-971&min_age=0    → 명시 TTL(explicit) — 0 이면 즉시 강제 동기화
 //   GET /api/elevators/inspect-history?sync_all=1                    → elevators cert_no 전체 순차 동기화 (admin only)
 
 import type { Env } from '../../_middleware'
@@ -17,6 +18,17 @@ import {
   fetchFailDetails,
   yyyymmdd_to_iso,
 } from './_inspectsafe'
+
+// ── 검사주기 인지형 TTL 파라미터 ─────────────────────────────────────────
+// 검사이력은 append-only 이고 새 레코드는 valid_end 만료 언저리에만 등록됨
+// (정기검사 연 1회, 덤웨이터/화물용 2년 1회). MAX(valid_end) 만으로 다음 결과
+// 등록 시기를 예측해 평시 공단 호출을 차단한다.
+const WINDOW_BEFORE_DAYS = 60           // 검사창 시작: 유효기간 만료 60일 전
+const ACTIVE_MIN_AGE = 24 * 3600        // 검사창 안: 하루 1회
+const DORMANT_MIN_AGE = 30 * 24 * 3600  // 평시: 30일 1회 (수시검사 안전망)
+
+// fail-detail 재확인 창 — 등록 직후 정정 가능성이 있는 최근 검사건만 재조회
+const FAIL_DETAIL_RECENT_DAYS = 60
 
 // ── 타입 정의 ────────────────────────────────────────────────────────────
 
@@ -46,6 +58,7 @@ interface HistoryRow {
   address: string | null
   raw_json: string | null
   fetched_at: string
+  fails_synced_at: string | null
 }
 
 interface FailRow {
@@ -69,6 +82,19 @@ function certToElevatorNo(certNo: string): string {
 // 한 호기 검사이력 전체를 공단 API에서 가져와 D1에 UPSERT 후 요약 반환.
 async function syncOne(env: Env, elevatorNo: string): Promise<SyncOneResult> {
   const items = await fetchInspectHistory(elevatorNo)
+
+  // 기존 이력 스냅샷 (UPSERT 전) — fail-detail 증분 판정용.
+  // 판정은 elevator_inspect_history 의 fails_synced_at(상세 조회 성공 마커)로만.
+  // - elevator_inspect_fails 부재로 판정 금지: 부적합 0건 합격 검사는 원래 fails 행이
+  //   없어서 매번 재조회하게 됨 (합격 검사도 성공 조회 후 마커가 찍히므로 안전).
+  // - 마커 없이 history 존재만으로 판정하면 "history 저장 OK + 상세 조회 실패" 건이
+  //   60일 후 영구 재조회 불가 (스펙 변경 3 의사코드의 구멍 — 리뷰에서 확정, 의도적 이탈).
+  const knownRes = await env.DB.prepare(
+    'SELECT fail_cd, fails_synced_at FROM elevator_inspect_history WHERE elevator_no=?'
+  ).bind(elevatorNo).all<{ fail_cd: string; fails_synced_at: string | null }>()
+  const syncedFailCds = new Set(
+    (knownRes.results ?? []).filter(r => r.fails_synced_at != null).map(r => r.fail_cd)
+  )
 
   // ── elevator_inspect_history UPSERT ──
   for (const item of items) {
@@ -123,7 +149,17 @@ async function syncOne(env: Env, elevatorNo: string): Promise<SyncOneResult> {
   }
 
   // ── elevator_inspect_fails 동기화 (DELETE + INSERT per fail_cd, 5건 청크 병렬) ──
-  const failCds = items.map(i => i.failCd).filter(Boolean)
+  // 증분 동기화: 이력은 append-only 이므로 신규/미완 검사건 + 최근 검사건(등록 직후
+  // 정정 가능성 창)만 fail-detail 조회. 평시 동기화 = 호기당 getInspectsafeList 1회 + fail-detail 0회.
+  const cutoff = Date.now() - FAIL_DETAIL_RECENT_DAYS * 24 * 3600_000
+  const failCds = items
+    .filter(i => i.failCd)
+    .filter(i => {
+      if (!syncedFailCds.has(i.failCd)) return true          // 신규 or 상세 미완(직전 실패) — 성공까지 재시도
+      const d = yyyymmdd_to_iso(i.inspctDe)
+      return d ? new Date(d).getTime() >= cutoff : false     // 최근 건은 재확인
+    })
+    .map(i => i.failCd)
   let failTotal = 0
 
   for (let i = 0; i < failCds.length; i += 5) {
@@ -137,8 +173,12 @@ async function syncOne(env: Env, elevatorNo: string): Promise<SyncOneResult> {
     )
 
     for (const r of results) {
-      // 실패한 fail_cd 는 기존 캐시 유지(DELETE 안 함) — API 오류로 데이터 손실 방지
-      if (r.err) continue
+      // 실패한 fail_cd 는 기존 캐시 유지(DELETE 안 함) + fails_synced_at 미기록
+      // → 다음 동기화에서 자동 재시도 (자가 치유)
+      if (r.err) {
+        console.warn('fail-detail 조회 실패 (다음 동기화에서 재시도):', r.fc, r.err)
+        continue
+      }
 
       await env.DB.prepare('DELETE FROM elevator_inspect_fails WHERE fail_cd = ?')
         .bind(r.fc).run()
@@ -157,6 +197,11 @@ async function syncOne(env: Env, elevatorNo: string): Promise<SyncOneResult> {
         ).run()
         failTotal++
       }
+
+      // 상세 조회 성공 마커 — 부적합 0건(합격)도 기록해 재조회 대상에서 제외.
+      // history UPSERT 의 ON CONFLICT SET 목록에 이 컬럼이 없어 재동기화로 지워지지 않음.
+      await env.DB.prepare('UPDATE elevator_inspect_history SET fails_synced_at=? WHERE fail_cd=?')
+        .bind(new Date().toISOString(), r.fc).run()
     }
   }
 
@@ -236,13 +281,15 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const syncAll = url.searchParams.get('sync_all') === '1'
     const refresh = url.searchParams.get('refresh') !== '0'
 
-    // min_age (초) — 최근 fetched_at 이 min_age 이내이면 공단 API 호출 SKIP 후 DB 캐시만 반환
-    // 기본 21600 (6시간). 숫자 아니면 기본값. 음수는 0으로 clamp.
+    // min_age (초) — 최근 fetched_at 이 min_age 이내이면 공단 API 호출 SKIP 후 DB 캐시만 반환.
+    // 명시된 min_age 는 그대로 존중 (수동 강제 갱신 ?min_age=0 경로 보존).
+    // 미지정(또는 숫자 아님) 시 아래 단일 호기 경로에서 검사주기 인지형 TTL 로 계산.
+    // 음수는 0으로 clamp.
     const minAgeRaw = url.searchParams.get('min_age')
-    let minAge = 21600
+    let explicitMinAge: number | null = null
     if (minAgeRaw != null) {
       const parsed = parseInt(minAgeRaw, 10)
-      if (!Number.isNaN(parsed)) minAge = Math.max(0, parsed)
+      if (!Number.isNaN(parsed)) explicitMinAge = Math.max(0, parsed)
     }
 
     if (!certNo && !syncAll) {
@@ -311,6 +358,40 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       })
     }
 
+    // ── 검사주기 인지형 TTL (min_age 미지정 시) ──
+    // MAX(valid_end) 기준 검사창(만료 WINDOW_BEFORE_DAYS 일 전~) 안이면 active(24h),
+    // 밖이면 dormant(30일). 새 검사 레코드 저장 시 MAX(valid_end) 가 1~2년 미래로
+    // 점프해 자연히 dormant 복귀 (순수 파생, 상태 저장 없음).
+    // 보완(짧은 valid_end)/불합격(valid_end=null) 은 MAX 가 가까운 과거에 머물러
+    // 자동 active 유지 — disp_words 특수 분기 금지 (데이터 시맨틱 근거).
+    let minAge: number
+    let syncPolicy: 'active' | 'dormant' | 'explicit'
+    let windowStart: string | null = null
+    if (explicitMinAge != null) {
+      minAge = explicitMinAge
+      syncPolicy = 'explicit'
+    } else {
+      const mveRow = await env.DB.prepare(
+        'SELECT MAX(valid_end) as mve FROM elevator_inspect_history WHERE elevator_no=? AND valid_end IS NOT NULL'
+      ).bind(elevatorNo).first<{ mve: string | null }>()
+      const mve = mveRow?.mve ?? null
+      if (!mve) {
+        // 이력 없는 신규 호기 부트스트랩 — minAge=0 취급이 아니라 ACTIVE_MIN_AGE (폭주 방지)
+        syncPolicy = 'active'
+        minAge = ACTIVE_MIN_AGE
+      } else {
+        const windowStartMs = new Date(mve).getTime() - WINDOW_BEFORE_DAYS * 24 * 3600_000
+        windowStart = new Date(windowStartMs).toISOString().slice(0, 10)
+        if (Date.now() >= windowStartMs) {
+          syncPolicy = 'active'
+          minAge = ACTIVE_MIN_AGE
+        } else {
+          syncPolicy = 'dormant'
+          minAge = DORMANT_MIN_AGE
+        }
+      }
+    }
+
     // refresh=true — min_age TTL 로 DB 최신성 검사.
     //   DB 최신 fetched_at 이 min_age 이내면 공단 API SKIP + cached=true 반환.
     if (minAge > 0) {
@@ -329,6 +410,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
               ...loaded,
               cached: true,
               lastFetchedAt: latestFetch.fetched_at,
+              syncPolicy,
+              windowStart,
             },
           })
         }
@@ -354,6 +437,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
             stale: true,
             staleReason: String((apiError as Error).message ?? apiError).slice(0, 200),
             lastFetchedAt: latestFetch?.fetched_at ?? null,
+            syncPolicy,
+            windowStart,
           },
         })
       }
@@ -369,6 +454,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         ...loaded,
         cached: false,
         lastFetchedAt: new Date().toISOString(),
+        syncPolicy,
+        windowStart,
       },
     })
   } catch (e) {
