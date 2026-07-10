@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react'
 import { panelApi } from '../../utils/api'
 
 // Phase 25: 공용 라이브 프레임 이미지.
-// - snapshotKey 우선, 없으면 latestFrameUrl(frameUpdatedAt) 캐시버스트.
-// - ?t= 값이 frameUpdatedAt 에서 파생 -> 같은 프레임엔 URL 안정 -> 리마운트/깜빡임 없음 (risk 9).
-// - HTTP 204 / 로드 실패 -> 회색 16:9 placeholder 로 degrade, 절대 크래시 X.
-// - LIVE 배지 / 상태 텍스트는 여기서 렌더 X — consumer 가 Surface 별로 오버레이.
+// - snapshotKey(경보 고정 스냅샷) 있으면 고정 URL, 자체 폴 없음.
+// - 없으면(라이브) latest.jpg 를 status 폴과 분리해 자체 타이머로 직접 프리로드(더블버퍼) 폴.
+//   status→frameUpdatedAt→이미지 2단 체인 제거로 라이브뷰 지연 단축 (~5-6s → ~3-4s, 260711-39e).
+// - 프리로드: new Image() 로 다음 프레임 백그라운드 로드 → onload 성공분만 표시 src 교체 → 깜빡임 0.
+// - 로드 실패(204=프레임없음/네트워크) → 이전 프레임 유지 + 다음 폴 재시도. 연속 실패 초과 시 회색 placeholder.
+// - LIVE 배지 / 상태 텍스트 / 신선도는 여기서 렌더 X — consumer 가 Surface 별로 오버레이.
+
+const LIVE_POLL_MS = 1200   // 라이브 프레임 자체 폴 주기 (에이전트 업로드 실질 ~2.75s 대비 충분히 조밀)
+const MAX_FAIL_HIDE = 5     // 연속 실패 이 횟수 초과 시 placeholder (초기/미연결 degrade). 단발 실패는 이전 프레임 유지.
 
 interface LivePanelImageProps {
   frameUpdatedAt?: string | number | null
@@ -28,24 +33,59 @@ export default function LivePanelImage({
   objectClass = 'object-cover',
   onClick,
 }: LivePanelImageProps) {
-  const src = snapshotKey
-    ? panelApi.snapshotUrl(snapshotKey)
-    : panelApi.latestFrameUrl(frameUpdatedAt ?? 0)
+  const isLive = !snapshotKey
 
-  const [errored, setErrored] = useState(false)
-  useEffect(() => { setErrored(false) }, [src])
+  // 표시 중인 src — 프리로드 성공분만 교체(깜빡임 0). 경보 스냅샷 모드는 고정.
+  const [shownSrc, setShownSrc] = useState<string>(() =>
+    snapshotKey ? panelApi.snapshotUrl(snapshotKey) : panelApi.latestFrameUrl(frameUpdatedAt ?? 0),
+  )
+  const [hidden, setHidden] = useState(false)   // 연속 실패 → placeholder
+
+  // 경보 스냅샷 모드: 고정 URL (자체 폴 없음).
+  useEffect(() => {
+    if (snapshotKey) {
+      setShownSrc(panelApi.snapshotUrl(snapshotKey))
+      setHidden(false)
+    }
+  }, [snapshotKey])
+
+  // 라이브 모드: latest.jpg 자체 타이머 프리로드 폴 (status 분리). setTimeout 체인 = 로드 완료 후 다음 예약(겹침 방지).
+  useEffect(() => {
+    if (!isLive) return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+    let fails = 0
+    const tick = () => {
+      const next = panelApi.latestFrameUrl(Date.now())
+      const img = new Image()
+      img.onload = () => {
+        if (cancelled) return
+        fails = 0
+        setShownSrc(next)
+        setHidden(false)
+        timer = setTimeout(tick, LIVE_POLL_MS)
+      }
+      img.onerror = () => {
+        if (cancelled) return
+        fails += 1
+        if (fails > MAX_FAIL_HIDE) setHidden(true)   // 지속 실패(초기 미연결 등) → placeholder
+        timer = setTimeout(tick, LIVE_POLL_MS)
+      }
+      img.src = next
+    }
+    tick()
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [isLive])
 
   return (
     <div
       className={`relative w-full ${aspectClass} bg-black overflow-hidden ${className}`}
       onClick={onClick}
     >
-      {!errored ? (
+      {!hidden ? (
         <img
-          src={src}
+          src={shownSrc}
           alt={alt}
-          loading="lazy"
-          onError={() => setErrored(true)}
           className={`w-full h-full ${objectClass} ${imgClassName}`}
         />
       ) : (
