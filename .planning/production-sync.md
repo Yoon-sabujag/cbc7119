@@ -9,17 +9,32 @@
 ## 현재 상태
 
 ```
-상태:           안정 (SYNCED) — 최신: **승강기 공단 검사이력 동기화 개선**(260706-ljq, staging 2b9dfab 검증본 이식, 배포 ff4af128) — 검사주기 인지형 TTL(dormant 30d/active 24h)+재시도+fails_synced_at 증분+토스트 7일 게이트. D1 0095 prod 적용·백필 검증 완료. 직전: **화재수신반 최근이벤트 병합 + 전체이력 페이지 + 데스크톱 썸네일/in-pane**(260704-0xr/fh2, 배포 41241772) → 그 위 **3-트랙 동기 완료**(260704-hzz 이관: prod↔design↔staging 전부 적용) → **맥 에이전트 fault 감지 LIVE·검증 확인**(아래 정정). 경보 3-class(fire/equip/**fault**) 전부 **감지 LIVE**(맥 에이전트 v1.1.0-detect, DETECT_MODE=live). 실발현 0건은 실제 경보 미발생일 뿐(패널 정상). **남은 구현 없음 — 화재수신반 원격감시 end-to-end 완성.**
+상태:           안정 (SYNCED) — 최신: **화재수신반 push-first + 2초 라이브폴 + SW carve-out**(260711-0yj, staging fe58cd6 검증본 이식, 배포 ba822cc6) — OCR을 푸시 경로에서 분리(트리거 location=null 즉시 푸시 + 신규 `/api/alarm/:id/location` patch, middleware PUBLIC_PATTERN 동적 id JWT 예외)·라이브폴 2초 통일(Inspection events는 경보중만)·sw.ts NetworkOnly carve-out·폴백 '수신반 확인 필요'. `panel_alarms.location` 컬럼 prod 기존(마이그 없음). 적대 diff CLEAN + curl 스모크 401×2 PASS. 직전: **승강기 공단 검사이력 동기화 개선**(260706-ljq, staging 2b9dfab 검증본 이식, 배포 ff4af128) — 검사주기 인지형 TTL(dormant 30d/active 24h)+재시도+fails_synced_at 증분+토스트 7일 게이트. D1 0095 prod 적용·백필 검증 완료. 직전: **화재수신반 최근이벤트 병합 + 전체이력 페이지 + 데스크톱 썸네일/in-pane**(260704-0xr/fh2, 배포 41241772) → 그 위 **3-트랙 동기 완료**(260704-hzz 이관: prod↔design↔staging 전부 적용) → **맥 에이전트 fault 감지 LIVE·검증 확인**(아래 정정). 경보 3-class(fire/equip/**fault**) 전부 **감지 LIVE**(맥 에이전트 v1.1.0-detect, DETECT_MODE=live). 실발현 0건은 실제 경보 미발생일 뿐(패널 정상). **남은 구현 없음 — 화재수신반 원격감시 end-to-end 완성.**
 진행 작업:       (없음) — 3-class 감지 LIVE·color_probe 실측 검증 완료(실물 fault 사진 yellow 2.06%≥1.3 → fault 정상분류). 백엔드(fire/equip/fault)·AGENT_KEY·D1 prod(0093 CHECK+0094 location 실측)·프론트·에이전트 전부 준비. ⚠️ **정정**: 이 노트가 7/2 에 멈춰 "노란색 감지 미배포"로 오기재돼 있었음 — 실제로는 7/3 03:30 부터 3-class LIVE. 2026-07-04 실측으로 정정.
-기준 production: `2166a5ea` (260706-ljq feat, 4 files — 이후 docs-only 커밋들 후행 가능. 직전 기준 b7846e8d 위에 7b411a40 handoff docs + 2166a5ea feat) — 아래 a4e89772(GSD config)+260704-fh2(썸네일/in-pane cf08be76/c4255ac8)+260704-0xr(병합/이력 cf019347/687464ac)+260702-p22(fault 외)…
-마지막 동기화:   2026-07-04
-마지막 배포 URL: https://41241772.cbc7119.pages.dev (production alias = cbc7119.pages.dev). D1 0093(CHECK +fault)+0094(location) prod 적용 **실측 확인**. design=cbc7119-preview(origin/main 260704-io8 자동), staging=cbc7119-data(fb3f833).
+기준 production: `1e5fa89a` (260711-0yj feat, 11 files — 화재수신반 push-first + 2s livepoll + SW carve-out. 이후 docs-only 커밋 후행 가능. 직전 기준 `2166a5ea` 260706-ljq feat 4 files. 직전 기준 b7846e8d 위에 7b411a40 handoff docs + 2166a5ea feat) — 아래 a4e89772(GSD config)+260704-fh2(썸네일/in-pane cf08be76/c4255ac8)+260704-0xr(병합/이력 cf019347/687464ac)+260702-p22(fault 외)…
+마지막 동기화:   2026-07-11
+마지막 배포 URL: https://ba822cc6.cbc7119.pages.dev (260711-0yj push-first, production alias = cbc7119.pages.dev). 직전 41241772(260704). D1 0093(CHECK +fault)+0094(location) prod 적용 **실측 확인**. design=cbc7119-preview(origin/main 260704-io8 자동), staging=cbc7119-data(fb3f833).
 ⚠️ 분기/미결 잔여: **260626-b5v(반쪽 윈도우: getMarkerStatus 반쪽 게이트 + inspectionProgress export)는 prod 전용·staging 미적용** + **events.ts 720h(30일) 캡 해제 미착수**(staging-first 예정). 차후 staging 작업 시 함께.
 ```
 
 **상태 의미**:
 - `안정 (SYNCED)` — 직원 도메인이 표 마지막 entry 와 일치. 새 작업 들어와도 OK.
 - `작업중 (IN_PROGRESS)` — cherry-pick / 배포가 진행 중이거나 중단됨. 새 작업 들어오면 STOP, 먼저 진행 중인 거 마무리.
+
+---
+
+## 화재수신반 push-first + 2초 라이브폴 + SW carve-out — prod 이식 완료 (2026-07-11, 260711-0yj)
+
+**출처**: staging cbc7119-data `fe58cd6` 검증본. feat `1e5fa89a`(11파일 +58/−29), 배포 https://ba822cc6.cbc7119.pages.dev.
+
+**무엇**: OCR을 푸시 경로에서 분리(push-first). 트리거 시 `location=null`로 즉시 푸시 → 에이전트가 OCR 완료 후 신규 `POST /api/alarm/:id/location`(X-Agent-Key)로 위치 patch. 라이브뷰 폴 2초 통일(경보중), SW가 실시간 패널 경로 캐시 우회.
+
+**백엔드**: 신규 `functions/api/alarm/[id]/location.ts`(assertAgentKey·404·UPDATE·mapAlarm) + `_middleware.ts` `PUBLIC_PATTERN=[/^\/api\/alarm\/[^/]+\/location$/]`(동적 id JWT 예외 — 없으면 patch 401) + `_lib/alarm.ts` `LOCATION_LABEL` 삭제→`location: r.location` null 통과 + `_lib/push.ts` 폴백 `' · 수신반 확인 필요'` + `trigger.ts`(`body.location ?? null`)·`renotify.ts`(`row.location`).
+**프론트**: `FireAlarmPage`(2s+리터럴 '수신반 확인 필요')·`PanelEventRow`·`InspectionPage`(15s→2s 4곳, events `activeAlarm ? 2s : 30s` 2곳, 폴백 3곳)·`DashboardPage`(panel-status·alarm-active 30s→2s, 폴백 2곳, `장소 미기록` 수동이력 유지)·`sw.ts`(`NetworkOnly` carve-out: `/api/public/panel/*`·`/api/panel/status`, 일반 /api/ NetworkFirst 앞).
+
+**사전확인**: `panel_alarms.location` 컬럼 prod cha-bio-db 기존(0094, pragma count=1) — **신규 마이그레이션 없음**.
+**검증**: tsc0+build88 / 독립 적대 diff 리뷰 CLEAN(11항목 PASS·InspectionPage TDZ 안전·collateral 0·LOCATION_LABEL 0잔존) / 배포 후 curl 스모크(cbc7119.pages.dev): `POST /api/alarm/PA-TEST/location`(무인증)→`agent unauthorized` 401(PUBLIC_PATTERN 통과·핸들러 가드), `GET /api/alarm/active`(무JWT)→`인증이 필요합니다` 401(비예외 JWT 유지).
+**범위밖**: 에이전트 `~/panel-agent/agent.py` §1-A(색 확정 즉시 trigger location=null + OCR 비동기 스레드 → 완료 시 patch POST) — prod 에이전트 직접, 이 repo 아님. events.ts 720h 캡 해제·b5v 재적용은 staging-first(이 콘솔 아님).
 
 ---
 
