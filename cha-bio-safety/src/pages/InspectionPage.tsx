@@ -4115,19 +4115,19 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const { data: status } = useQuery({
     queryKey: ['panel-status'],
     queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
-    refetchInterval: 15_000,
+    refetchInterval: 2_000,
     retry: false,
   })
   const { data: activeAlarm } = useQuery({
     queryKey: ['alarm-active'],
     queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
-    refetchInterval: 15_000,
+    refetchInterval: 2_000,
     retry: false,
   })
   const { data: events = [] } = useQuery({
     queryKey: ['alarm-events'],
     queryFn: async () => { try { return await alarmApi.getEvents(48) } catch { return [] as Alarm[] } },
-    refetchInterval: 30_000,
+    refetchInterval: activeAlarm ? 2_000 : 30_000,
     retry: false,
   })
   // 자동감지(events) + 수동기록 병합 뷰 (최근 48시간) — '감지중 N' 카운트는 events(status) 유지.
@@ -4309,7 +4309,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
                   <span className={`w-[7px] h-[7px] rounded-full ${liveDisp.dot} shrink-0`} style={blinkStyle} />
                   <span className={`${liveDisp.text} font-extrabold`}>{liveDisp.label}</span>
                   <span className="text-text-tertiary">·</span>
-                  <span>{activeAlarm?.location ?? '위치 확인중'}</span>
+                  <span>{activeAlarm?.location ?? '수신반 확인 필요'}</span>
                   <span className="text-text-tertiary">·</span>
                   <span>{activeAlarm?.detectedAt ?? ''}</span>
                 </>
@@ -4794,19 +4794,19 @@ function DesktopInspectionView({
   const { data: panelStatus } = useQuery({
     queryKey: ['panel-status'],
     queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
-    refetchInterval: 15_000,
+    refetchInterval: 2_000,
     retry: false,
   })
   const { data: activeAlarm } = useQuery({
     queryKey: ['alarm-active'],
     queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
-    refetchInterval: 15_000,
+    refetchInterval: 2_000,
     retry: false,
   })
   const { data: panelEvents = [] } = useQuery({
     queryKey: ['alarm-events'],
     queryFn: async () => { try { return await alarmApi.getEvents(48) } catch { return [] as Alarm[] } },
-    refetchInterval: 30_000,
+    refetchInterval: activeAlarm ? 2_000 : 30_000,
     retry: false,
   })
   // 자동감지(panelEvents) + 수동기록 병합 뷰 (최근 48시간) — '감지중 N' 카운트는 panelEvents(status) 유지.
@@ -5209,7 +5209,7 @@ function DesktopInspectionView({
                       <span className={`w-[7px] h-[7px] rounded-full ${panelLiveDisp.dot} shrink-0`} style={paBlink} />
                       <span className={`${panelLiveDisp.text} font-extrabold`}>{panelLiveDisp.label}</span>
                       <span className="text-text-tertiary">·</span>
-                      <span>{activeAlarm?.location ?? '위치 확인중'}</span>
+                      <span>{activeAlarm?.location ?? '수신반 확인 필요'}</span>
                       <span className="text-text-tertiary">·</span>
                       <span>{activeAlarm?.detectedAt ?? ''}</span>
                     </>
@@ -5488,7 +5488,7 @@ function DesktopInspectionView({
               <Flame size={44} className="text-danger" />
             </div>
             <div className="am-kind text-[24px] font-extrabold text-danger">화재 발생</div>
-            <div className="am-loc text-[46px] font-extrabold text-text-primary leading-[1.05] my-2">{activeAlarm.location ?? '위치 확인중'}</div>
+            <div className="am-loc text-[46px] font-extrabold text-text-primary leading-[1.05] my-2">{activeAlarm.location ?? '수신반 확인 필요'}</div>
             <div className="am-time font-mono tabular-nums text-body-sm text-text-tertiary">{activeAlarm.detectedAt}</div>
             <div className="am-sub text-body-sm text-text-secondary mt-2">현장 확인 및 조치 후 화재수신반 페이지에서 초안을 보완하세요</div>
             <div className="flex gap-2.5 mt-7">

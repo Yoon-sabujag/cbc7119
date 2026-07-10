@@ -27,7 +27,7 @@ export default function FireAlarmPage() {
       }
     },
     retry: false,
-    refetchInterval: 15_000,
+    refetchInterval: 2_000,
   })
 
   // 배경 스크롤 잠금 (SideMenu 패턴: overflow:hidden + touchmove 차단)
@@ -168,7 +168,7 @@ export default function FireAlarmPage() {
 
         {/* fa-loc */}
         <div className="text-[40px] font-extrabold leading-tight">
-          {alarm?.location ?? '장소 확인 필요'}
+          수신반 확인 필요
         </div>
 
         {/* fa-time */}

@@ -2,7 +2,7 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 import { clientsClaim } from 'workbox-core'
 import { registerRoute } from 'workbox-routing'
-import { CacheFirst, NetworkFirst } from 'workbox-strategies'
+import { CacheFirst, NetworkFirst, NetworkOnly } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 
 declare let self: ServiceWorkerGlobalScope
@@ -19,6 +19,13 @@ registerRoute(
     cacheName: 'floorplan-cache',
     plugins: [new ExpirationPlugin({ maxEntries: 30, maxAgeSeconds: 30 * 24 * 3600 })],
   })
+)
+
+// 화재수신반 실시간 경로는 SW 캐시 우회 (2초 폴 신선도 보장) — 일반 /api/ NetworkFirst 보다 먼저 매칭.
+registerRoute(
+  ({ request, url }) => request.method === 'GET' &&
+    (url.pathname.startsWith('/api/public/panel/') || url.pathname === '/api/panel/status'),
+  new NetworkOnly()
 )
 
 // 런타임 캐시: API GET (NetworkFirst) — vite.config.ts workbox.runtimeCaching에서 이전

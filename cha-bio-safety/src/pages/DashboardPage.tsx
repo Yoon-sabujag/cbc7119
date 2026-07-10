@@ -78,7 +78,7 @@ function PanelStateChip({ activeAlarm, maintOn, maintLabel, onClick }: {
           style={{ animation: 'blink 1s steps(1,end) infinite' }}
         />
         <Flame size={12} />
-        화재 경보 · {activeAlarm.location ?? '장소 확인'}
+        화재 경보 · {activeAlarm.location ?? '수신반 확인 필요'}
       </div>
     )
   }
@@ -187,13 +187,13 @@ export default function DashboardPage() {
     queryKey: ['panel-status'],
     queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
     staleTime: 30_000,
-    refetchInterval: 30_000,
+    refetchInterval: 2_000,
     retry: false,
   })
   const { data: alarmActive } = useQuery({
     queryKey: ['alarm-active'],
     queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
-    refetchInterval: 30_000,
+    refetchInterval: 2_000,
     retry: false,
   })
   const activeAlarm = alarmActive ?? panelStatus?.activeAlarm ?? null
@@ -498,7 +498,7 @@ export default function DashboardPage() {
                     <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
                     <span className="text-danger font-bold">화재 발생</span>
                     <span className="text-text-tertiary">·</span>
-                    <span className="truncate">{activeAlarm.location ?? '장소 확인'}</span>
+                    <span className="truncate">{activeAlarm.location ?? '수신반 확인 필요'}</span>
                     <span className="text-text-tertiary">·</span>
                     <span className="font-mono tabular-nums shrink-0">{activeAlarm.detectedAt}</span>
                   </>

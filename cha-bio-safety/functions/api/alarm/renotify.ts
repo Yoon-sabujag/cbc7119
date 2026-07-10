@@ -1,7 +1,7 @@
 import type { Env } from '../../_middleware'
 import { assertAgentKey } from '../../_lib/agent'
 import { pushToWorkingStaff, buildPanelPayload, logTelemetry } from '../../_lib/push'
-import { LOCATION_LABEL, type AlarmRow } from '../../_lib/alarm'
+import { type AlarmRow } from '../../_lib/alarm'
 import { computeMaint } from '../../_lib/maint'
 import { nowKST } from '../../utils/kst'
 
@@ -55,7 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const newCount = row.push_count + 1
     const audienceDate = evalDate ?? nowKST()
     const dateStr = row.detected_at.slice(0, 10)
-    const payload = buildPanelPayload({ alarmType: 'fire', alarmId: row.id, location: row.location ?? LOCATION_LABEL, detectedAt: row.detected_at })
+    const payload = buildPanelPayload({ alarmType: 'fire', alarmId: row.id, location: row.location, detectedAt: row.detected_at })
     const sent = await pushToWorkingStaff(env, audienceDate, dateStr, payload)
     await logTelemetry(env, 'panel-renotify', { detail: JSON.stringify({ alarmId: row.id, newCount, sent }) })
     return Response.json({ success: true, data: { pushed: true, pushCount: newCount, done: newCount >= 3 } })

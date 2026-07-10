@@ -29,7 +29,7 @@ export function PanelEventRow({ item, thumb }: { item: PanelEventItem; thumb?: b
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-mono text-[11.5px] text-text-tertiary tabular-nums">{item.time}</span>
-          <span className="text-[13px] font-semibold text-text-primary">{item.location ?? '위치 미상'}</span>
+          <span className="text-[13px] font-semibold text-text-primary">{item.location ?? '수신반 확인 필요'}</span>
         </div>
         {item.cause && <div className="text-caption text-text-tertiary mt-0.5">{item.cause}</div>}
       </div>

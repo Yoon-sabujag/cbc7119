@@ -209,7 +209,7 @@ export function buildPanelPayload(a: {
   detectedAt: string
 }): Record<string, unknown> & { title: string; body: string; type: string } {
   const t = a.alarmType
-  const loc = a.location ? ` · ${a.location}` : ''
+  const loc = a.location ? ` · ${a.location}` : ' · 수신반 확인 필요'
   const title = t === 'fire' ? '🔴 화재수신반 경보' : t === 'fault' ? '🟡 화재수신반 고장' : '설비 동작 감지'
   const bodyHead = t === 'fire' ? '화재 신호 감지' : t === 'fault' ? '고장 신호 감지' : '설비 동작 감지'
   return {

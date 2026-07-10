@@ -2,7 +2,7 @@ import type { Env } from '../../_middleware'
 import { assertAgentKey } from '../../_lib/agent'
 import { computeMaint } from '../../_lib/maint'
 import { pushToWorkingStaff, buildPanelPayload, logTelemetry } from '../../_lib/push'
-import { nanoid, LOCATION_LABEL, type AlarmRow } from '../../_lib/alarm'
+import { nanoid, type AlarmRow } from '../../_lib/alarm'
 import { nowKST, nowKstSql } from '../../utils/kst'
 
 interface TriggerBody {
@@ -80,7 +80,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     }
 
     // 4) 1차 push (경보 시각 실재실 근무자).
-    const payload = buildPanelPayload({ alarmType: type, alarmId, location: body.location ?? LOCATION_LABEL, detectedAt: body.detectedAt })
+    const payload = buildPanelPayload({ alarmType: type, alarmId, location: body.location ?? null, detectedAt: body.detectedAt })
     const sent = await pushToWorkingStaff(env, kst, dateStr, payload)
     await logTelemetry(env, 'panel-trigger', { detail: JSON.stringify({ alarmId, type, sent }) })
 

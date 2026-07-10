@@ -28,6 +28,8 @@ const PUBLIC = ['/api/auth/login', '/api/health', '/api/holidays/sync', '/api/pu
   // 화재수신반 에이전트 인입 (JWT 예외 — 각 핸들러가 X-Agent-Key 로 보호). active/events/ack/status/maint 는 JWT 유지.
   '/api/panel/frame', '/api/alarm/trigger', '/api/alarm/clear', '/api/alarm/heartbeat', '/api/alarm/renotify']
 const PUBLIC_PREFIX = ['/api/uploads/', '/api/public/', '/api/holidays', '/api/_telemetry/']
+// 동적 id 를 포함한 에이전트 인입 경로 (JWT 예외 — 핸들러가 X-Agent-Key 로 보호).
+const PUBLIC_PATTERN = [/^\/api\/alarm\/[^/]+\/location$/]
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
   const { request, env, next } = ctx
@@ -42,7 +44,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   if (request.method === 'OPTIONS')
     return new Response(null, { status:204, headers:cors })
 
-  if (!url.pathname.startsWith('/api/') || PUBLIC.includes(url.pathname) || PUBLIC_PREFIX.some(p => url.pathname.startsWith(p))) {
+  if (!url.pathname.startsWith('/api/') || PUBLIC.includes(url.pathname) || PUBLIC_PREFIX.some(p => url.pathname.startsWith(p)) || PUBLIC_PATTERN.some(re => re.test(url.pathname))) {
     const res = await next()
     Object.entries(cors).forEach(([k,v]) => res.headers.set(k,v))
     return res
