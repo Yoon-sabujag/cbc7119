@@ -58,11 +58,48 @@ deploy: https://4700a572.cbc7119.pages.dev
 **뒤처리**: 테스트 경보 2행 삭제 + R2 스냅샷 삭제. `fire_alarm_records` 오염 0
 (`fire` 대신 `equip`/`fault` 사용 — fire 는 자동초안 INSERT + 무장을 유발).
 
-## 다음 단계 (이 콘솔 범위 밖)
+## 4단계 cron 워치독 (`938ab596`, 배포 완료)
 
-1. **에이전트 콘솔에 통보** → `BACKEND_V2=1` 플립 가능 (§6.1 통과).
-2. 2단계: 맥미니 에이전트 v1.4.1 재시작 (`MONITOR_TELEMETRY=1`, `BACKEND_V2=0`, `SNAPSHOT=0`).
-3. 4단계 cron 워치독(`cbc-cron-worker`) — **미착수**(이번 범위 제외).
+`cbc-cron-worker` 기존 5분 틱에 `handlePanelWatchdog` 얹음(새 cron 표현식 추가 없음)
++ `handleHeartbeatCleanup`(14일 보존, 백업 틱). 하트비트 3분 초과 / `frame_starved_sec ≥ 30`
+/ 감지 3분 정지 → 관리자 push. `watchdog_notified_at` 중복 억제.
+**오탐 방지**: `frame_starved_sec=null` → 푸시 안 함(M1) · `detect_mode='off'` → 감지정지 푸시 안 함(S9).
+
+## 설정 진입점 (`6f2d5e77`) — 사용자 요청
+
+핸드오프 §2.1 은 "메뉴 비연결"이었으나 사용자가 진입점 추가로 결정.
+설정 → **시스템**(admin 전용 섹션) → 화재수신반 에이전트 모니터.
+UI 노출 범위만 바뀜 — 데이터 계약(SPEC) 무영향. 게이트 3중 유지(메뉴/AdminAuth/서버 403).
+
+## ✅ 2단계 완료 + UAT (2026-07-14)
+
+에이전트 콘솔 통보 → 맥미니에서 `feat/monitoring-telemetry` 체크아웃 + `update.command` 재시작 완료.
+**계측 실측**(D1): `detect_mode=live` · `matcher_loaded=1` · `frame_lag_max_ms=481` ·
+`frame_starved_sec=0` · `analyze_ok=470` · `upload_ok=91` · `rgy` 값 유입 ·
+`frame_captured_at` 갱신(= `X-Frame-CapturedAt` 헤더 실제 파싱됨).
+→ 사각지대 4종(캡처보드 수신·프레임 지연·analyze 실패·업로드 실패) 동시 해소.
+→ cron 워치독의 캡처보드 감시가 **실제로 무장**됨(`frame_starved_sec` 이 더는 null 이 아니다).
+
+**UAT ✅ (사용자 확인)**: 파이프라인 신호등 — OCR 제외 전부 초록 / 프레임 지연 차트 정상 /
+라이브 프레임 정상 / R2 예산 정상. **OCR 회색이 정상** — 증거가 붙은 경보가 아직 없으므로
+"판정 불가"여야 한다(초록이면 무증거를 정상으로 칠하는 버그).
+
+## ⚠️ 미결 — 다음 재시작 때 같이 처리
+
+1. **`AGENT_VERSION` 이 옛 값으로 보고됨** — 맥미니 `config.env` 에 `AGENT_VERSION=1.3.0-pushfirst`
+   가 명시돼 있어 `agent.py` 의 기본값(`1.4.1-telemetry`)을 덮어쓴다. 코드는 v1.4.1 이 맞지만
+   (구 에이전트는 계측 필드를 보낼 수 없다) **버전 문자열이 거짓**이라 장애 진단 시 오독을 유발한다.
+   → `config.env` 에서 `AGENT_VERSION=1.4.1-telemetry` 로 수정.
+2. **2.5단계 `BACKEND_V2=1`** — §6.1 실증 통과로 전제조건 충족. 켜면 위치 미확정 경보의 OCR 증거가
+   들어온다(사각지대 #2 완전 해소). SPEC 은 2단계 수 일 안정 후 권고.
+3. **3단계 `SNAPSHOT_ON_ALARM=1`** — C2 게이팅 검증 완료로 전제조건 충족(선택).
+
+1+2 는 **한 번의 재시작으로 함께** 처리하는 것을 권고(재시작 = 감시 공백).
+
+## 별건 (핸드오프 §11)
+
+**화재 재발송(renotify)이 격발되지 않는다** — `trigger.ts` 가 무장만 하고 `/api/alarm/renotify`
+호출부가 에이전트·프론트 어디에도 없다. 모니터 화면의 `pushCount` 로 보이게만 해둠. 수정은 별건.
 
 ## 별건 (핸드오프 §11)
 
