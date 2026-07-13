@@ -120,25 +120,6 @@ export interface LegalFinding {
 // ── Elevator Inspection Certs ───────────────────────────
 export type ElevatorInspectType = 'regular' | 'special' | 'detailed'
 export type ElevatorInspectionResult = 'pass' | 'conditional' | 'fail'
-export type ElevatorFindingStatus = 'open' | 'resolved'
-
-export interface ElevatorInspectionFinding {
-  id: string
-  inspectionId: string
-  description: string
-  location: string | null
-  photoKey: string | null
-  resolutionMemo: string | null
-  resolutionPhotoKey: string | null
-  status: ElevatorFindingStatus
-  resolvedAt: string | null
-  resolvedBy: string | null
-  resolvedByName: string | null
-  createdBy: string
-  createdByName: string | null
-  createdAt: string
-}
-
 export interface ElevatorNextInspection {
   elevatorId: string
   elevatorNumber: number

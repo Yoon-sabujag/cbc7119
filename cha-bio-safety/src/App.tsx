@@ -35,7 +35,6 @@ const StaffServicePage        = lazy(() => import('./pages/StaffServicePage'))
 const LegalPage               = lazy(() => import('./pages/LegalPage'))
 const LegalFindingsPage       = lazy(() => import('./pages/LegalFindingsPage'))
 const LegalFindingDetailPage  = lazy(() => import('./pages/LegalFindingDetailPage'))
-const ElevatorFindingDetailPage = lazy(() => import('./pages/ElevatorFindingDetailPage'))
 const AnnualPlanPage            = lazy(() => import('./pages/AnnualPlanPage'))
 const DocumentsPage             = lazy(() => import('./pages/DocumentsPage'))
 const WorkLogPage               = lazy(() => import('./pages/WorkLogPage'))
@@ -71,7 +70,7 @@ const NAV_PAD_BOTTOM = IS_ANDROID
   : 'calc(54px + var(--sab, 0px))'
 
 // 모바일: 자체 헤더가 있는 페이지는 nav 숨김
-const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/elevator/findings', '/annual-plan', '/fire-alarm', '/fire-alarm-history']
+const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/annual-plan', '/fire-alarm', '/fire-alarm-history']
 
 // 데스크톱: 로그인/스플래시 + 경보 풀스크린만 nav 숨김 — 나머지는 모두 사이드바 표시
 const DESKTOP_NO_NAV_PATHS = ['/', '/login', '/fire-alarm']
@@ -119,7 +118,6 @@ function Layout() {
     && !noNavPaths.includes(location.pathname)
     && !location.pathname.match(/^\/remediation\/.+/)
     && !location.pathname.match(/^\/legal\/.+/)
-    && !location.pathname.match(/^\/elevator\/findings\/.+/)
 
   const [sideOpen, setSideOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -274,7 +272,6 @@ function Layout() {
               <Route path="/fire-alarm"    element={<Auth><FireAlarmPage /></Auth>} />
               <Route path="/fire-alarm-history" element={<Auth><FireAlarmHistoryPage /></Auth>} />
               <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
-              <Route path="/elevator/findings/:fid" element={<Auth><ElevatorFindingDetailPage /></Auth>} />
               <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />
               <Route path="/remediation/:recordId" element={<Auth><RemediationDetailPage /></Auth>} />
               <Route path="/staff-service" element={<Auth><StaffServicePage /></Auth>} />
