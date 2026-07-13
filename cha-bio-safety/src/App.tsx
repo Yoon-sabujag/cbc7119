@@ -45,6 +45,7 @@ const HandoverPage              = lazy(() => import('./pages/HandoverPage'))
 const WorkListPage              = lazy(() => import('./pages/WorkListPage'))
 const FireAlarmPage             = lazy(() => import('./pages/FireAlarmPage'))
 const FireAlarmHistoryPage      = lazy(() => import('./pages/FireAlarmHistoryPage'))
+const PanelMonitorPage          = lazy(() => import('./pages/PanelMonitorPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -53,6 +54,16 @@ const qc = new QueryClient({
 function Auth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+}
+// 관리자 전용 라우트 게이트. 미로그인 → /login, 비관리자 → /dashboard (404 대신 조용히 되돌림).
+// 주의: 프론트 게이트는 UI 통제일 뿐이다(localStorage 편집으로 뚫린다).
+// 실제 데이터 보호는 서버가 한다 — /api/panel/agent-history 가 role !== 'admin' → 403.
+// 둘 다 건다: 서버만 있으면 화면이 빈 채로 403 을 뿌리고, 프론트만 있으면 데이터가 샌다.
+function AdminAuth({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, staff } = useAuthStore()
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (staff?.role !== 'admin') return <Navigate to="/dashboard" replace />
+  return <>{children}</>
 }
 function Loader() {
   return (
@@ -70,13 +81,13 @@ const NAV_PAD_BOTTOM = IS_ANDROID
   : 'calc(54px + var(--sab, 0px))'
 
 // 모바일: 자체 헤더가 있는 페이지는 nav 숨김
-const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/annual-plan', '/fire-alarm', '/fire-alarm-history']
+const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/annual-plan', '/fire-alarm', '/fire-alarm-history', '/panel-monitor']
 
 // 데스크톱: 로그인/스플래시 + 경보 풀스크린만 nav 숨김 — 나머지는 모두 사이드바 표시
 const DESKTOP_NO_NAV_PATHS = ['/', '/login', '/fire-alarm']
 
 // 데스크톱: 페이지가 자체 풍부한 헤더(액션 버튼 등)를 가져 App.tsx 의 제목 헤더가 중복인 경로
-const DESKTOP_HEADER_HIDE_PATHS = ['/elevator', '/div', '/floorplan', '/workshift', '/fire-alarm-history']
+const DESKTOP_HEADER_HIDE_PATHS = ['/elevator', '/div', '/floorplan', '/workshift', '/fire-alarm-history', '/panel-monitor']
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': '대시보드',
@@ -271,6 +282,8 @@ function Layout() {
               <Route path="/inspection/qr" element={<Auth><QRScanPage /></Auth>} />
               <Route path="/fire-alarm"    element={<Auth><FireAlarmPage /></Auth>} />
               <Route path="/fire-alarm-history" element={<Auth><FireAlarmHistoryPage /></Auth>} />
+              {/* 메뉴 비연결 + admin 전용. URL 을 아는 관리자만 진입 (MONITORING-SPEC §6). */}
+              <Route path="/panel-monitor" element={<AdminAuth><PanelMonitorPage /></AdminAuth>} />
               <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
               <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />
               <Route path="/remediation/:recordId" element={<Auth><RemediationDetailPage /></Auth>} />

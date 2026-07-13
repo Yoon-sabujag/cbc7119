@@ -746,6 +746,19 @@ export interface Alarm {
   location?: string | null
   cause?: string | null
   action?: string | null
+  // ── 0096 신규 (MONITORING-SPEC.md §3.7). 구 경보 행은 전부 null ──
+  pushCount?: number
+  redRatio?: number | null
+  greenRatio?: number | null
+  yellowRatio?: number | null
+  ocr?: {
+    raw: string | null
+    score: number | null          // legacy 폴백이면 null (0 아님 — 0 은 '매칭 완전 실패')
+    confidence: string | null     // high|low|none
+    method: string | null         // exact|prefix|fuzzy|legacy|empty
+    ms: number | null
+    lines: { badge: string[]; wide: string[] }
+  }
 }
 
 // 이벤트 목록 행 = Alarm 과 동일 shape
@@ -758,10 +771,49 @@ export interface PanelStatus {
   lastHeartbeatAt: string | null
   activeAlarm: AlarmSummary | null
   maint: MaintState
+  // ── 0096 신규 (MONITORING-SPEC.md §6-①). null = 구 에이전트/미지원 → 화면은 회색(초록 금지) ──
+  agentVersion?: string | null
+  uptimeSec?: number | null
+  detectMode?: string | null       // off|dryrun|live
+  frameCapturedAt?: string | null
+  frameLagMs?: number | null
+  frameLagMaxMs?: number | null
+  frameStarvedSec?: number | null
+  lastDetectOkAt?: string | null
+  matcherLoaded?: boolean | null
+}
+
+// 에이전트 텔레메트리 시계열 1포인트 (agent-history). 모든 값 null 가능 = 결측(선 끊김, 0 아님).
+export interface AgentHistoryPoint {
+  at: string
+  agentVersion: string | null
+  detectMode: string | null
+  uptimeSec: number | null
+  frameLagMs: number | null
+  frameLagMaxMs: number | null     // ★ 80초 스파이크는 이 필드로만 보인다 (즉시값은 22회 중 1회 표본)
+  frameStarvedSec: number | null
+  matcherLoaded: boolean | null
+  rAvg: number | null; gAvg: number | null; yAvg: number | null
+  // 델타(이 60초 구간의 발생량. 재시작 구간의 음수는 0)
+  analyzeFail: number | null
+  uploadOk: number | null; uploadFail: number | null
+  snapshotOk: number | null; snapshotFail: number | null
+  http401: number | null; http403: number | null; http5xx: number | null; httpOther: number | null
+  ocrFail: number | null
+}
+
+export interface AgentHistory {
+  points: AgentHistoryPoint[]
+  gaps: { from: string; to: string; sec: number }[]   // heartbeat 간격 >180초 = 죽어 있던 시간
+  uptimePct: number | null
+  restarts: { at: string }[]
 }
 
 export const panelApi = {
   getStatus: (): Promise<PanelStatus> => api.get<PanelStatus>('/panel/status'),
+  // 관리자 전용 — 비관리자는 403. /panel-monitor 에서만 쓴다.
+  getAgentHistory: (hours = 24): Promise<AgentHistory> =>
+    api.get<AgentHistory>(`/panel/agent-history?hours=${hours}`),
   getMaint:  (): Promise<MaintState>  => api.get<MaintState>('/panel/maint'),
   setMaint:  (body: { enabled: boolean; reason?: string; confirmAlarm?: boolean }): Promise<MaintState> =>
     api.put<MaintState>('/panel/maint', body),

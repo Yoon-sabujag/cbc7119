@@ -1,0 +1,659 @@
+import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft } from 'lucide-react'
+import { panelApi, alarmApi, type AgentHistoryPoint, type AlarmEvent } from '../utils/api'
+import LivePanelImage from '../components/panel/LivePanelImage'
+import { freshnessLabel, watchdogLabel, parseKst } from '../components/panel/freshness'
+
+// 화재수신반 에이전트 원격 모니터 (/panel-monitor · 관리자 전용, 메뉴 비연결).
+// 계약 SSOT: panel-agent/MONITORING-SPEC.md §6 · 시안 승인 2026-07-14.
+//
+// ★ 이 화면의 제1원칙 (SPEC §6-② 회색 규칙):
+//   근거 필드가 null 이면 무조건 회색("미지원/판정 불가")이다. 절대 초록으로 칠하지 않는다.
+//   무증거를 정상으로 오독하는 것이 이 프로젝트가 고치려던 원죄다.
+//   - matcherLoaded=false  → OCR 신호등 무조건 빨강 (ocr_confidence 무시. legacy 는 화재 위치를 못 잡는다)
+//   - detectMode='off'     → 감지 신호등 회색(꺼짐). 빨강 아님 (의도된 설정이지 고장이 아니다)
+//   - snapshotOk+Fail == 0 → 스냅샷 타일 회색(시도 없음). 초록 아님
+
+type Tone = 'ok' | 'warn' | 'bad' | 'na' | 'off' | 'unsup'
+
+const GRAY_BADGE: Record<string, string> = {
+  na: '판정 불가', off: '꺼짐 (DETECT_MODE=off)', unsup: '미지원 (필드 null)',
+}
+
+function fmtUptime(sec: number | null | undefined): string {
+  if (sec == null) return '—'
+  const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60)
+  if (d > 0) return `${d}일 ${String(h).padStart(2, '0')}시간`
+  if (h > 0) return `${h}시간 ${m}분`
+  return `${m}분`
+}
+function agoLabel(at: string | null | undefined): string {
+  const ms = parseKst(at ?? null)
+  if (ms == null) return '—'
+  const s = Math.round((Date.now() - ms) / 1000)
+  if (s < 60) return `${s}초 전`
+  if (s < 3600) return `${Math.round(s / 60)}분 전`
+  return `${Math.round(s / 3600)}시간 전`
+}
+const n0 = (v: number | null | undefined) => (v == null ? '—' : v.toLocaleString())
+
+// 구간 델타 합 (null 은 결측 → 합산에서 제외하되, 전부 null 이면 null 을 유지한다)
+function sumDelta(points: AgentHistoryPoint[], pick: (p: AgentHistoryPoint) => number | null): number | null {
+  const vals = points.map(pick).filter((v): v is number => v != null)
+  return vals.length === 0 ? null : vals.reduce((a, b) => a + b, 0)
+}
+
+export default function PanelMonitorPage() {
+  const nav = useNavigate()
+
+  const statusQ = useQuery({
+    queryKey: ['panel-status-monitor'],
+    queryFn: panelApi.getStatus,
+    refetchInterval: 5000,
+  })
+  const histQ = useQuery({
+    queryKey: ['agent-history', 24],
+    queryFn: () => panelApi.getAgentHistory(24),
+    refetchInterval: 60000,
+  })
+  const eventsQ = useQuery({
+    queryKey: ['panel-events-monitor'],
+    queryFn: () => alarmApi.getEvents(48),
+    refetchInterval: 60000,
+  })
+
+  const s = statusQ.data
+  const hist = histQ.data
+  const points = hist?.points ?? []
+  const events = eventsQ.data ?? []
+
+  // 최근 1시간 구간(heartbeat 60초 주기 → 60포인트)
+  const last1h = useMemo(() => points.slice(-60), [points])
+
+  // 최근 경보 = OCR 신호등 판정 근거 (BACKEND_V2=0 이면 위치 확정 경보만 증거를 갖는다)
+  const lastAlarm: AlarmEvent | undefined = events[0]
+
+  // ── ② 파이프라인 4단계 신호등 (SPEC §6-②) ──
+  const lights = useMemo(() => {
+    const starved = s?.frameStarvedSec
+    const lagMax = s?.frameLagMaxMs
+    const detectMode = s?.detectMode
+    const matcher = s?.matcherLoaded
+
+    // 1. 캡처보드 수신 — frameStarvedSec 이 유일한 근거
+    let cap: { s: Tone; v: string; why: string; rule: string }
+    if (starved == null) {
+      cap = { s: 'unsup', v: '판정 불가', why: '<b>frameStarvedSec = null</b> — 구 에이전트이거나 MONITOR_TELEMETRY=0. 계측 필드가 오지 않는다.',
+        rule: 'null → 회색. 0 으로 간주해 초록 칠하기 금지' }
+    } else if (starved >= 30) {
+      cap = { s: 'bad', v: '무신호', why: `마지막 프레임 <b>${starved}초 전</b> — heartbeat 는 살아 있으나 새 프레임이 없다. HDMI / 캡처보드 확인. <b>현재 화재를 감지할 수 없다.</b>`,
+        rule: 'frameStarvedSec ≥ 30s → 위험 (5s 초록경계 / 10s 로컬로그 / 30s 푸시)' }
+    } else if (starved >= 5) {
+      cap = { s: 'warn', v: '수신 지연', why: `마지막 프레임 <b>${starved}초 전</b> · 60초 최대 지연 <b>${n0(lagMax)}ms</b>`,
+        rule: '5s ≤ frameStarvedSec < 30s → 주의' }
+    } else if (lagMax != null && lagMax >= 10000) {
+      cap = { s: 'bad', v: '업로드 백로그', why: `프레임은 들어오는데(기아 <b>${starved}초</b>) 업로드가 밀린다 · 즉시값 <b>${n0(s?.frameLagMs)}ms</b> · <b>60초 최대 ${n0(lagMax)}ms</b>`,
+        rule: 'frameLagMaxMs ≥ 10,000ms → 위험 (즉시값 단독 판정 금지)' }
+    } else {
+      cap = { s: lagMax != null && lagMax >= 2000 ? 'warn' : 'ok', v: '정상 수신',
+        why: `마지막 프레임 <b>${starved}초 전</b> · 지연 즉시값 <b>${n0(s?.frameLagMs)}ms</b> · 60초 최대 <b>${n0(lagMax)}ms</b>`,
+        rule: 'frameStarvedSec < 5s · frameLagMaxMs < 2,000ms' }
+    }
+
+    // 2. 업로드(R2) — 라이브 프레임 경로 한정
+    const upFail1h = sumDelta(last1h, p => p.uploadFail)
+    const upOk1h = sumDelta(last1h, p => p.uploadOk)
+    const h401 = sumDelta(last1h, p => p.http401) ?? 0
+    const h403 = sumDelta(last1h, p => p.http403) ?? 0
+    let up: { s: Tone; v: string; why: string; rule: string }
+    if (upFail1h == null && upOk1h == null) {
+      up = { s: 'unsup', v: '미지원', why: '에이전트가 <b>uploadOk / uploadFail / httpErr</b> 필드를 보내지 않는다(null).',
+        rule: '필드 null(구 에이전트) → 회색 "미지원". 0 으로 간주 금지' }
+    } else if ((upFail1h ?? 0) >= 4 || h401 > 0 || h403 > 0) {
+      up = { s: 'bad', v: '업로드 실패', why: `최근 1h 실패 <b>${n0(upFail1h)}</b> · HTTP 401 <b>${h401}</b> · 403(WAF) <b>${h403}</b>`,
+        rule: 'uploadFail ≥ 4 또는 401/403 > 0 → 위험 (라이브 경로 한정)' }
+    } else if ((upFail1h ?? 0) >= 1) {
+      up = { s: 'warn', v: '간헐 실패', why: `최근 1h 실패 <b>${n0(upFail1h)}</b> · 재시도로 복구됨 · 성공 <b>${n0(upOk1h)}</b>`,
+        rule: 'uploadFail 델타 1..3 → 주의' }
+    } else {
+      up = { s: 'ok', v: '정상', why: `최근 1h 실패 <b>0</b> · HTTP 401/403 <b>0</b> · 성공 <b>${n0(upOk1h)}</b>`,
+        rule: 'uploadFail 델타 0 · httpErr 0 (라이브 경로 한정)' }
+    }
+
+    // 3. 감지 — detectMode=off 는 회색(꺼짐)이지 빨강이 아니다 (S9)
+    const detectAgoMs = s?.lastDetectOkAt ? Date.now() - (parseKst(s.lastDetectOkAt) ?? 0) : null
+    const detectAgoSec = detectAgoMs == null ? null : Math.round(detectAgoMs / 1000)
+    const analyzeFail1h = sumDelta(last1h, p => p.analyzeFail)
+    let det: { s: Tone; v: string; why: string; rule: string }
+    if (detectMode === 'off') {
+      det = { s: 'off', v: '꺼짐', why: '<b>DETECT_MODE=off</b> — 감지 스레드 미가동. 실패가 아니라 <b>의도적 비활성</b>이다. 이 에이전트는 경보를 발령하지 않는다.',
+        rule: 'detectMode=off → 회색(꺼짐). 빨강 아님 · 초록 아님' }
+    } else if (detectAgoSec == null) {
+      det = { s: 'unsup', v: '판정 불가', why: '<b>lastDetectOkAt = null</b> — 계측 미지원 에이전트이거나 아직 감지 판정이 없다.',
+        rule: '필드 null → 회색' }
+    } else if (detectAgoSec > 180 || (analyzeFail1h ?? 0) > 0) {
+      det = { s: 'bad', v: '멈춤', why: `마지막 판정 <b>${detectAgoSec}초 전</b> · analyze 실패 델타 <b>${n0(analyzeFail1h)}</b>`,
+        rule: 'lastDetectOkAt > 180s 또는 analyzeFail > 0 → 위험' }
+    } else if (detectAgoSec > 60) {
+      det = { s: 'warn', v: '지연', why: `마지막 판정 <b>${detectAgoSec}초 전</b>`, rule: '60s ≤ lastDetectOkAt < 180s → 주의' }
+    } else {
+      det = { s: 'ok', v: '판정 중', why: `마지막 판정 <b>${detectAgoSec}초 전</b> · analyze 실패 델타 <b>0</b> · DETECT_MODE <b>${detectMode ?? '—'}</b>`,
+        rule: 'lastDetectOkAt < 60s' }
+    }
+
+    // 4. OCR — 우선순위: matcherLoaded=false(빨강) > null(회색) > method=legacy(빨강) > confidence
+    const ocr = lastAlarm?.ocr
+    let o: { s: Tone; v: string; why: string; rule: string }
+    if (matcher === false) {
+      o = { s: 'bad', v: '화이트리스트 미로드', why: '<b>matcherLoaded=false</b> — legacy 폴백으로 동작 중. legacy 는 <b>화재 위치를 원리적으로 못 잡는다</b>(‘동작’ 문자열 의존).',
+        rule: 'matcherLoaded=false → 빨강 (ocr_confidence 가 무엇이든 무시)' }
+    } else if (matcher == null) {
+      o = { s: 'unsup', v: '판정 불가', why: '<b>matcherLoaded = null</b> — 계측 미지원 에이전트.', rule: 'null → 회색' }
+    } else if (!lastAlarm) {
+      o = { s: 'na', v: '판정 불가', why: '최근 48시간 경보 없음 — 판정할 근거가 없다(경보가 없었을 뿐이다).', rule: '최근 경보 없음 → 회색' }
+    } else if (ocr?.method === 'legacy') {
+      o = { s: 'bad', v: 'legacy 폴백', why: `최근 경보가 <b>method=legacy</b> · score <b>null</b> — 화이트리스트 검증을 거치지 않은 확언이다. 퍼지 high 와 같은 신뢰로 읽으면 안 된다.`,
+        rule: "method='legacy' → 빨강 (matcherLoaded=false 와 같은 사실의 다른 증거)" }
+    } else if (ocr?.confidence == null) {
+      o = { s: 'na', v: '증거 미도달', why: '최근 경보에 OCR 증거가 없다 — <b>BACKEND_V2=0</b> 이면 위치를 못 읽은 경보는 patch 자체를 안 보낸다. "OCR 성공"이 아니라 <b>관측 공백</b>이다.',
+        rule: '증거 컬럼 전부 NULL → 회색. 절대 초록 금지' }
+    } else if (ocr.confidence === 'high') {
+      o = { s: 'ok', v: '위치 확정', why: `matcher 로드됨 · 최근 경보 confidence <b>high</b> (method ${ocr.method}, score ${ocr.score ?? '—'})`,
+        rule: 'matcherLoaded && confidence=high && method≠legacy' }
+    } else if (ocr.confidence === 'low') {
+      o = { s: 'warn', v: '위치 미확정', why: `최근 경보 confidence <b>low</b> · score <b>${ocr.score ?? '—'}</b> (accept 88) · raw <b>${ocr.raw ?? '—'}</b>`,
+        rule: 'high-only 게이팅 — low/none 이면 patch 에서 location 키 생략' }
+    } else {
+      o = { s: 'bad', v: '위치 미확정', why: `최근 경보 confidence <b>none</b> · raw <b>${ocr.raw || '(없음)'}</b> · OCR 라인 0`,
+        rule: 'confidence=none → 빨강' }
+    }
+
+    return [{ n: '캡처보드', ...cap }, { n: '업로드', ...up }, { n: '감지', ...det }, { n: 'OCR', ...o }]
+  }, [s, last1h, lastAlarm])
+
+  // ── ③ 프레임 지연 시계열 (로그축 SVG. 주선 = frameLagMaxMs) ──
+  const chart = useMemo(() => {
+    const W = 1200, H = 260, L = 52, R = 12, T = 14, B = 26
+    const iw = W - L - R, ih = H - T - B
+    const maxY = 100000
+    const ly = (v: number) => {
+      const lo = Math.log10(100), hi = Math.log10(maxY)
+      return T + ih - (Math.log10(Math.max(v, 100)) - lo) / (hi - lo) * ih
+    }
+    const N = points.length
+    const lx = (i: number) => (N <= 1 ? L : L + (i / (N - 1)) * iw)
+    // null = 결측 → 선을 끊는다 (0 으로 이으면 "정상"으로 오독된다)
+    const mkPath = (pick: (p: AgentHistoryPoint) => number | null) => {
+      let d = '', open = false
+      points.forEach((p, i) => {
+        const v = pick(p)
+        if (v == null) { open = false; return }
+        d += (open ? ' L ' : ' M ') + lx(i).toFixed(1) + ' ' + ly(v).toFixed(1)
+        open = true
+      })
+      return d
+    }
+    return {
+      W, H, L, R, T, ih,
+      maxPath: mkPath(p => p.frameLagMaxMs),
+      instPath: mkPath(p => p.frameLagMs),
+      ly, lx, N,
+      xLabels: N > 1 ? [0, Math.floor(N / 4), Math.floor(N / 2), Math.floor((N * 3) / 4), N - 1] : [],
+    }
+  }, [points])
+
+  // ── ⑥ 오류 카운터 (1h / 24h 델타) ──
+  const tiles = useMemo(() => {
+    const snapOk24 = sumDelta(points, p => p.snapshotOk)
+    const snapFail24 = sumDelta(points, p => p.snapshotFail)
+    // ★ B2: ok+fail == 0 → 회색 "미사용". 초록 금지 (스냅샷이 꺼져 있는 것이지 "전부 성공"이 아니다)
+    const snapNever = (snapOk24 ?? 0) + (snapFail24 ?? 0) === 0
+    return [
+      { k: '업로드 실패', sub: '라이브 프레임 한정', v1: sumDelta(last1h, p => p.uploadFail), v24: sumDelta(points, p => p.uploadFail) },
+      { k: 'HTTP 401', sub: '키 불일치', v1: sumDelta(last1h, p => p.http401), v24: sumDelta(points, p => p.http401) },
+      { k: 'HTTP 403', sub: 'Cloudflare WAF', v1: sumDelta(last1h, p => p.http403), v24: sumDelta(points, p => p.http403) },
+      { k: 'HTTP 5xx', sub: '서버', v1: sumDelta(last1h, p => p.http5xx), v24: sumDelta(points, p => p.http5xx) },
+      { k: 'analyze 실패', sub: '감지 파이프', v1: sumDelta(last1h, p => p.analyzeFail), v24: sumDelta(points, p => p.analyzeFail) },
+      { k: 'OCR 실패', sub: '위치 미확정 포함', v1: sumDelta(last1h, p => p.ocrFail), v24: sumDelta(points, p => p.ocrFail) },
+      { k: '스냅샷 실패', sub: snapNever ? '미사용 (SNAPSHOT_ON_ALARM=0)' : `성공 ${n0(snapOk24)}건`, v1: snapFail24, v24: snapFail24, gray: snapNever },
+      { k: '재시작', sub: '24h', v1: hist?.restarts.length ?? null, v24: hist?.restarts.length ?? null },
+    ]
+  }, [points, last1h, hist])
+
+  // ── ⑦ R2 write 예산 — uploadOk 델타로 실측 업로드 간격을 역산한다 ──
+  const r2 = useMemo(() => {
+    const upOk = sumDelta(points, p => p.uploadOk)
+    const mins = points.length            // heartbeat 1건 = 60초
+    const interval = upOk && upOk > 0 && mins > 0 ? (mins * 60) / upOk : null
+    const monthly = interval ? Math.round((30.4 * 86400) / interval) : null
+    const pct = monthly ? Math.round((monthly / 1_000_000) * 100) : null
+    return { interval, monthly, pct }
+  }, [points])
+
+  const fresh = freshnessLabel(s?.frameUpdatedAt ?? null)
+  const watchdog = watchdogLabel(s?.lastHeartbeatAt ?? null)
+  const stripTone: 'ok' | 'warn' | 'bad' =
+    !s?.agentOnline || lights.some(l => l.s === 'bad') ? 'bad'
+      : s?.detectMode === 'off' || lights.some(l => l.s === 'warn') ? 'warn' : 'ok'
+
+  const warnLine = watchdog
+    ?? (lights[0].s === 'bad' && s?.frameStarvedSec != null
+      ? `프레임 기아 ${s.frameStarvedSec}초 — heartbeat 는 살아 있으나 새 프레임이 오지 않는다. HDMI 무신호 / 캡처보드 확인. 현재 화재를 감지할 수 없다.`
+      : s?.detectMode === 'off'
+        ? 'DETECT_MODE=off — 자동 화재 감지가 꺼져 있다. 프레임 업로드/라이브 보기는 동작하지만 이 에이전트는 경보를 발령하지 않는다. 의도한 설정인지 확인할 것.'
+        : (s?.frameLagMaxMs != null && s.frameLagMaxMs >= 10000)
+          ? `frameLagMaxMs ${n0(s.frameLagMaxMs)}ms — 화면은 "방금"이지만 실제로는 ${Math.round(s.frameLagMaxMs / 1000)}초 전 화면이다. 즉시값(${n0(s.frameLagMs)}ms)은 정상으로 보이므로 이 사고는 max 선에서만 드러난다.`
+          : null)
+
+  return (
+    <div className="pm-root">
+      <style>{CSS}</style>
+
+      <header className="pm-header">
+        <button className="pm-back" onClick={() => nav(-1)} aria-label="뒤로"><ChevronLeft size={20} /></button>
+        <div className="pm-title">화재수신반 에이전트 모니터<small>운영자 · admin 전용</small></div>
+      </header>
+
+      <main className="pm-body">
+        {/* ① 상단 상태 스트립 */}
+        <div className={`strip${stripTone === 'bad' ? ' is-bad' : stripTone === 'warn' ? ' is-warn' : ''}`}>
+          <div className="strip-main">
+            <span className="dot blink" style={{ background: `var(--status-${stripTone === 'bad' ? 'danger' : stripTone === 'warn' ? 'warning' : 'safe'}-bar)` }} />
+            <span>{s?.agentOnline ? '에이전트 온라인' : '에이전트 오프라인'}</span>
+          </div>
+          <div className="strip-kv">마지막 heartbeat<b> {agoLabel(s?.lastHeartbeatAt)}</b></div>
+          <div className="strip-kv">버전<b className="mono"> {s?.agentVersion ?? '—'}</b></div>
+          <div className="strip-kv">가동<b> {fmtUptime(s?.uptimeSec)}</b></div>
+          <div className="strip-kv">감지모드
+            <span className={`badge ${s?.detectMode === 'live' ? 'b-safe' : s?.detectMode == null ? 'b-none' : 'b-warn'}`} style={{ marginLeft: 4 }}>
+              {s?.detectMode ?? 'null'}
+            </span>
+          </div>
+          <div className="strip-kv">24h 가동률<b> {hist?.uptimePct != null ? `${hist.uptimePct}%` : '—'}</b></div>
+          <div className="strip-kv">재시작<b> {hist?.restarts.length ?? '—'}회</b></div>
+          {warnLine && <div className="strip-warnline" style={{
+            color: `var(--status-${stripTone === 'warn' ? 'warning' : 'danger'})`,
+            background: `var(--status-${stripTone === 'warn' ? 'warning' : 'danger'}-bg)`,
+          }}>{warnLine}</div>}
+        </div>
+
+        {/* ② 파이프라인 신호등 */}
+        <section className="section">
+          <h2 className="section-title">파이프라인
+            <span className="hint">캡처보드 → 업로드 → 감지 → OCR · 한 칸이라도 빨강이면 화재를 못 잡는다 · 회색 = 꺼짐/미지원/판정불가 (초록 아님, 빨강도 아님)</span>
+          </h2>
+          <div className="grid lights">
+            {lights.map(l => (
+              <div className="light" data-s={l.s} key={l.n}>
+                <div className="light-head">
+                  <span className="light-lamp" />
+                  <span className="light-name">{l.n}</span>
+                  {GRAY_BADGE[l.s] && <span className="badge b-none">{GRAY_BADGE[l.s]}</span>}
+                </div>
+                <div className="light-verdict">{l.v}</div>
+                <div className="light-why" dangerouslySetInnerHTML={{ __html: l.why }} />
+                <div className="light-rule mono">{l.rule}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ③ 프레임 지연 시계열 */}
+        <section className="section">
+          <h2 className="section-title">프레임 지연 (24시간)
+            <span className="hint">굵은 선 = frameLagMaxMs(60초 롤링 최대). 가는 선 = frameLagMs(즉시값). heartbeat 60초 · 업로드 2.75초 → 즉시값은 22회 중 1회 표본이라 스파이크를 놓친다</span>
+          </h2>
+          <div className="card">
+            {points.length === 0 ? (
+              <div className="empty">heartbeat 이력이 없습니다 — 계측 에이전트(1.4.x) 가동 후 60초마다 쌓입니다.</div>
+            ) : (
+              <div className="chart-wrap">
+                <svg viewBox={`0 0 ${chart.W} ${chart.H}`} width={chart.W} style={{ maxWidth: '100%', height: 'auto', minWidth: 640 }}>
+                  {[100, 1000, 10000, 100000].map(v => (
+                    <g key={v}>
+                      <line x1={chart.L} x2={chart.W - chart.R} y1={chart.ly(v)} y2={chart.ly(v)} stroke="var(--grid)" strokeWidth={1} />
+                      <text x={chart.L - 8} y={chart.ly(v) + 3} textAnchor="end" fill="var(--text-tertiary)" fontSize={10}>
+                        {v >= 1000 ? `${v / 1000}s` : `${v}ms`}
+                      </text>
+                    </g>
+                  ))}
+                  {[[2000, 'warning', '주의 2,000ms'], [10000, 'danger', '위험 10,000ms']].map(([v, c, lab]) => (
+                    <g key={String(v)}>
+                      <line x1={chart.L} x2={chart.W - chart.R} y1={chart.ly(v as number)} y2={chart.ly(v as number)}
+                        stroke={`var(--status-${c}-bar)`} strokeWidth={1} strokeDasharray="4 4" opacity={0.75} />
+                      <text x={chart.W - chart.R} y={chart.ly(v as number) - 4} textAnchor="end" fill={`var(--status-${c})`} fontSize={10}>{lab as string}</text>
+                    </g>
+                  ))}
+                  {/* 80초 사고선 — "그때가 여기였다" */}
+                  <line x1={chart.L} x2={chart.W - chart.R} y1={chart.ly(80000)} y2={chart.ly(80000)}
+                    stroke="var(--status-fire-bar)" strokeWidth={1} strokeDasharray="2 5" opacity={0.6} />
+                  <text x={chart.L + 4} y={chart.ly(80000) - 4} fill="var(--status-fire)" fontSize={10}>80초 지연 사고선</text>
+
+                  <path d={chart.instPath} fill="none" stroke="var(--accent)" strokeWidth={1.4} opacity={0.85} />
+                  <path d={chart.maxPath} fill="none" stroke="var(--status-fire-bar)" strokeWidth={3} strokeLinejoin="round" />
+
+                  {chart.xLabels.map((i, k) => (
+                    <text key={k} x={chart.lx(i)} y={chart.H - 8} textAnchor="middle" fill="var(--text-tertiary)" fontSize={10}>
+                      {(points[i]?.at ?? '').slice(11, 16)}
+                    </text>
+                  ))}
+                </svg>
+              </div>
+            )}
+            <div className="chart-legend">
+              <span><i style={{ background: 'var(--status-fire-bar)', height: 4 }} /><b>frameLagMaxMs</b> — 60초 롤링 최대 (이 화면의 핵심)</span>
+              <span><i style={{ background: 'var(--accent)' }} />frameLagMs — heartbeat 시점 즉시값</span>
+              <span><i style={{ background: 'var(--status-warning-bar)' }} />주의 2,000ms</span>
+              <span><i style={{ background: 'var(--status-danger-bar)' }} />위험 10,000ms</span>
+            </div>
+            <div className="note">
+              즉시값만 그리면 <b>80초 스파이크가 차트에서 사라진다</b> — 업로드는 2.75초마다인데 heartbeat 는 60초마다라 22회 중 1회만 표본이기 때문.
+              그래서 에이전트가 60초 롤링 최대(<span className="mono">frame_lag_max_ms</span>)를 함께 보내고, 화면은 그 <b>max 선</b>으로 판정한다.
+              {hist && hist.gaps.length > 0 && <> · <b>heartbeat 끊김 {hist.gaps.length}구간</b>(총 {hist.gaps.reduce((a, g) => a + g.sec, 0)}초) — 선이 끊긴 자리가 죽어 있던 시간이다.</>}
+            </div>
+          </div>
+        </section>
+
+        {/* ④ 라이브 프레임 */}
+        <section className="section">
+          <h2 className="section-title">라이브 프레임 <span className="hint">캡처시각과 업로드시각을 함께 표시 — 둘의 혼동이 80초 사고를 가렸다</span></h2>
+          <div className="grid live-2col">
+            <div className="card" style={{ padding: 10 }}>
+              <LivePanelImage frameUpdatedAt={s?.frameUpdatedAt ?? null} alt="화재수신반 라이브" />
+            </div>
+            <div className="card">
+              <table className="cap-table">
+                <tbody>
+                  <tr><td>신선도</td><td><span className={`badge ${fresh.tone === 'ok' ? 'b-safe' : 'b-dang'}`}>{fresh.label}</span></td></tr>
+                  <tr><td>캡처시각 <span className="dim">frameCapturedAt</span></td><td className="mono">{s?.frameCapturedAt ?? '—'}</td></tr>
+                  <tr><td>업로드시각 <span className="dim">frameUpdatedAt</span></td><td className="mono">{s?.frameUpdatedAt ?? '—'}</td></tr>
+                  <tr><td>지연 <span className="dim">frameLagMs</span></td><td className="mono">{s?.frameLagMs != null ? `${n0(s.frameLagMs)} ms` : '—'}</td></tr>
+                  <tr><td>60초 최대 <span className="dim">frameLagMaxMs</span></td><td className="mono">
+                    {s?.frameLagMaxMs != null
+                      ? <>{n0(s.frameLagMaxMs)} ms <span className={`badge ${s.frameLagMaxMs >= 10000 ? 'b-dang' : s.frameLagMaxMs >= 2000 ? 'b-warn' : 'b-safe'}`}>
+                        {s.frameLagMaxMs >= 10000 ? '위험' : s.frameLagMaxMs >= 2000 ? '주의' : '정상'}</span></>
+                      : <span className="badge b-none">null · 계측 미지원</span>}
+                  </td></tr>
+                  <tr><td>기아 <span className="dim">frameStarvedSec</span></td><td className="mono">
+                    {s?.frameStarvedSec != null
+                      ? <>{s.frameStarvedSec}초 <span className={`badge ${s.frameStarvedSec >= 30 ? 'b-dang' : s.frameStarvedSec >= 5 ? 'b-warn' : 'b-safe'}`}>
+                        {s.frameStarvedSec >= 30 ? '위험 (≥30s)' : s.frameStarvedSec >= 5 ? '주의' : '정상'}</span></>
+                      : <span className="badge b-none">null · 계측 미지원</span>}
+                  </td></tr>
+                </tbody>
+              </table>
+              <div className="note">
+                화면의 "방금"은 <b>업로드</b> 시각 기준이다. 80초 백로그가 있으면 캡처시각과 <b>frameLagMaxMs</b> 를 봐야만 드러난다.
+                경보 스냅샷 업로드는 이 신선도를 갱신하지 <b>않는다</b>(C2 게이팅) — 그래야 라이브가 죽은 채 화재가 나도 화면이 거짓말을 하지 않는다.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ⑤ 경보 타임라인 */}
+        <section className="section">
+          <h2 className="section-title">경보 타임라인 (48시간)
+            <span className="hint">OCR 증거 — 위치가 비어 있으면 왜 비었는지 이 행에서 끝난다</span>
+          </h2>
+          <div className="card" style={{ padding: 0 }}>
+            {events.length === 0 ? (
+              <div className="empty">최근 48시간 경보 없음.</div>
+            ) : events.map(a => {
+              const ocr = a.ocr
+              const noEvidence = !ocr || ocr.confidence == null
+              return (
+                <div className="tl-row" key={a.id}>
+                  <div>
+                    {a.snapshotUrl
+                      ? <img className="tl-thumb" src={a.snapshotUrl} alt="경보 스냅샷" />
+                      : <div className="tl-thumb none">
+                          <span className="t1">스냅샷 없음</span>
+                          <span className="t2">3단계 미배포<br />(SNAPSHOT_ON_ALARM=0)</span>
+                        </div>}
+                  </div>
+                  <div>
+                    <span className={`badge ${a.type === 'fire' ? 'b-dang' : a.type === 'fault' ? 'b-warn' : 'b-safe'}`}>
+                      {a.type === 'fire' ? '화재' : a.type === 'fault' ? '고장' : '설비동작'}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="tl-when mono">{a.detectedAt}</div>
+                    <div className={`tl-loc${a.location ? '' : ' empty'}`}>
+                      {a.location ?? (noEvidence ? '위치 미확보 (증거 미수집 — BACKEND_V2=0)' : '위치 미확정 — 수신반 확인 필요')}
+                    </div>
+                    <div className="ev">
+                      <span className="chip">OCR raw <b className="mono">{ocr?.raw || '(없음)'}</b></span>
+                      <span className="chip">score <b className="mono">{ocr?.score ?? 'null'}</b></span>
+                      <span className="chip">confidence <b className={`badge ${ocr?.confidence === 'high' ? 'b-safe' : ocr?.confidence === 'low' ? 'b-warn' : 'b-none'}`}>{ocr?.confidence ?? '—'}</b></span>
+                      <span className="chip">method <b className="mono">{ocr?.method ?? '—'}</b></span>
+                      <span className="chip">ocrMs <b className="mono">{n0(ocr?.ms)}</b></span>
+                      {ocr?.method === 'legacy' && <span className="badge b-warn">legacy(검증 없음)</span>}
+                    </div>
+                    <div className="ev">
+                      <span className="rgy">
+                        <span className="r">R {a.redRatio != null ? (a.redRatio * 100).toFixed(1) : '—'}%</span>
+                        <span className="g">G {a.greenRatio != null ? (a.greenRatio * 100).toFixed(1) : '—'}%</span>
+                        <span className="y">Y {a.yellowRatio != null ? (a.yellowRatio * 100).toFixed(1) : '—'}%</span>
+                      </span>
+                      <span className="chip">푸시 재발송 <b className="mono">pushCount {a.pushCount ?? 0}</b>회</span>
+                    </div>
+                    {ocr && (ocr.lines.badge.length > 0 || ocr.lines.wide.length > 0) && (
+                      <div className="tl-lines mono">
+                        badge: [{ocr.lines.badge.join(' · ')}] · wide: [{ocr.lines.wide.join(' · ')}]
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <div className="note" style={{ marginTop: 8 }}>
+            <span className="mono">SNAPSHOT_ON_ALARM</span> 은 기본값 <b>0(꺼짐)</b>이다. <span className="mono">BACKEND_V2=1</span> + frame.ts 게이팅 배포 후에만 켠다.
+            그 전 경보 행의 "스냅샷 없음"은 <b>정상 상태</b>다 — 빈 칸이 아니라 상태다.
+          </div>
+        </section>
+
+        {/* ⑥ 오류 카운터 */}
+        <section className="section">
+          <h2 className="section-title">오류 카운터
+            <span className="hint">누적 카운터의 델타. 0이면 회색 — 정상일 때 조용해야 이상이 보인다 · uploadFail/httpErr 는 <b>라이브 프레임 경로 한정</b>, 스냅샷 실패는 따로 센다</span>
+          </h2>
+          <div className="grid tiles">
+            {tiles.map(t => {
+              const hot = !t.gray && (t.v1 ?? 0) > 0
+              const warm = !t.gray && !hot && (t.v24 ?? 0) > 0
+              return (
+                <div className={`tile${hot ? ' hot' : warm ? ' warm' : ''}`} key={t.k}>
+                  <div className="tile-n">{t.v24 == null ? '—' : t.v24}</div>
+                  <div className="tile-k">{t.k}</div>
+                  <div className="tile-s">{t.v24 == null ? '구 에이전트 · 필드 없음' : `1h ${t.v1 ?? 0} · ${t.sub}`}</div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* ⑦ R2 write 예산 */}
+        <section className="section">
+          <h2 className="section-title">R2 write 예산 <span className="hint">Class A 무료한도 100만/월 가정</span></h2>
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.02em' }}>{r2.pct != null ? `${r2.pct}%` : '—'}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                {r2.monthly != null
+                  ? `예상 ${r2.monthly.toLocaleString()} / 1,000,000 write · 실측 업로드 간격 ${r2.interval!.toFixed(2)}초`
+                  : '업로드 카운터 없음 — 계측 에이전트 가동 후 실측 간격으로 역산합니다.'}
+              </span>
+            </div>
+            <div className="meter"><i style={{
+              width: `${Math.min(r2.pct ?? 0, 100)}%`,
+              background: (r2.pct ?? 0) >= 95 ? 'var(--status-danger-bar)' : (r2.pct ?? 0) >= 80 ? 'var(--status-warning-bar)' : 'var(--status-safe-bar)',
+            }} /></div>
+            <div className="formula mono">월 Class A writes ≈ (30.4일 × 86,400초) ÷ 실측_업로드간격초</div>
+            <div className="note">
+              업로드 간격은 heartbeat 간 <span className="mono">uploadOk</span> 델타로 역산한 <b>실측값</b>이다(설정값 FRAME_INTERVAL 이 아니다).
+              경보 스냅샷의 write 는 "경보당 1회"가 아니라 <b>"트리거 전이당 1회"</b> — dedupe 재trigger 시 같은 키에 재업로드된다.
+              {(r2.pct ?? 0) >= 80 && <b> · 소진율 {r2.pct}% — FRAME_INTERVAL 상향 검토.</b>}
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  )
+}
+
+// 시안(승인 2026-07-14)의 CSS — 앱 tokens.css 변수만 사용한다.
+const CSS = `
+.pm-root { min-height:100vh; background:var(--surface-page); color:var(--text-primary); }
+.pm-root .mono { font-family:'JetBrains Mono','D2 Coding',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+.pm-root .dim { color:var(--text-disabled); }
+.pm-header {
+  position:sticky; top:0; z-index:20; background:var(--surface-raised);
+  border-bottom:1px solid var(--border-default); height:48px; padding:0 12px;
+  display:flex; align-items:center; gap:8px;
+}
+.pm-back {
+  width:32px; height:32px; border-radius:7px; background:var(--surface-sunken);
+  border:1px solid var(--border-default); color:var(--text-secondary); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.pm-title { font-size:18px; font-weight:600; }
+.pm-title small { font-size:12px; color:var(--text-tertiary); font-weight:400; margin-left:8px; }
+.pm-body { padding:16px; max-width:1680px; margin:0 auto; }
+.pm-root .section { margin-bottom:24px; }
+.pm-root .section-title {
+  font-size:13px; font-weight:700; color:var(--text-tertiary); letter-spacing:.04em;
+  margin:0 0 8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+}
+.pm-root .section-title .hint { font-weight:400; letter-spacing:0; color:var(--text-disabled); font-size:12px; }
+.pm-root .card { background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px; padding:14px; }
+.pm-root .grid { display:grid; gap:12px; }
+.pm-root .empty { padding:28px 14px; text-align:center; color:var(--text-tertiary); font-size:13px; }
+
+.pm-root .strip {
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  background:var(--surface-raised); border:1px solid var(--border-default);
+  border-left:3px solid var(--status-safe-bar); border-radius:12px; padding:10px 14px; margin-bottom:12px;
+}
+.pm-root .strip.is-warn { border-left-color:var(--status-warning-bar); }
+.pm-root .strip.is-bad  { border-left-color:var(--status-danger-bar); }
+.pm-root .strip-main { display:flex; align-items:center; gap:8px; font-weight:700; font-size:15px; }
+.pm-root .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.pm-root .dot.blink { animation:pm-blink 2s ease-in-out infinite; }
+@keyframes pm-blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+.pm-root .strip-kv { font-size:12px; color:var(--text-tertiary); display:inline-flex; align-items:center; gap:3px; }
+.pm-root .strip-kv b { color:var(--text-secondary); font-weight:600; }
+.pm-root .strip-warnline {
+  flex-basis:100%; font-size:12px; font-weight:700; border-radius:8px; padding:6px 10px;
+}
+
+.pm-root .badge { display:inline-flex; align-items:center; border-radius:6px; padding:2px 7px; font-size:11px; font-weight:800; line-height:1.5; }
+.pm-root .b-safe { color:var(--status-safe);    background:var(--status-safe-bg); }
+.pm-root .b-warn { color:var(--status-warning); background:var(--status-warning-bg); }
+.pm-root .b-dang { color:var(--status-danger);  background:var(--status-danger-bg); }
+.pm-root .b-none { color:var(--text-tertiary);  background:var(--surface-sunken); }
+
+.pm-root .lights { grid-template-columns:repeat(4,1fr); }
+.pm-root .light {
+  background:var(--surface-raised); border:1px solid var(--border-default);
+  border-radius:12px; padding:14px; border-top:3px solid var(--text-disabled);
+}
+.pm-root .light[data-s="ok"]   { border-top-color:var(--status-safe-bar); }
+.pm-root .light[data-s="warn"] { border-top-color:var(--status-warning-bar); }
+.pm-root .light[data-s="bad"]  { border-top-color:var(--status-danger-bar); background:var(--status-danger-bg); }
+.pm-root .light[data-s="na"], .pm-root .light[data-s="off"], .pm-root .light[data-s="unsup"] {
+  border-top-color:var(--text-disabled);
+  background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(127,127,127,.06) 6px 12px);
+}
+.pm-root .light-head { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.pm-root .light-name { font-size:14px; font-weight:700; flex:1; }
+.pm-root .light-lamp { width:11px; height:11px; border-radius:50%; background:var(--text-disabled); flex-shrink:0; }
+.pm-root .light[data-s="ok"]   .light-lamp { background:var(--status-safe-bar); }
+.pm-root .light[data-s="warn"] .light-lamp { background:var(--status-warning-bar); }
+.pm-root .light[data-s="bad"]  .light-lamp { background:var(--status-danger-bar); animation:pm-blink 1.2s ease-in-out infinite; }
+.pm-root .light-verdict { margin-top:8px; font-size:20px; font-weight:700; letter-spacing:-.01em; }
+.pm-root .light[data-s="ok"]   .light-verdict { color:var(--status-safe); }
+.pm-root .light[data-s="warn"] .light-verdict { color:var(--status-warning); }
+.pm-root .light[data-s="bad"]  .light-verdict { color:var(--status-danger); }
+.pm-root .light[data-s="na"] .light-verdict, .pm-root .light[data-s="off"] .light-verdict, .pm-root .light[data-s="unsup"] .light-verdict { color:var(--text-tertiary); }
+.pm-root .light-why { margin-top:6px; font-size:12px; color:var(--text-secondary); line-height:1.55; }
+.pm-root .light-rule { margin-top:6px; font-size:11px; color:var(--text-disabled); }
+
+.pm-root .chart-wrap { overflow-x:auto; }
+.pm-root .chart-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--text-tertiary); margin-top:8px; }
+.pm-root .chart-legend i { display:inline-block; width:14px; height:3px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+.pm-root .note {
+  margin-top:10px; font-size:11.5px; color:var(--text-secondary); background:var(--surface-sunken);
+  border-radius:8px; padding:8px 10px; line-height:1.55;
+}
+
+.pm-root .live-2col { grid-template-columns:minmax(0,420px) minmax(0,1fr); }
+.pm-root .cap-table { width:100%; border-collapse:collapse; font-size:12px; }
+.pm-root .cap-table td { padding:5px 0; border-bottom:1px solid var(--border-default); vertical-align:top; }
+.pm-root .cap-table td:first-child { color:var(--text-tertiary); width:170px; white-space:nowrap; }
+.pm-root .cap-table tr:last-child td { border-bottom:0; }
+
+.pm-root .tl-row {
+  display:grid; grid-template-columns:132px 68px minmax(0,1fr); gap:12px;
+  padding:11px 12px; border-bottom:1px solid var(--border-default); align-items:start;
+}
+.pm-root .tl-row:last-child { border-bottom:0; }
+.pm-root .tl-thumb {
+  width:132px; aspect-ratio:16/9; border-radius:6px; overflow:hidden; background:#05070a;
+  border:1px solid var(--border-default); object-fit:cover;
+}
+.pm-root .tl-thumb.none {
+  background:repeating-linear-gradient(135deg,transparent 0 5px,rgba(127,127,127,.06) 5px 10px), var(--surface-sunken);
+  border-style:dashed; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; text-align:center; color:var(--text-tertiary); padding:4px;
+}
+.pm-root .tl-thumb.none .t1 { font-size:10.5px; font-weight:700; }
+.pm-root .tl-thumb.none .t2 { font-size:9px; color:var(--text-disabled); line-height:1.35; }
+.pm-root .tl-when { font-size:11.5px; color:var(--text-tertiary); }
+.pm-root .tl-loc { font-size:13.5px; font-weight:700; margin-top:2px; }
+.pm-root .tl-loc.empty { color:var(--status-warning); }
+.pm-root .tl-lines { font-size:11.5px; color:var(--text-tertiary); margin-top:5px; word-break:break-all; }
+.pm-root .ev { display:flex; gap:6px; flex-wrap:wrap; margin-top:5px; align-items:center; }
+.pm-root .chip {
+  display:inline-flex; align-items:baseline; gap:4px; font-size:11px; border-radius:6px; padding:2px 7px;
+  background:var(--surface-sunken); color:var(--text-secondary); border:1px solid var(--border-default);
+}
+.pm-root .chip b { color:var(--text-primary); font-weight:700; }
+.pm-root .rgy { display:flex; gap:5px; font-size:11px; }
+.pm-root .rgy span { border-radius:5px; padding:1px 6px; font-weight:700; }
+.pm-root .rgy .r { color:var(--status-danger);  background:var(--status-danger-bg); }
+.pm-root .rgy .g { color:var(--status-safe);    background:var(--status-safe-bg); }
+.pm-root .rgy .y { color:var(--status-warning); background:var(--status-warning-bg); }
+
+.pm-root .tiles { grid-template-columns:repeat(8,1fr); }
+.pm-root .tile { background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px; padding:11px 12px; }
+.pm-root .tile.hot  { border-color:var(--status-danger-bar);  background:var(--status-danger-bg); }
+.pm-root .tile.warm { border-color:var(--status-warning-bar); background:var(--status-warning-bg); }
+.pm-root .tile-n { font-size:26px; font-weight:700; line-height:1.1; color:var(--text-disabled); letter-spacing:-.02em; }
+.pm-root .tile.hot .tile-n  { color:var(--status-danger); }
+.pm-root .tile.warm .tile-n { color:var(--status-warning); }
+.pm-root .tile-k { font-size:12px; color:var(--text-secondary); margin-top:3px; }
+.pm-root .tile-s { font-size:11px; color:var(--text-tertiary); margin-top:1px; }
+
+.pm-root .meter { height:10px; border-radius:99px; background:var(--surface-sunken); overflow:hidden; margin:10px 0 6px; }
+.pm-root .meter i { display:block; height:100%; border-radius:99px; }
+.pm-root .formula {
+  font-size:12px; background:var(--surface-sunken); border-radius:8px; padding:9px 11px; color:var(--text-secondary);
+  overflow-x:auto; white-space:nowrap;
+}
+
+@media (max-width:1439px) { .pm-root .tiles { grid-template-columns:repeat(4,1fr); } }
+@media (max-width:1023px) {
+  .pm-root .lights { grid-template-columns:repeat(2,1fr); }
+  .pm-root .live-2col { grid-template-columns:1fr; }
+}
+@media (max-width:719px) {
+  .pm-body { padding:12px; }
+  .pm-root .lights, .pm-root .tiles { grid-template-columns:1fr 1fr; }
+  .pm-root .tl-row { grid-template-columns:1fr; gap:6px; }
+  .pm-root .tl-thumb { width:100%; }
+  .pm-title { font-size:16px; }
+}
+`
