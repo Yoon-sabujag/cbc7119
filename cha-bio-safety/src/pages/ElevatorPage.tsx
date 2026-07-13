@@ -2582,22 +2582,6 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate, h
     } catch { toast.error('연결 실패') }
   }
 
-  // 합격 전환 mutation
-  const convertToPass = useMutation({
-    mutationFn: async () => {
-      await fetch(`/api/elevators/${elevatorId}/inspections/${inspectionId}/cert`, {
-        method: 'PUT',
-        headers: { 'Content-Type':'application/json', Authorization:`Bearer ${useAuthStore.getState().token}` },
-        body: JSON.stringify({ result: 'pass' }),
-      })
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['elev-findings', inspectionId] })
-      toast.success('합격으로 전환되었습니다')
-    },
-    onError: () => toast.error('전환 실패'),
-  })
-
   return (
     <div style={{ padding:'6px 8px' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>

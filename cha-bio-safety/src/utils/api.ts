@@ -337,8 +337,6 @@ export const inspectionApi = {
   getMonthRecords:(month: string) => api.get<any[]>(`/inspections/records?month=${month}`),
   resolveRecord:  (recordId: string, resolution_memo: string, resolution_photo_key?: string) =>
     api.post<any>(`/inspections/records/${recordId}/resolve`, { resolution_memo, resolution_photo_key }),
-  saveSessionPhoto: (sessionId: string, photoKey: string) =>
-    api.put<any>(`/inspections/${sessionId}/photo`, { photoKey }),
   getCheckpoints: (floor?: string, zone?: string) => {
     const p = new URLSearchParams()
     if (floor) p.set('floor', floor)
