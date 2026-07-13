@@ -343,6 +343,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   }
   const [accountCollapsed, setAccountCollapsed] = usePersistedCollapse('settings.account.collapsed', true)
   const [dbCollapsed, setDbCollapsed] = usePersistedCollapse('settings.db.collapsed', true)
+  const [systemCollapsed, setSystemCollapsed] = usePersistedCollapse('settings.system.collapsed', true)
   const [appInfoCollapsed, setAppInfoCollapsed] = usePersistedCollapse('settings.appinfo.collapsed', true)
   const [cacheClearing, setCacheClearing] = useState(false)
   const [dbBackingUp, setDbBackingUp] = useState(false)
@@ -913,6 +914,22 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
                 <ChevronRight size={13} className="text-text-tertiary" />
               </Row>
             </>)}
+          </div>
+        )}
+
+        {/* 시스템 — 관리자 전용. 진입점은 여기 하나뿐(하단 네비/사이드메뉴에는 없음). */}
+        {staff?.role === 'admin' && (
+          <div className="px-[13px] pt-3 pb-1.5">
+            <SectionHeader label="시스템" collapsed={systemCollapsed} onToggle={() => setSystemCollapsed(c => !c)} />
+            {!systemCollapsed && (
+              <Row
+                label="화재수신반 에이전트 모니터"
+                sub="캡처보드 · 업로드 · 감지 · OCR 4단계 상태"
+                onClick={() => { onClose(); navigate('/panel-monitor') }}
+              >
+                <ChevronRight size={13} className="text-text-tertiary" />
+              </Row>
+            )}
           </div>
         )}
 
