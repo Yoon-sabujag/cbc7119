@@ -36,6 +36,10 @@ interface HeartbeatBody {
   uptimeSec?: number | null
   detectMode?: string | null        // off|dryrun|live — 검증 없이 저장
   matcherLoaded?: boolean | null
+  // ── v1.4.4 신규 (FEEDBACK §5) — 코드에 박힌 버전. **실제로 어느 빌드가 도는지의 유일한 증거.**
+  //    agentVersion 은 config.env 유래라 거짓말을 할 수 있다(맥미니가 옛 코드로 도는데 config 만 새 값이던 사고).
+  //    별도 컬럼에 저장한다 — 같은 칸에 덮어쓰면 어긋남을 영원히 못 본다.
+  codeVersion?: string | null
   // ── v1.4.2 신규 (FEEDBACK §5) — 스위치 상태. 원격에서 "설정이 의도대로 켜져 있는가"를 본다 ──
   // telemetryOn 은 MONITOR_TELEMETRY 게이트 **밖**에서 항상 온다:
   //   false(의도적으로 껐다) 와 키 부재(구 에이전트) 를 구분하기 위해서다.
@@ -113,7 +117,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
     await env.DB.prepare(
       `UPDATE panel_agent_status SET
-         last_seen_at = ?, agent_version = ?,
+         last_seen_at = ?, agent_version = ?, code_version = ?,
          frame_captured_at = COALESCE(?, frame_captured_at),
          frame_lag_ms = ?, frame_lag_max_ms = ?, frame_starved_sec = ?,
          last_detect_ok_at = COALESCE(?, last_detect_ok_at),
@@ -121,7 +125,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
          telemetry_on = ?, backend_v2 = ?, snapshot_on = ?, cfg_json = COALESCE(?, cfg_json)
        WHERE id = 'agent'`,
     ).bind(
-      at, str(body.agentVersion),
+      at, str(body.agentVersion), str(body.codeVersion),
       str(body.frameCapturedAt),
       num(body.frameLagMs), num(body.frameLagMaxMs), num(body.frameStarvedSec),
       str(body.lastDetectOkAt),
@@ -135,11 +139,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // (2) 시계열 append. 이력/가동률/재시작 탐지의 유일한 근거. (1) 의 성패와 무관하게 시도한다.
-  //     컬럼 35개 = 물음표 35개 = bind 인자 35개 (개수가 어긋나면 D1 런타임 에러 → 조용히 0행).
+  //     컬럼 36개 = 물음표 36개 = bind 인자 36개 (개수가 어긋나면 D1 런타임 에러 → 조용히 0행).
   try {
     await env.DB.prepare(
       `INSERT INTO agent_heartbeats (
-         at, received_at, agent_version, detect_mode, uptime_sec,
+         at, received_at, agent_version, code_version, detect_mode, uptime_sec,
          frame_ts, frame_captured_at, frame_lag_ms, frame_lag_max_ms, frame_starved_sec,
          analyze_ok, analyze_fail, last_detect_ok_at,
          upload_ok, upload_fail, snapshot_ok, snapshot_fail,
@@ -148,9 +152,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
          r_avg, r_max, g_avg, g_max, y_avg, y_max,
          matcher_loaded, raw,
          telemetry_on, backend_v2, snapshot_on, cfg_json
-       ) VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?, ?,?,?,?, ?,?,?,?, ?,?, ?,?,?,?,?,?, ?,?, ?,?,?,?)`,
+       ) VALUES (?,?,?,?,?,?, ?,?,?,?,?, ?,?,?, ?,?,?,?, ?,?,?,?, ?,?, ?,?,?,?,?,?, ?,?, ?,?,?,?)`,
     ).bind(
-      at, receivedAt, str(body.agentVersion), str(body.detectMode), num(body.uptimeSec),
+      at, receivedAt, str(body.agentVersion), str(body.codeVersion), str(body.detectMode), num(body.uptimeSec),
       str(body.frameTs), str(body.frameCapturedAt), num(body.frameLagMs), num(body.frameLagMaxMs), num(body.frameStarvedSec),
       num(body.analyzeOk), num(body.analyzeFail), str(body.lastDetectOkAt),
       num(body.uploadOk), num(body.uploadFail), num(body.snapshotOk), num(body.snapshotFail),

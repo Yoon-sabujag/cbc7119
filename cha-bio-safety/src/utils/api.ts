@@ -773,6 +773,9 @@ export interface PanelStatus {
   maint: MaintState
   // ── 0096 신규 (MONITORING-SPEC.md §6-①). null = 구 에이전트/미지원 → 화면은 회색(초록 금지) ──
   agentVersion?: string | null
+  // ── 0098 (v1.4.4). 코드에 박힌 버전 = 실제 도는 빌드의 유일한 증거.
+  //    agentVersion(config.env 유래)과 다르면 '배포 어긋남' → 이 화면의 모든 판단을 의심할 것.
+  codeVersion?: string | null
   uptimeSec?: number | null
   detectMode?: string | null       // off|dryrun|live
   frameCapturedAt?: string | null

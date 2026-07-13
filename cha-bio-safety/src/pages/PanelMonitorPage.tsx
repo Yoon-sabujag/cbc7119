@@ -271,6 +271,13 @@ export default function PanelMonitorPage() {
   // ── 스위치 배지 (FEEDBACK §5) — 스위치가 꺼져 있으면 그 사실 자체가 관측 공백이다 ──
   const switchBadges = useMemo(() => {
     const out: { key: string; label: string; cls: string; why: string }[] = []
+    // ★ 최상단 — 배포 어긋남. 이게 켜지면 나머지 배지/타일의 근거가 전부 흔들린다.
+    //   codeVersion(코드 상수) vs agentVersion(config.env). 둘 다 있는데 다르면 = 도는 코드와 설정이 어긋난 상태.
+    //   한쪽이라도 null 이면 판정 자체를 하지 않는다 — 구 에이전트는 아래 '구 에이전트' 배지가 처리한다.
+    if (s?.codeVersion && s?.agentVersion && s.codeVersion !== s.agentVersion) {
+      out.push({ key: 'ver', label: '배포 어긋남', cls: 'b-dang',
+        why: `config 가 말하는 버전(${s.agentVersion})과 실제 도는 코드(${s.codeVersion})가 다르다. 이 화면의 모든 판단을 의심할 것 — 맥미니가 옛 코드로 돌고 있을 수 있다.` })
+    }
     if (s?.telemetryOn == null) {
       out.push({ key: 'tel', label: '구 에이전트', cls: 'b-none',
         why: 'telemetryOn 필드가 없다 (v1.4.1 이하). 스위치 상태를 알 수 없다 — 회색이 정답이지 초록이 아니다.' })
@@ -323,7 +330,14 @@ export default function PanelMonitorPage() {
             <span>{s?.agentOnline ? '에이전트 온라인' : '에이전트 오프라인'}</span>
           </div>
           <div className="strip-kv">마지막 heartbeat<b> {agoLabel(s?.lastHeartbeatAt)}</b></div>
-          <div className="strip-kv">버전<b className="mono"> {s?.agentVersion ?? '—'}</b></div>
+          {/* 버전 — 평소엔 도는 코드 하나만. 어긋났을 때만 code/config 를 같이 보여준다
+              (무엇이 어긋났는지 못 보면 '배포 어긋남' 배지는 알림일 뿐 진단이 못 된다). */}
+          <div className="strip-kv">버전
+            <b className="mono"> {s?.codeVersion ?? s?.agentVersion ?? '—'}</b>
+            {s?.codeVersion && s?.agentVersion && s.codeVersion !== s.agentVersion && (
+              <b className="mono" style={{ color: 'var(--status-danger)' }}> / config {s.agentVersion}</b>
+            )}
+          </div>
           <div className="strip-kv">가동<b> {fmtUptime(s?.uptimeSec)}</b></div>
           <div className="strip-kv">감지모드
             <span className={`badge ${s?.detectMode === 'live' ? 'b-safe' : s?.detectMode == null ? 'b-none' : 'b-warn'}`} style={{ marginLeft: 4 }}>
