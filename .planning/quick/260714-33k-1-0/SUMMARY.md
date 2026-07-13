@@ -84,17 +84,27 @@ UI 노출 범위만 바뀜 — 데이터 계약(SPEC) 무영향. 게이트 3중 
 라이브 프레임 정상 / R2 예산 정상. **OCR 회색이 정상** — 증거가 붙은 경보가 아직 없으므로
 "판정 불가"여야 한다(초록이면 무증거를 정상으로 칠하는 버그).
 
-## ⚠️ 미결 — 다음 재시작 때 같이 처리
+## ✅ 2.5단계 완료 (2026-07-14 03:47, 재시작 1회로 ①+② 동시)
 
-1. **`AGENT_VERSION` 이 옛 값으로 보고됨** — 맥미니 `config.env` 에 `AGENT_VERSION=1.3.0-pushfirst`
-   가 명시돼 있어 `agent.py` 의 기본값(`1.4.1-telemetry`)을 덮어쓴다. 코드는 v1.4.1 이 맞지만
-   (구 에이전트는 계측 필드를 보낼 수 없다) **버전 문자열이 거짓**이라 장애 진단 시 오독을 유발한다.
-   → `config.env` 에서 `AGENT_VERSION=1.4.1-telemetry` 로 수정.
-2. **2.5단계 `BACKEND_V2=1`** — §6.1 실증 통과로 전제조건 충족. 켜면 위치 미확정 경보의 OCR 증거가
-   들어온다(사각지대 #2 완전 해소). SPEC 은 2단계 수 일 안정 후 권고.
-3. **3단계 `SNAPSHOT_ON_ALARM=1`** — C2 게이팅 검증 완료로 전제조건 충족(선택).
+맥미니 `config.env`: `AGENT_VERSION=1.4.1-telemetry` + `BACKEND_V2=1` → `update.command` 재시작.
+기동 로그 `[계측] BACKEND_V2=1 (증거 전용 patch 허용 — 백엔드 1단계 배포 확인됨)`.
 
-1+2 는 **한 번의 재시작으로 함께** 처리하는 것을 권고(재시작 = 감시 공백).
+**D1 실측**: `agent_version=1.4.1-telemetry`(거짓 보고 해소) · `uptime_sec` 1022 → **0**(재시작 자동 탐지,
+`agent-history.restarts[]` 에 잡힘 · 누적 카운터 음수 델타는 0 처리라 차트 무손상) ·
+`watchdog_notified_at=null`(heartbeat 공백 10초 < 임계 180초 → **오탐 푸시 없음**) ·
+계측 정상 유입(detect_mode=live · matcher_loaded=1 · frame_starved_sec=0).
+
+### 잔여 검증 — 다음 **실경보** 1회 (인위 검증 불가)
+`BACKEND_V2=1` 의 효과는 에이전트가 수신반 화면을 실제로 OCR 해야 나타난다(curl 테스트 경보로는
+증거 patch 가 발생하지 않는다). 다음 경보에서 확인할 것:
+- `panel_alarms.ocr_raw / ocr_score / ocr_confidence / ocr_method / ocr_ms / ocr_lines` 가 채워진다
+  → 사각지대 #2("왜 위치가 비었나") 완전 해소.
+- **★ 회귀**: 위치가 이미 있는 경보에 low/none 증거 patch 가 들어와도 `location` 이 **유지**된다
+  (SPEC 2.5단계 체크리스트 마지막 항목 — 실경보에서 최초 1회 반드시 눈으로 확인).
+
+### 미결 (선택)
+**3단계 `SNAPSHOT_ON_ALARM=1`** — C2 게이팅 검증 완료로 전제조건 충족. SPEC 은 2단계 수 일 안정 후 권고.
+켜면 경보 순간 스냅샷이 R2 에 남고 타임라인 썸네일이 채워진다.
 
 ## 별건 (핸드오프 §11)
 
