@@ -73,30 +73,19 @@ gh repo clone Yoon-sabujag/cbc7119-data
 ## 3. 설정·기억 복사  ★제일 중요★
 이 폴더를 안 옮기면 작업 방식·기억(메모리)·자동화 규칙이 달라집니다.
 
-```bash
-# [맥미니] 터미널에서 압축:
-cd ~
-tar czf ~/Desktop/claude-config.tgz \
-  .claude/settings.json .claude/hooks .claude/skills .claude/agents \
-  .claude/plugins .claude/get-shit-done .claude/projects
+**압축 파일은 이미 만들어져 있습니다** — 맥미니 바탕화면 `~/Desktop/claude-config.tgz`
+(맥북 계정 `jykevin` 에 맞춰 기억 폴더 이름 4개까지 이미 정리한 버전).
 
-# → 만들어진 ~/Desktop/claude-config.tgz 를 AirDrop 등으로 [맥북] 홈으로 옮긴 뒤:
-cd ~ && tar xzf ~/Desktop/claude-config.tgz
+```bash
+# 맥미니 바탕화면의 claude-config.tgz 를 AirDrop 등으로 [맥북] 홈(~)으로 옮긴 뒤:
+cd ~ && tar xzf claude-config.tgz
+ls ~/.claude/projects   # -Users-jykevin-Documents-... 로 보이면 정상
 # (sessions / cache / tasks / shell-snapshots 등 나머지는 안 옮겨도 됨)
 ```
 
-## 3-1. ★ 기억 폴더 이름 맞추기 (맥북 계정이 다르므로 필수)
-맥미니 계정은 `jongyupyoon`, **맥북 계정은 `jykevin`** 이라 기억(메모리)이 연결된 폴더 경로가 다릅니다.
-위 tgz 를 푼 뒤, 폴더 이름을 맥북 경로에 맞춰 바꿉니다:
-```bash
-cd ~/.claude/projects
-mv -- "-Users-jongyupyoon-Documents-20260328"     "-Users-jykevin-Documents-20260328"     2>/dev/null
-mv -- "-Users-jongyupyoon-Documents-cbc7119-data" "-Users-jykevin-Documents-cbc7119-data" 2>/dev/null
-ls   # 바뀐 이름 확인 (-Users-jykevin-... 두 개 보이면 성공)
-```
-→ 이러면 맥북에서 `~/Documents/20260328` 에 들어갔을 때 기억이 자동 연결됩니다.
-**코드는 반드시 아래 경로 그대로** 두세요(이래야 폴더 이름과 매칭): `~/Documents/20260328`, `~/Documents/cbc7119-data`.
-(맥북에 예전 `-Users-jykevin-...` 폴더가 이미 있다면 덮어쓰기 전에 알려주세요 — 최신 것과 합쳐야 합니다.)
+이 tgz 는 **계정 이름(jykevin)까지 이미 맞춰져 있어 폴더 rename 이 필요 없습니다** — 풀기만 하면 끝.
+단, 맥북에 옛 기억(`-Users-jykevin-...`)이 이미 있으면, 맨 위 "먼저 읽기" 진단을 거친 뒤 덮으세요
+(옛 기억에만 있는 게 없는지 확인 후 최신으로 교체).
 
 ## 4. 각 코드 폴더 준비
 ```bash
