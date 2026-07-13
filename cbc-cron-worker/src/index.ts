@@ -663,6 +663,88 @@ async function buildDbBackupSql(env: Env): Promise<{ sql: string; oversized: str
   return { sql: lines.join('\n'), oversized }
 }
 
+// ── 화재수신반 에이전트 워치독 (5분 틱) ──────────────────────────
+// 계약 SSOT: panel-agent/MONITORING-SPEC.md §7 4단계.
+// 사각지대 #4 를 처음으로 알린다 — 에이전트는 살아있는데(heartbeat 정상) 캡처보드/HDMI 가 죽어
+// 프레임이 안 들어오는 상태. 지금까지는 agentOnline=true 라 화면이 초록이었다.
+//
+// ★ 푸시 억제 규칙 (오탐 푸시는 신뢰를 파괴한다):
+//   - watchdog_notified_at 이 있으면 재푸시 안 함(0092 가 이미 준비한 컬럼. heartbeat.ts 가 회복 시 NULL 로 리셋).
+//   - frame_starved_sec 이 NULL 이면 푸시하지 않는다 (M1 — 판정 보류를 고장으로 읽지 말 것.
+//     구 에이전트/MONITOR_TELEMETRY=0 이면 이 필드가 없다).
+//   - detect_mode='off' 면 감지 정지로 푸시하지 않는다 (S9 — 의도된 설정이지 고장이 아니다).
+async function handlePanelWatchdog(env: Env): Promise<void> {
+  try {
+    const a = await env.DB.prepare(
+      `SELECT last_seen_at, frame_starved_sec, last_detect_ok_at, detect_mode, watchdog_notified_at
+         FROM panel_agent_status WHERE id='agent'`,
+    ).first<{
+      last_seen_at: string | null; frame_starved_sec: number | null; last_detect_ok_at: string | null
+      detect_mode: string | null; watchdog_notified_at: string | null
+    }>()
+    if (!a) return
+
+    const kstMs = (s: string | null) => (s ? new Date(s.replace(' ', 'T') + '+09:00').getTime() : null)
+    const now = Date.now()
+    const seen = kstMs(a.last_seen_at)
+    const detectOk = kstMs(a.last_detect_ok_at)
+
+    const reasons: string[] = []
+    // (1) 하트비트 끊김 — 180초 (status.ts 의 온라인 임계와 동일 축)
+    if (seen == null || now - seen > 180_000) reasons.push('에이전트 응답 없음(하트비트 3분 초과)')
+    // (2) 프레임 기아 30초 — 캡처보드/HDMI 먹통. null 이면 판정 보류(푸시 금지).
+    if (a.frame_starved_sec != null && a.frame_starved_sec >= 30) {
+      reasons.push(`캡처보드 신호 없음(${a.frame_starved_sec}초)`)
+    }
+    // (3) 감지 파이프 정지 180초 — 단 detect_mode='off' 는 의도된 설정이므로 제외
+    if (a.detect_mode !== 'off' && detectOk != null && now - detectOk > 180_000) {
+      reasons.push('감지 파이프 정지(3분 초과)')
+    }
+
+    if (reasons.length === 0) {
+      // 회복 → 억제 해제. (heartbeat.ts 도 리셋하지만, 프레임 기아 회복분은 여기서 푼다.)
+      if (a.watchdog_notified_at) {
+        await env.DB.prepare("UPDATE panel_agent_status SET watchdog_notified_at=NULL WHERE id='agent'").run()
+      }
+      return
+    }
+    if (a.watchdog_notified_at) return   // 이미 통지함 → 중복 억제
+
+    // 관리자에게만 push
+    const adminRows = await env.DB.prepare(
+      "SELECT id FROM staff WHERE role = 'admin' AND active = 1",
+    ).all<{ id: string }>()
+    const adminIds = (adminRows.results ?? []).map(r => r.id)
+    if (adminIds.length > 0) {
+      const ph = adminIds.map(() => '?').join(',')
+      const subs = await env.DB.prepare(
+        `SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences
+           FROM push_subscriptions WHERE staff_id IN (${ph})`,
+      ).bind(...adminIds).all<PushSubRow>()
+      await Promise.allSettled((subs.results ?? []).map(sub =>
+        sendPush(env, sub, { title: '⚠ 화재수신반 감시 이상', body: reasons.join(' · '), type: 'panel-watchdog' }),
+      ))
+    }
+
+    await env.DB.prepare("UPDATE panel_agent_status SET watchdog_notified_at=? WHERE id='agent'")
+      .bind(new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ')).run()
+    await logTelemetry(env, 'cron-panel-watchdog', { detail: JSON.stringify({ reasons, admins: adminIds.length }) })
+  } catch (e: any) {
+    await logTelemetry(env, 'cron-panel-watchdog-throw', { detail: String(e?.message ?? e).slice(0, 500) })
+  }
+}
+
+// agent_heartbeats 14일 보존 정리 (일 1회). 60초 주기 → 1,440행/일 → 14일 ≈ 20,160행.
+async function handleHeartbeatCleanup(env: Env): Promise<void> {
+  try {
+    await env.DB.prepare(
+      "DELETE FROM agent_heartbeats WHERE datetime(at) < datetime('now','+9 hours','-14 days')",
+    ).run()
+  } catch (e: any) {
+    await logTelemetry(env, 'cron-hb-cleanup-throw', { detail: String(e?.message ?? e).slice(0, 500) })
+  }
+}
+
 async function handleDbBackup(env: Env): Promise<void> {
   const date = kstDateStr()
   const key = `backups/db/${date}.sql`
@@ -713,12 +795,14 @@ export default {
         break
       case '*/5 * * * *':
         ctx.waitUntil(handleEventNotifications(env))
+        ctx.waitUntil(handlePanelWatchdog(env))        // 화재수신반 에이전트 워치독 (신규 cron 표현식 추가 없이 기존 틱에 얹음)
         break
       case '0 6 * * *':
         ctx.waitUntil(handleAccessBlockedAutoComplete(env))
         break
       case '32 18 * * *':
         ctx.waitUntil(handleDbBackup(env))
+        ctx.waitUntil(handleHeartbeatCleanup(env))     // agent_heartbeats 14일 보존 정리
         break
     }
   },
