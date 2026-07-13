@@ -89,7 +89,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
       if (cur != null && prev != null && cur < prev) restarts.push({ at: rows[i].at })
     }
 
-    // ── 다운샘플: >1000 포인트면 버킷당 대표값. lag/카운터는 MAX 를 취한다(평균은 사고를 지운다). ──
+    // ── 다운샘플: >1000 포인트면 버킷당 대표값 ──
+    //
+    // ★ 계열별로 집계 함수가 다르다 (FEEDBACK §2 — 구 코드는 전부 MAX 라 카운터가 과소집계됐다):
+    //   - lag/기아(즉시값)  → MAX. 평균은 스파이크를 지운다(SPEC §5.1). 이 화면의 존재 이유가 스파이크다.
+    //   - 카운터 델타       → SUM. 프론트가 이 값을 구간 합계로 더하므로 MAX 면 24h 타일이 실제보다 작게 나온다.
+    //     (24h 조회는 항상 다운샘플을 탄다: 60초 주기 → 1,440 > MAXP 1000 → step=2)
+    //
+    // ※ null 은 결측이다. 표본이 전부 null 이면 null 을 유지한다(0 으로 채우면 "정상"으로 오독된다).
     const MAXP = 1000
     let out = points
     if (points.length > MAXP) {
@@ -97,22 +104,26 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
       out = []
       for (let i = 0; i < points.length; i += step) {
         const b = points.slice(i, i + step)
-        const mx = (f: (x: typeof b[0]) => number | null) => {
+        const agg = (f: (x: typeof b[0]) => number | null, fn: (v: number[]) => number) => {
           const v = b.map(f).filter((x): x is number => x != null)
-          return v.length ? Math.max(...v) : null
+          return v.length ? fn(v) : null
         }
+        const mx  = (f: (x: typeof b[0]) => number | null) => agg(f, v => Math.max(...v))
+        const sum = (f: (x: typeof b[0]) => number | null) => agg(f, v => v.reduce((a, c) => a + c, 0))
         const last = b[b.length - 1]
         out.push({
           ...last,
+          // 즉시값 — MAX
           frameLagMs: mx(x => x.frameLagMs),
           frameLagMaxMs: mx(x => x.frameLagMaxMs),
           frameStarvedSec: mx(x => x.frameStarvedSec),
-          analyzeFail: mx(x => x.analyzeFail), uploadFail: mx(x => x.uploadFail),
-          uploadOk: mx(x => x.uploadOk),
-          snapshotOk: mx(x => x.snapshotOk), snapshotFail: mx(x => x.snapshotFail),
-          ocrFail: mx(x => x.ocrFail),
-          http401: mx(x => x.http401), http403: mx(x => x.http403),
-          http5xx: mx(x => x.http5xx), httpOther: mx(x => x.httpOther),
+          // 카운터 델타 — SUM
+          analyzeFail: sum(x => x.analyzeFail),
+          uploadOk: sum(x => x.uploadOk), uploadFail: sum(x => x.uploadFail),
+          snapshotOk: sum(x => x.snapshotOk), snapshotFail: sum(x => x.snapshotFail),
+          ocrFail: sum(x => x.ocrFail),
+          http401: sum(x => x.http401), http403: sum(x => x.http403),
+          http5xx: sum(x => x.http5xx), httpOther: sum(x => x.httpOther),
         })
       }
     }
