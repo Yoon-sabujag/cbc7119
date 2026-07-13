@@ -13,7 +13,14 @@ function parseKstMs(s: string | null): number | null {
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   try {
     const agent = await env.DB.prepare("SELECT * FROM panel_agent_status WHERE id='agent'")
-      .first<{ last_seen_at: string | null; frame_updated_at: string | null; agent_version: string | null; watchdog_notified_at: string | null }>()
+      .first<{
+        last_seen_at: string | null; frame_updated_at: string | null; agent_version: string | null
+        watchdog_notified_at: string | null
+        // 0096 신규 — 구 행/구 에이전트면 전부 null (화면은 null 을 회색=판정불가로 칠한다. 초록 금지)
+        frame_captured_at?: string | null; frame_lag_ms?: number | null; frame_lag_max_ms?: number | null
+        frame_starved_sec?: number | null; last_detect_ok_at?: string | null
+        uptime_sec?: number | null; detect_mode?: string | null; matcher_loaded?: number | null
+      }>()
     const lastSeen = agent?.last_seen_at ?? null
     const lastSeenMs = parseKstMs(lastSeen)
     const agentOnline = lastSeenMs != null && (Date.now() - lastSeenMs) < 180000
@@ -33,6 +40,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
         lastSeenAt: lastSeen,
         activeAlarm: activeRow ? mapAlarmSummary(activeRow) : null,
         maint,
+        // ── 0096 신규 (MONITORING-SPEC.md §6-①). 전부 null 가능 = 구 에이전트/미지원 → 화면은 회색 ──
+        agentVersion:     agent?.agent_version ?? null,
+        uptimeSec:        agent?.uptime_sec ?? null,
+        detectMode:       agent?.detect_mode ?? null,          // off|dryrun|live
+        frameCapturedAt:  agent?.frame_captured_at ?? null,
+        frameLagMs:       agent?.frame_lag_ms ?? null,
+        frameLagMaxMs:    agent?.frame_lag_max_ms ?? null,
+        frameStarvedSec:  agent?.frame_starved_sec ?? null,
+        lastDetectOkAt:   agent?.last_detect_ok_at ?? null,
+        matcherLoaded:    agent?.matcher_loaded == null ? null : agent.matcher_loaded === 1,
       },
     })
   } catch (e) {

@@ -25,9 +25,26 @@ export interface AlarmRow {
   cleared_reason: string | null
   draft_record_id: string | null
   created_at: string
+  // ── 0096 신규(전부 null 가능. 구 경보 행은 전부 null 이다) ──
+  yellow_ratio?: number | null    // fault 판정 근거
+  ocr_raw?: string | null
+  ocr_score?: number | null       // legacy 폴백이면 null (0 아님 — 0 은 '매칭 완전 실패'라는 다른 사실)
+  ocr_confidence?: string | null  // high|low|none  ※ 기존 confidence(색 신뢰도 0..1)와 다른 것
+  ocr_method?: string | null      // exact|prefix|fuzzy|legacy|empty
+  ocr_ms?: number | null
+  ocr_lines?: string | null       // JSON {"badge":[...],"wide":[...]}
 }
 
-// 전체 Alarm (§1.6) — 칩·풀스크린·이벤트 이력용.
+// ocr_lines 는 {"badge":[...],"wide":[...]} JSON. 파싱 실패해도 화면을 죽이지 않는다.
+function safeLines(s: string | null | undefined): { badge: string[]; wide: string[] } {
+  if (!s) return { badge: [], wide: [] }
+  try {
+    const o = JSON.parse(s)
+    return { badge: Array.isArray(o?.badge) ? o.badge : [], wide: Array.isArray(o?.wide) ? o.wide : [] }
+  } catch { return { badge: [], wide: [] } }
+}
+
+// 전체 Alarm (§1.6) — 칩·풀스크린·이벤트 이력용. 필드 추가만 하므로 기존 소비처는 무영향.
 export function mapAlarm(r: AlarmRow) {
   return {
     id: r.id,
@@ -42,6 +59,19 @@ export function mapAlarm(r: AlarmRow) {
     ackedAt: r.acked_at,
     clearedReason: r.cleared_reason,
     draftRecordId: r.draft_record_id,
+    // ── 0096 신규 (MONITORING-SPEC.md §3.7) ──
+    pushCount: r.push_count ?? 0,
+    redRatio: r.red_ratio,
+    greenRatio: r.green_ratio,
+    yellowRatio: r.yellow_ratio ?? null,
+    ocr: {
+      raw: r.ocr_raw ?? null,
+      score: r.ocr_score ?? null,
+      confidence: r.ocr_confidence ?? null,   // high|low|none|null
+      method: r.ocr_method ?? null,           // exact|prefix|fuzzy|legacy|empty|null
+      ms: r.ocr_ms ?? null,
+      lines: safeLines(r.ocr_lines),          // { badge: string[], wide: string[] }
+    },
   }
 }
 

@@ -13,6 +13,7 @@ interface TriggerBody {
   confidence?: number
   redRatio?: number
   greenRatio?: number
+  yellowRatio?: number   // 0..1. fault(고장) 판정 근거. 없으면 null (구 에이전트 호환 — optional).
   clientId?: string
   location?: string   // 팝업 발생 위치(설비/화재). null 이면 mapAlarm 이 방재실 화재수신반 기본값.
 }
@@ -40,9 +41,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     if (maint.enabled) {
       const sid = 'PA-' + nanoid(10)
       await env.DB.prepare(
-        `INSERT INTO panel_alarms (id, type, status, detected_at, source, confidence, red_ratio, green_ratio, snapshot_key, location)
-         VALUES (?, ?, 'suppressed', ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(sid, type, body.detectedAt, body.source ?? null, body.confidence ?? null, body.redRatio ?? null, body.greenRatio ?? null, body.snapshotKey ?? null, body.location ?? null).run()
+        `INSERT INTO panel_alarms (id, type, status, detected_at, source, confidence, red_ratio, green_ratio, yellow_ratio, snapshot_key, location)
+         VALUES (?, ?, 'suppressed', ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(sid, type, body.detectedAt, body.source ?? null, body.confidence ?? null, body.redRatio ?? null, body.greenRatio ?? null, body.yellowRatio ?? null, body.snapshotKey ?? null, body.location ?? null).run()
       return Response.json({ success: true, data: { alarmId: sid, draftRecordId: null, escalation: null, suppressed: true } })
     }
 
@@ -64,9 +65,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     // 3) 신규 active INSERT.
     const alarmId = 'PA-' + nanoid(10)
     await env.DB.prepare(
-      `INSERT INTO panel_alarms (id, type, status, detected_at, source, confidence, red_ratio, green_ratio, snapshot_key, location)
-       VALUES (?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(alarmId, type, body.detectedAt, body.source ?? null, body.confidence ?? null, body.redRatio ?? null, body.greenRatio ?? null, body.snapshotKey ?? null, body.location ?? null).run()
+      `INSERT INTO panel_alarms (id, type, status, detected_at, source, confidence, red_ratio, green_ratio, yellow_ratio, snapshot_key, location)
+       VALUES (?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(alarmId, type, body.detectedAt, body.source ?? null, body.confidence ?? null, body.redRatio ?? null, body.greenRatio ?? null, body.yellowRatio ?? null, body.snapshotKey ?? null, body.location ?? null).run()
 
     // fire → 자동초안 (fire_alarm_records, non_fire 기본, created_by='panel-agent').
     let draftRecordId: string | null = null
