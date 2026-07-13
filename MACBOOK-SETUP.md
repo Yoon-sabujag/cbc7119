@@ -4,7 +4,7 @@
 > **철칙**: 개발은 맥북 **한 곳에서만**. 두 컴퓨터에서 같은 코드를 동시에 만지면 꼬입니다.
 > 옮긴 뒤 맥미니의 개발용 Claude 창은 은퇴시키고, 맥미니는 panel-agent만 돌립니다.
 
-작성일: 2026-07-13
+작성일: 2026-07-13 (이전 완료 — 아래 체크리스트는 이력 겸 재현용)
 
 ---
 
@@ -68,6 +68,9 @@ gh repo clone Yoon-sabujag/cbc7119 20260328
 
 # 스테이징 코드 (GitHub 비공개 백업본)
 gh repo clone Yoon-sabujag/cbc7119-data
+
+# 수신반 에이전트 (비공개 백업본) — ★맥북에선 리뷰 전용, 실행은 맥미니에서만
+gh repo clone Yoon-sabujag/panel-agent
 ```
 
 ## 3. 설정·기억 복사  ★제일 중요★
@@ -94,6 +97,10 @@ cd ~/Documents/20260328/cha-bio-safety && npm install && npx wrangler login
 
 # 스테이징 앱 (앱이 루트에 있음)
 cd ~/Documents/cbc7119-data && npm install
+
+# GSD 도구 PATH 연결 (안 하면 /gsd:* 워크플로가 "gsd-tools: command not found" 로 실패)
+mkdir -p ~/.local/bin && ln -sf ~/.claude/get-shit-done/bin/gsd-tools.cjs ~/.local/bin/gsd-tools
+gsd-tools query init.quick   # JSON 이 나오면 정상
 ```
 
 ## 5. 확인
@@ -114,6 +121,23 @@ cd ~/Documents/20260328 && claude
   cd ~/panel-agent && nohup python3 agent.py >> agent.log 2>&1 & disown ; echo $! > agent.pid
   ```
 - `~/Desktop/수신반-미리보기/` — panel-agent 스캐폴드(이미 panel-agent 에 통합됨). 참고용.
+
+## 맥미니 Claude 창의 역할 (2026-07-13 확정)
+**맥미니 Claude = `~/panel-agent/` 전용.** 개발용 콘솔은 은퇴 — 맥미니에 남은 옛 `~/Documents/20260328`·`cbc7119-data` 폴더는 stale 이므로 **거기서 편집·배포(wrangler)·D1 조작 금지**. 앱 개발은 전부 맥북에서.
+
+### panel-agent 백업 저장소
+- **`Yoon-sabujag/panel-agent` (비공개, branch `master`)** — 2026-07-13 백업(`cb9da95`). 그전까지 맥미니 한 대에만 존재해 유실 위험이 있었음.
+- 🔒 **`config.env` 는 절대 커밋 금지** — AGENT_KEY(비밀키)가 들어 있어 유출 시 가짜 화재경보 푸시가 가능해짐. `.gitignore` 로 제외돼 있고 값을 비운 `config.env.example` 만 저장소에 있음. 로그·`snaps/`·`ocr` 바이너리·`*.bak.*` 도 제외.
+- **에이전트 코드를 수정하면 맥미니에서 반드시 commit + push** 해야 백업이 최신으로 유지됨.
+- 맥북 clone(`~/Documents/panel-agent`)은 **리뷰 전용**. 실행하려면 캡처보드가 필요함(맥미니).
+
+### ★에이전트 ↔ 앱 짝 변경 순서
+push-first 위치 patch, 라이브뷰 폴 주기처럼 **에이전트 수정이 앱 API·프론트 변경과 짝**으로 가는 경우가 많음. 이때 순서를 지키지 않으면 라이브뷰·경보가 깨짐:
+
+1. **맥북** — 앱(백엔드/프론트) 먼저 설계·검증·배포 (staging → prod)
+2. **맥미니** — 그다음 에이전트에 반영 + panel-agent 저장소에 push
+
+에이전트 단독 수정(감지 임계값·OCR 크롭·로깅)은 맥미니에서 단독 진행 가능.
 
 ## 배포·작업 규칙 (옮긴 뒤에도 그대로)
 - 직원 도메인 배포·브랜치 규칙 → `~/Documents/20260328/CLAUDE.md` 와 `.planning/production-sync.md`.
