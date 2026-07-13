@@ -53,11 +53,15 @@ async function logTelemetry(
 }
 
 // ── Send push utility ────────────────────────────────
+// ★ 반환값 = **실제 도달 여부**(2xx). 워치독의 watchdog_push_ok 가 이 값을 센다 (FEEDBACK §6-2).
+//   원래는 Promise<void> 였고 모든 실패를 내부에서 삼켰다 → Promise.allSettled 의 fulfilled 개수가
+//   **항상 구독 수와 동일**했다. 그걸 '도달 건수' 로 세면 전원 구독 만료(410)여도 "통지했다" 가 되어
+//   재시도가 영원히 안 나간다. 삼키는 동작(다른 cron 경로가 의존)은 그대로 두고 결과만 돌려준다.
 async function sendPush(
   env: Env,
   sub: PushSubRow,
   payload: { title: string; body: string; type: string }
-): Promise<void> {
+): Promise<boolean> {
   try {
     const pushData = await buildPushPayload(
       { data: JSON.stringify(payload) },
@@ -99,12 +103,14 @@ async function sendPush(
       // Subscription expired — clean up from D1
       await env.DB.prepare('DELETE FROM push_subscriptions WHERE id = ?').bind(sub.id).run()
     }
+    return res.status < 400
   } catch (e) {
     console.error(`Push failed for ${sub.staff_id}:`, e)
     await logTelemetry(env, 'cron-daily-push-throw', {
       staff_id: sub.staff_id,
       detail: `${(e as Error)?.message ?? e}\n${(e as Error)?.stack ?? ''}`.slice(0, 1000),
     })
+    return false
   }
 }
 
@@ -265,7 +271,7 @@ async function handleDailyNotifications(env: Env) {
       }),
     })
 
-    const sends: Promise<void>[] = []
+    const sends: Promise<boolean>[] = []
 
     for (const sub of subs.results) {
       const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
@@ -400,7 +406,7 @@ async function handleEventNotifications(env: Env) {
     const subs = { results: (allEventSubs.results ?? []).filter(s => workingIds.has(s.staff_id)) }
     if (!subs.results.length) return
 
-    const sends: Promise<void>[] = []
+    const sends: Promise<boolean>[] = []
 
     for (const evt of events.results) {
       const timeStr = evt.time // "HH:MM" format
@@ -668,19 +674,42 @@ async function buildDbBackupSql(env: Env): Promise<{ sql: string; oversized: str
 // 사각지대 #4 를 처음으로 알린다 — 에이전트는 살아있는데(heartbeat 정상) 캡처보드/HDMI 가 죽어
 // 프레임이 안 들어오는 상태. 지금까지는 agentOnline=true 라 화면이 초록이었다.
 //
-// ★ 푸시 억제 규칙 (오탐 푸시는 신뢰를 파괴한다):
-//   - watchdog_notified_at 이 있으면 재푸시 안 함(0092 가 이미 준비한 컬럼. heartbeat.ts 가 회복 시 NULL 로 리셋).
+// ★ 억제 규칙 — 이 워치독은 **양방향으로 죽을 수 있다.** 둘 다 결과는 "진짜 화재를 놓친다" 다:
+//   (A) 너무 많이 외침 → 알람 피로 → 관리자가 채널을 무음 → 진짜 화재 푸시를 못 본다.  (FEEDBACK §1)
+//   (B) 한 번 외치고 침묵 → 고장이 몇 시간 지속돼도 아무도 모른다.                      (FEEDBACK §6)
+//   2026-07-14 에 (A) 를 고쳤더니 같은 날 (B) 가 터졌다 — 캡처보드 차단 88분, 알림 1건, 사람이 우연히 발견.
+//
+// ★ 알림 수명주기는 **cron 이 단독 소유**한다. heartbeat.ts 는 watchdog_notified_at 을 **건드리지 않는다**
+//   (§1 수정의 핵심). 두 주체가 같은 컬럼을 반대 방향으로 쓰면 억제가 성립하지 않는다 —
+//   하트비트가 60초마다 NULL 로 리셋해서 5분마다 영원히 푸시하던 것이 바로 그 버그다.
+//   heartbeat.ts 에 NULL 리셋을 '누락' 으로 오인해 되살리지 마라. 무한 푸시가 그대로 재발한다.
+//
+// ★ 재푸시 조건 (셋 중 하나라도 참이면 다시 보낸다):
+//   - 사유 코드 집합이 바뀌었다      → 경미한 고장 통지가 그 뒤의 치명적 고장 통지를 삼키지 않게 (§6-3)
+//   - 직전 통지의 실제 도달이 0건    → "통지함" 으로 기록됐지만 아무도 못 받았다 (§6-2)
+//   - 경과 > 6시간 (쿨다운)          → 고장이 지속되면 하루 최대 4회 상기 (§6-1)
+//   회복(사유 0개)하면 세 컬럼 전부 NULL.
+//
+// ★ 사유 비교는 **코드**(hb/starved/detect)로만 한다. 사람이 읽는 문구로 비교하면 안 된다 —
+//   '캡처보드 신호 없음(1500초)' 은 5분 틱마다 숫자가 바뀌므로 매 틱 '사유 변경' 으로 읽혀
+//   §1 무한 푸시가 그대로 부활한다.
+//
+// ★ 오탐 금지 규칙 (그대로 유지):
 //   - frame_starved_sec 이 NULL 이면 푸시하지 않는다 (M1 — 판정 보류를 고장으로 읽지 말 것.
 //     구 에이전트/MONITOR_TELEMETRY=0 이면 이 필드가 없다).
 //   - detect_mode='off' 면 감지 정지로 푸시하지 않는다 (S9 — 의도된 설정이지 고장이 아니다).
+const WATCHDOG_COOLDOWN_MS = 6 * 3600_000   // 고장 지속 시 재알림 간격. 하루 최대 4회 = 알람 피로 없이 상기
+
 async function handlePanelWatchdog(env: Env): Promise<void> {
   try {
     const a = await env.DB.prepare(
-      `SELECT last_seen_at, frame_starved_sec, last_detect_ok_at, detect_mode, watchdog_notified_at
+      `SELECT last_seen_at, frame_starved_sec, last_detect_ok_at, detect_mode,
+              watchdog_notified_at, watchdog_reasons, watchdog_push_ok
          FROM panel_agent_status WHERE id='agent'`,
     ).first<{
       last_seen_at: string | null; frame_starved_sec: number | null; last_detect_ok_at: string | null
       detect_mode: string | null; watchdog_notified_at: string | null
+      watchdog_reasons: string | null; watchdog_push_ok: number | null
     }>()
     if (!a) return
 
@@ -689,46 +718,93 @@ async function handlePanelWatchdog(env: Env): Promise<void> {
     const seen = kstMs(a.last_seen_at)
     const detectOk = kstMs(a.last_detect_ok_at)
 
-    const reasons: string[] = []
+    // 사유는 {code, text} 쌍이다. **비교는 code 로만** 한다 (text 에는 매 틱 변하는 초 숫자가 들어간다).
+    const reasons: { code: string; text: string }[] = []
     // (1) 하트비트 끊김 — 180초 (status.ts 의 온라인 임계와 동일 축)
-    if (seen == null || now - seen > 180_000) reasons.push('에이전트 응답 없음(하트비트 3분 초과)')
+    if (seen == null || now - seen > 180_000) {
+      reasons.push({ code: 'hb', text: '에이전트 응답 없음(하트비트 3분 초과)' })
+    }
     // (2) 프레임 기아 30초 — 캡처보드/HDMI 먹통. null 이면 판정 보류(푸시 금지).
     if (a.frame_starved_sec != null && a.frame_starved_sec >= 30) {
-      reasons.push(`캡처보드 신호 없음(${a.frame_starved_sec}초)`)
+      reasons.push({ code: 'starved', text: `캡처보드 신호 없음(${a.frame_starved_sec}초)` })
     }
     // (3) 감지 파이프 정지 180초 — 단 detect_mode='off' 는 의도된 설정이므로 제외
     if (a.detect_mode !== 'off' && detectOk != null && now - detectOk > 180_000) {
-      reasons.push('감지 파이프 정지(3분 초과)')
+      reasons.push({ code: 'detect', text: '감지 파이프 정지(3분 초과)' })
     }
 
     if (reasons.length === 0) {
-      // 회복 → 억제 해제. (heartbeat.ts 도 리셋하지만, 프레임 기아 회복분은 여기서 푼다.)
+      // 회복 → 억제 해제. 세 컬럼을 함께 푼다(사유/도달건수가 남아 있으면 다음 고장의 판정이 오염된다).
       if (a.watchdog_notified_at) {
-        await env.DB.prepare("UPDATE panel_agent_status SET watchdog_notified_at=NULL WHERE id='agent'").run()
+        await env.DB.prepare(
+          `UPDATE panel_agent_status
+              SET watchdog_notified_at=NULL, watchdog_reasons=NULL, watchdog_push_ok=NULL
+            WHERE id='agent'`,
+        ).run()
       }
       return
     }
-    if (a.watchdog_notified_at) return   // 이미 통지함 → 중복 억제
+
+    const reasonKey = reasons.map(r => r.code).sort().join(',')
+    const notifiedMs = kstMs(a.watchdog_notified_at)
+    const elapsedMs = notifiedMs == null ? null : now - notifiedMs
+
+    // 재푸시 판정 — 하나라도 참이면 다시 외친다. 전부 거짓이면 침묵(중복 억제).
+    let trigger: string | null = null
+    if (!a.watchdog_notified_at) trigger = 'first'                              // 최초 통지
+    else if (reasonKey !== a.watchdog_reasons) trigger = 'reasons-changed'      // §6-3 사유 에스컬레이션
+    else if ((a.watchdog_push_ok ?? 0) === 0) trigger = 'push-failed'           // §6-2 도달 0건 → 재시도
+    else if (elapsedMs != null && elapsedMs > WATCHDOG_COOLDOWN_MS) trigger = 'cooldown'  // §6-1 지속 상기
+    if (!trigger) return
+
+    // 지속 시간 — 재알림에서 "얼마나 오래 이러고 있는지" 가 최초 통지보다 중요하다.
+    const durMin = elapsedMs == null ? 0 : Math.round(elapsedMs / 60_000)
+    const durText = durMin >= 60 ? `${Math.floor(durMin / 60)}시간 ${durMin % 60}분` : `${durMin}분`
+    const title = trigger === 'first' || trigger === 'reasons-changed'
+      ? '⚠ 화재수신반 감시 이상'
+      : '⚠ 화재수신반 감시 이상 — 계속됨'
+    const body = trigger === 'first'
+      ? reasons.map(r => r.text).join(' · ')
+      : `${reasons.map(r => r.text).join(' · ')} — ${durText}째 지속`
 
     // 관리자에게만 push
     const adminRows = await env.DB.prepare(
       "SELECT id FROM staff WHERE role = 'admin' AND active = 1",
     ).all<{ id: string }>()
     const adminIds = (adminRows.results ?? []).map(r => r.id)
+
+    // ★ pushOk = **실제 도달 건수**. sendPush 가 true(2xx) 를 돌려준 것만 센다.
+    //   관리자 0명이거나 구독이 전부 만료(410)면 0 → 다음 틱에 'push-failed' 로 재시도한다.
+    //   (구 코드는 발송 여부와 무관하게 SET 해서, 도달 0건인데 "통지함" 으로 기록하고 영원히 침묵했다.)
+    let pushOk = 0
     if (adminIds.length > 0) {
       const ph = adminIds.map(() => '?').join(',')
       const subs = await env.DB.prepare(
         `SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences
            FROM push_subscriptions WHERE staff_id IN (${ph})`,
       ).bind(...adminIds).all<PushSubRow>()
-      await Promise.allSettled((subs.results ?? []).map(sub =>
-        sendPush(env, sub, { title: '⚠ 화재수신반 감시 이상', body: reasons.join(' · '), type: 'panel-watchdog' }),
+      const results = await Promise.allSettled((subs.results ?? []).map(sub =>
+        sendPush(env, sub, { title, body, type: 'panel-watchdog' }),
       ))
+      pushOk = results.filter(r => r.status === 'fulfilled' && r.value === true).length
     }
 
-    await env.DB.prepare("UPDATE panel_agent_status SET watchdog_notified_at=? WHERE id='agent'")
-      .bind(new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ')).run()
-    await logTelemetry(env, 'cron-panel-watchdog', { detail: JSON.stringify({ reasons, admins: adminIds.length }) })
+    // 도달 0건이면 notified_at 을 **갱신하지 않는다** — 갱신하면 쿨다운 시계만 뒤로 밀려
+    // 재시도가 늦어진다. 최초 시각을 유지해야 'push-failed' 로 다음 틱에 곧바로 다시 시도한다.
+    const nowKst = new Date(now + 9 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ')
+    const notifiedAt = pushOk > 0 ? nowKst : (a.watchdog_notified_at ?? nowKst)
+    await env.DB.prepare(
+      `UPDATE panel_agent_status
+          SET watchdog_notified_at=?, watchdog_reasons=?, watchdog_push_ok=?
+        WHERE id='agent'`,
+    ).bind(notifiedAt, reasonKey, pushOk).run()
+
+    await logTelemetry(env, 'cron-panel-watchdog', {
+      detail: JSON.stringify({
+        trigger, reasonKey, reasons: reasons.map(r => r.text),
+        admins: adminIds.length, pushOk, durMin,
+      }),
+    })
   } catch (e: any) {
     await logTelemetry(env, 'cron-panel-watchdog-throw', { detail: String(e?.message ?? e).slice(0, 500) })
   }

@@ -278,6 +278,12 @@ export default function PanelMonitorPage() {
       out.push({ key: 'ver', label: '배포 어긋남', cls: 'b-dang',
         why: `config 가 말하는 버전(${s.agentVersion})과 실제 도는 코드(${s.codeVersion})가 다르다. 이 화면의 모든 판단을 의심할 것 — 맥미니가 옛 코드로 돌고 있을 수 있다.` })
     }
+    // SSH 기동 — macOS TCC 가 캡처보드를 조용히 차단한다. ffmpeg 는 에러 없이 뜨고 프레임만 0장이라
+    // agentOnline 은 계속 true 다(2026-07-14: 그렇게 88분을 아무도 몰랐다). 배지로 먼저 의심하게 만든다.
+    if (s?.launchedFromSsh === true) {
+      out.push({ key: 'ssh', label: 'SSH 기동 — 캡처보드 차단 가능', cls: 'b-dang',
+        why: 'SSH 세션에서 기동된 에이전트는 macOS TCC 화면수신 권한을 못 받아 프레임이 0장일 수 있다(에러는 안 난다). 프레임 기아가 같이 뜨면 GUI 에서 재시작할 것.' })
+    }
     if (s?.telemetryOn == null) {
       out.push({ key: 'tel', label: '구 에이전트', cls: 'b-none',
         why: 'telemetryOn 필드가 없다 (v1.4.1 이하). 스위치 상태를 알 수 없다 — 회색이 정답이지 초록이 아니다.' })

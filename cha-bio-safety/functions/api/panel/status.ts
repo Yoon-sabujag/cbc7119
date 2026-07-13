@@ -68,6 +68,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
         snapshotOn:       agent?.snapshot_on == null ? null : agent.snapshot_on === 1,
         snapshotCfg:      cfgBool('snapshotCfg'),     // 설정값. snapshotOn=false + snapshotCfg=true → '종속으로 꺼짐'
         frameInterval:    cfgNum('frameInterval'),    // 설정 업로드 주기 — R2 예산에서 실측과 나란히 보여준다
+        // 에이전트 v1.5.0+ — SSH 세션에서 기동하면 macOS TCC 가 캡처보드를 조용히 차단한다.
+        // (2026-07-14: ffmpeg 가 에러 없이 뜨고 "캡처 시작" 로그까지 남긴 뒤 프레임 0장. 88분 무감지.)
+        launchedFromSsh:  cfgBool('launchedFromSsh'), // null = 구 에이전트 → 배지 없음
         detFps:           cfgNum('detFps'),
         starvedLogSec:    cfgNum('starvedLogSec'),    // 에이전트 로컬 로그 임계(서버 판정 5s/30s 와 무관)
       },

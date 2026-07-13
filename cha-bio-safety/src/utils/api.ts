@@ -790,6 +790,7 @@ export interface PanelStatus {
   snapshotOn?: boolean | null     // 종속식 반영된 '실제 동작' 값
   snapshotCfg?: boolean | null    // config.env 설정값. snapshotOn=false + snapshotCfg=true → '종속으로 꺼짐'
   frameInterval?: number | null   // 설정 업로드 주기(초) — R2 예산에서 실측과 나란히
+  launchedFromSsh?: boolean | null // v1.5.0+. SSH 기동 = macOS TCC 가 캡처보드를 조용히 차단할 수 있다
   detFps?: number | null
   starvedLogSec?: number | null
 }
