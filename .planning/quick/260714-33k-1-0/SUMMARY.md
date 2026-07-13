@@ -100,8 +100,3 @@ UI 노출 범위만 바뀜 — 데이터 계약(SPEC) 무영향. 게이트 3중 
 
 **화재 재발송(renotify)이 격발되지 않는다** — `trigger.ts` 가 무장만 하고 `/api/alarm/renotify`
 호출부가 에이전트·프론트 어디에도 없다. 모니터 화면의 `pushCount` 로 보이게만 해둠. 수정은 별건.
-
-## 별건 (핸드오프 §11)
-
-**화재 재발송(renotify)이 격발되지 않는다** — `trigger.ts` 가 무장만 하고 `/api/alarm/renotify`
-호출부가 에이전트·프론트 어디에도 없다. 모니터 화면의 `pushCount` 로 보이게만 해둠. 수정은 별건.
