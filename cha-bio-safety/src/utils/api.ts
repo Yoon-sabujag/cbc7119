@@ -781,6 +781,14 @@ export interface PanelStatus {
   frameStarvedSec?: number | null
   lastDetectOkAt?: string | null
   matcherLoaded?: boolean | null
+  // ── 0097 (v1.4.2 스위치 상태). null = 구 에이전트(v1.4.1 이하) → 화면은 회색(초록 금지) ──
+  telemetryOn?: boolean | null    // MONITOR_TELEMETRY. false = 이 화면의 모든 값이 갱신되지 않는다
+  backendV2?: boolean | null      // C1 킬스위치. false = 위치 미확정 경보의 OCR 증거가 서버에 안 온다
+  snapshotOn?: boolean | null     // 종속식 반영된 '실제 동작' 값
+  snapshotCfg?: boolean | null    // config.env 설정값. snapshotOn=false + snapshotCfg=true → '종속으로 꺼짐'
+  frameInterval?: number | null   // 설정 업로드 주기(초) — R2 예산에서 실측과 나란히
+  detFps?: number | null
+  starvedLogSec?: number | null
 }
 
 // 에이전트 텔레메트리 시계열 1포인트 (agent-history). 모든 값 null 가능 = 결측(선 끊김, 0 아님).

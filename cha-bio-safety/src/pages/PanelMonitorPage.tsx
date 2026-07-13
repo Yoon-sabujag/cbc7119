@@ -69,8 +69,14 @@ export default function PanelMonitorPage() {
   const points = hist?.points ?? []
   const events = eventsQ.data ?? []
 
-  // 최근 1시간 구간(heartbeat 60초 주기 → 60포인트)
-  const last1h = useMemo(() => points.slice(-60), [points])
+  // 최근 1시간 구간.
+  // ★ slice(-60) 을 쓰면 안 된다 (FEEDBACK §2) — 24h 조회는 항상 다운샘플을 타므로
+  //   (1,440 > MAXP 1000 → step=2) 1포인트가 60초가 아니다. 60개를 자르면 실제로는 2시간이 된다.
+  //   시각(at) 기준으로 자른다.
+  const last1h = useMemo(() => {
+    const cut = Date.now() - 3600_000
+    return points.filter(p => { const t = parseKst(p.at); return t != null && t >= cut })
+  }, [points])
 
   // 최근 경보 = OCR 신호등 판정 근거 (BACKEND_V2=0 이면 위치 확정 경보만 증거를 갖는다)
   const lastAlarm: AlarmEvent | undefined = events[0]
@@ -174,6 +180,11 @@ export default function PanelMonitorPage() {
   }, [s, last1h, lastAlarm])
 
   // ── ③ 프레임 지연 시계열 (로그축 SVG. 주선 = frameLagMaxMs) ──
+  //
+  // ★ x 는 **시각 기준**이다 (FEEDBACK §3 / SPEC §6-③).
+  //   배열 인덱스로 그리면 heartbeat 가 끊긴 구간(= 에이전트가 죽어 있던 시간)의 인접 두 점이
+  //   직선으로 이어져 **다운타임이 차트에서 통째로 사라진다.**
+  //   시각축 + gaps[] 회색 밴드 + gap 구간 선 끊기 — 셋이 같이 있어야 죽어 있던 시간이 보인다.
   const chart = useMemo(() => {
     const W = 1200, H = 260, L = 52, R = 12, T = 14, B = 26
     const iw = W - L - R, ih = H - T - B
@@ -182,34 +193,51 @@ export default function PanelMonitorPage() {
       const lo = Math.log10(100), hi = Math.log10(maxY)
       return T + ih - (Math.log10(Math.max(v, 100)) - lo) / (hi - lo) * ih
     }
-    const N = points.length
-    const lx = (i: number) => (N <= 1 ? L : L + (i / (N - 1)) * iw)
+    const times = points.map(p => parseKst(p.at)).filter((t): t is number => t != null)
+    const t0 = times.length ? Math.min(...times) : 0
+    const t1 = times.length ? Math.max(...times) : 1
+    const span = Math.max(t1 - t0, 1)
+    const lx = (t: number) => L + ((t - t0) / span) * iw
+
+    const GAP_MS = 180_000   // status.ts 의 온라인 임계와 같은 축 — 이 이상 벌어지면 선을 잇지 않는다
     // null = 결측 → 선을 끊는다 (0 으로 이으면 "정상"으로 오독된다)
+    // 시간 간격이 GAP_MS 를 넘어도 끊는다 (죽어 있던 구간을 직선으로 잇지 않는다)
     const mkPath = (pick: (p: AgentHistoryPoint) => number | null) => {
-      let d = '', open = false
-      points.forEach((p, i) => {
+      let d = '', open = false, prevT: number | null = null
+      points.forEach(p => {
+        const t = parseKst(p.at)
         const v = pick(p)
-        if (v == null) { open = false; return }
-        d += (open ? ' L ' : ' M ') + lx(i).toFixed(1) + ' ' + ly(v).toFixed(1)
-        open = true
+        if (t == null || v == null) { open = false; prevT = t ?? prevT; return }
+        if (prevT != null && t - prevT > GAP_MS) open = false      // gap → 선 끊김
+        d += (open ? ' L ' : ' M ') + lx(t).toFixed(1) + ' ' + ly(v).toFixed(1)
+        open = true; prevT = t
       })
       return d
     }
-    return {
-      W, H, L, R, T, ih,
-      maxPath: mkPath(p => p.frameLagMaxMs),
-      instPath: mkPath(p => p.frameLagMs),
-      ly, lx, N,
-      xLabels: N > 1 ? [0, Math.floor(N / 4), Math.floor(N / 2), Math.floor((N * 3) / 4), N - 1] : [],
-    }
-  }, [points])
+
+    // gaps[] → 회색 밴드 (SPEC §6-③ "gaps 는 회색 밴드. 선을 이어 그리면 죽어 있던 시간이 사라진다")
+    const bands = (hist?.gaps ?? []).map(g => {
+      const a = parseKst(g.from), b = parseKst(g.to)
+      if (a == null || b == null) return null
+      return { x: lx(a), w: Math.max(lx(b) - lx(a), 2), sec: g.sec }
+    }).filter((b): b is { x: number; w: number; sec: number } => b != null)
+
+    // x 눈금 — 시각 기준 5등분
+    const ticks = times.length > 1
+      ? [0, 0.25, 0.5, 0.75, 1].map(f => { const t = t0 + span * f; return { x: lx(t), label: new Date(t).toTimeString().slice(0, 5) } })
+      : []
+
+    return { W, H, L, R, T, ih, ly, lx, bands, ticks, hasData: times.length > 0,
+      maxPath: mkPath(p => p.frameLagMaxMs), instPath: mkPath(p => p.frameLagMs) }
+  }, [points, hist])
 
   // ── ⑥ 오류 카운터 (1h / 24h 델타) ──
   const tiles = useMemo(() => {
     const snapOk24 = sumDelta(points, p => p.snapshotOk)
     const snapFail24 = sumDelta(points, p => p.snapshotFail)
-    // ★ B2: ok+fail == 0 → 회색 "미사용". 초록 금지 (스냅샷이 꺼져 있는 것이지 "전부 성공"이 아니다)
-    const snapNever = (snapOk24 ?? 0) + (snapFail24 ?? 0) === 0
+    // ★ snapshot_ok = 0 을 단독으로 초록 칠하지 않는다 (FEEDBACK §5).
+    //   snapshotOn(스위치 실제 동작값)을 함께 봐야 "꺼져서 0" 과 "켜졌는데 경보가 없어서 0" 이 구분된다.
+    const snapNever = s?.snapshotOn === false || (snapOk24 ?? 0) + (snapFail24 ?? 0) === 0
     return [
       { k: '업로드 실패', sub: '라이브 프레임 한정', v1: sumDelta(last1h, p => p.uploadFail), v24: sumDelta(points, p => p.uploadFail) },
       { k: 'HTTP 401', sub: '키 불일치', v1: sumDelta(last1h, p => p.http401), v24: sumDelta(points, p => p.http401) },
@@ -217,20 +245,51 @@ export default function PanelMonitorPage() {
       { k: 'HTTP 5xx', sub: '서버', v1: sumDelta(last1h, p => p.http5xx), v24: sumDelta(points, p => p.http5xx) },
       { k: 'analyze 실패', sub: '감지 파이프', v1: sumDelta(last1h, p => p.analyzeFail), v24: sumDelta(points, p => p.analyzeFail) },
       { k: 'OCR 실패', sub: '위치 미확정 포함', v1: sumDelta(last1h, p => p.ocrFail), v24: sumDelta(points, p => p.ocrFail) },
-      { k: '스냅샷 실패', sub: snapNever ? '미사용 (SNAPSHOT_ON_ALARM=0)' : `성공 ${n0(snapOk24)}건`, v1: snapFail24, v24: snapFail24, gray: snapNever },
+      { k: '스냅샷 실패',
+        sub: s?.snapshotOn === false ? '스냅샷 꺼짐 (시도 없음)' : snapNever ? '미사용 (시도 없음)' : `성공 ${n0(snapOk24)}건`,
+        v1: snapFail24, v24: snapFail24, gray: snapNever },
       { k: '재시작', sub: '24h', v1: hist?.restarts.length ?? null, v24: hist?.restarts.length ?? null },
     ]
-  }, [points, last1h, hist])
+  }, [points, last1h, hist, s])
 
-  // ── ⑦ R2 write 예산 — uploadOk 델타로 실측 업로드 간격을 역산한다 ──
+  // ── ⑦ R2 write 예산 — uploadOk 델타로 **실측** 업로드 간격을 역산한다 ──
+  // ★ mins = points.length 를 쓰면 안 된다 (FEEDBACK §2) — 다운샘플 후 "1포인트 = 60초" 가정이 깨진다.
+  //   실제 구간 길이를 첫/마지막 at 의 차로 구한다.
   const r2 = useMemo(() => {
     const upOk = sumDelta(points, p => p.uploadOk)
-    const mins = points.length            // heartbeat 1건 = 60초
-    const interval = upOk && upOk > 0 && mins > 0 ? (mins * 60) / upOk : null
+    const t0 = points.length > 1 ? parseKst(points[0].at) : null
+    const t1 = points.length > 1 ? parseKst(points[points.length - 1].at) : null
+    const spanSec = t0 != null && t1 != null && t1 > t0 ? (t1 - t0) / 1000 : null
+    const interval = upOk && upOk > 0 && spanSec ? spanSec / upOk : null      // 실측 간격(초/건)
     const monthly = interval ? Math.round((30.4 * 86400) / interval) : null
     const pct = monthly ? Math.round((monthly / 1_000_000) * 100) : null
-    return { interval, monthly, pct }
-  }, [points])
+    // 설정값(cfg.frameInterval)과 나란히 보여준다 — 차이 = 업로드 왕복 시간(FEEDBACK §5)
+    const cfgInterval = s?.frameInterval ?? null
+    return { interval, monthly, pct, cfgInterval }
+  }, [points, s])
+
+  // ── 스위치 배지 (FEEDBACK §5) — 스위치가 꺼져 있으면 그 사실 자체가 관측 공백이다 ──
+  const switchBadges = useMemo(() => {
+    const out: { key: string; label: string; cls: string; why: string }[] = []
+    if (s?.telemetryOn == null) {
+      out.push({ key: 'tel', label: '구 에이전트', cls: 'b-none',
+        why: 'telemetryOn 필드가 없다 (v1.4.1 이하). 스위치 상태를 알 수 없다 — 회색이 정답이지 초록이 아니다.' })
+    } else if (s.telemetryOn === false) {
+      out.push({ key: 'tel', label: '계측 꺼짐', cls: 'b-dang',
+        why: 'MONITOR_TELEMETRY=0 — 이 화면의 모든 값이 갱신되지 않는다.' })
+    }
+    if (s?.backendV2 === false) {
+      out.push({ key: 'bv2', label: '증거 수집 꺼짐', cls: 'b-warn',
+        why: 'BACKEND_V2=0 — 위치 미확정 경보의 OCR 원인을 알 수 없다(patch 자체를 안 보낸다).' })
+    }
+    if (s?.snapshotOn === false && s?.snapshotCfg === true) {
+      out.push({ key: 'snap', label: '스냅샷 종속으로 꺼짐', cls: 'b-warn',
+        why: 'SNAPSHOT_ON_ALARM=1 인데 상위 스위치(MONITOR_TELEMETRY/BACKEND_V2)가 0 이라 강제 OFF.' })
+    } else if (s?.snapshotOn === false && s?.snapshotCfg === false) {
+      out.push({ key: 'snap', label: '스냅샷 미사용', cls: 'b-none', why: 'SNAPSHOT_ON_ALARM=0 (의도된 설정).' })
+    }
+    return out
+  }, [s])
 
   const fresh = freshnessLabel(s?.frameUpdatedAt ?? null)
   const watchdog = watchdogLabel(s?.lastHeartbeatAt ?? null)
@@ -273,6 +332,13 @@ export default function PanelMonitorPage() {
           </div>
           <div className="strip-kv">24h 가동률<b> {hist?.uptimePct != null ? `${hist.uptimePct}%` : '—'}</b></div>
           <div className="strip-kv">재시작<b> {hist?.restarts.length ?? '—'}회</b></div>
+
+          {/* ── 스위치 배지 3종 (FEEDBACK §5) ──
+              "설정이 의도대로 켜져 있는가"를 원격에서 본다. 지금까지는 맥미니 기동 로그를 봐야 알 수 있었다.
+              필드가 null = 구 에이전트(v1.4.1 이하) → 회색. 초록 칠하기 금지. */}
+          {switchBadges.map(b => (
+            <span key={b.key} className={`badge ${b.cls}`} title={b.why}>{b.label}</span>
+          ))}
           {warnLine && <div className="strip-warnline" style={{
             color: `var(--status-${stripTone === 'warn' ? 'warning' : 'danger'})`,
             background: `var(--status-${stripTone === 'warn' ? 'warning' : 'danger'}-bg)`,
@@ -331,12 +397,25 @@ export default function PanelMonitorPage() {
                     stroke="var(--status-fire-bar)" strokeWidth={1} strokeDasharray="2 5" opacity={0.6} />
                   <text x={chart.L + 4} y={chart.ly(80000) - 4} fill="var(--status-fire)" fontSize={10}>80초 지연 사고선</text>
 
+                  {/* gaps = 에이전트가 죽어 있던 시간. 회색 밴드로 그린다 — 선을 이으면 이 시간이 사라진다 */}
+                  {chart.bands.map((b, k) => (
+                    <g key={`gap${k}`}>
+                      <rect x={b.x} y={chart.T} width={b.w} height={chart.ih} fill="var(--text-disabled)" opacity={0.22} />
+                      {b.w > 40 && (
+                        <text x={b.x + b.w / 2} y={chart.T + chart.ih / 2} textAnchor="middle"
+                          fill="var(--text-secondary)" fontSize={11} fontWeight={700}>
+                          끊김 {b.sec >= 3600 ? `${Math.round(b.sec / 3600)}시간` : `${Math.round(b.sec / 60)}분`}
+                        </text>
+                      )}
+                    </g>
+                  ))}
+
                   <path d={chart.instPath} fill="none" stroke="var(--accent)" strokeWidth={1.4} opacity={0.85} />
                   <path d={chart.maxPath} fill="none" stroke="var(--status-fire-bar)" strokeWidth={3} strokeLinejoin="round" />
 
-                  {chart.xLabels.map((i, k) => (
-                    <text key={k} x={chart.lx(i)} y={chart.H - 8} textAnchor="middle" fill="var(--text-tertiary)" fontSize={10}>
-                      {(points[i]?.at ?? '').slice(11, 16)}
+                  {chart.ticks.map((t, k) => (
+                    <text key={k} x={t.x} y={chart.H - 8} textAnchor="middle" fill="var(--text-tertiary)" fontSize={10}>
+                      {t.label}
                     </text>
                   ))}
                 </svg>
@@ -483,7 +562,10 @@ export default function PanelMonitorPage() {
               <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.02em' }}>{r2.pct != null ? `${r2.pct}%` : '—'}</span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                 {r2.monthly != null
-                  ? `예상 ${r2.monthly.toLocaleString()} / 1,000,000 write · 실측 업로드 간격 ${r2.interval!.toFixed(2)}초`
+                  ? <>예상 {r2.monthly.toLocaleString()} / 1,000,000 write · 업로드 간격 <b>실측 {r2.interval!.toFixed(2)}초</b>
+                    {r2.cfgInterval != null && <> · 설정 {r2.cfgInterval.toFixed(1)}초
+                      <span style={{ color: 'var(--text-tertiary)' }}> (차이 {Math.max(r2.interval! - r2.cfgInterval, 0).toFixed(2)}초 = 업로드 왕복)</span></>}
+                  </>
                   : '업로드 카운터 없음 — 계측 에이전트 가동 후 실측 간격으로 역산합니다.'}
               </span>
             </div>
