@@ -4,6 +4,13 @@
 **대상:** staging 콘솔 `~/Documents/cbc7119-data`
 **연결:** staging 의 `.planning/handoffs/260716-menu-parser-shift-phantom.md` 회신.
 
+> ⚠️ **정정 (staging 회신 + prod 백엔드 확인 후, 2026-07-16):** 아래 §2 의 "손상=옛 파서 지문(`' / '`)"
+> 해석은 **뒤집혔다.** 백엔드 `functions/api/menu/index.ts` 는 형식 변환이 없고 `collectTexts` 는 줄곧 `join(' / ')`
+> → **`' / '` 가 현재 파서 지문**이고, 정상주의 개행이 오히려 비파서 경로(직접 SQL/옛 캐시)다. rule ③(`' / '` 차단) 폐기.
+> staging sim_parse 재현: 현재 파서 실버그는 **6/08 유형(토 x 가 금밴드에 샘)뿐**, 5/04·7/13 은 현재 파서로 정상
+> (손상데이터는 옛 캐시 산출). 토요일 line 341 제외도 staging 이 맞다(§4-2 내 반박 철회). 수정방향은 이 문서 하단이 아니라
+> staging 회신 = 백엔드 버전 게이트 + 파서 토밴드/토저장 + 구조가드 복원. 상세는 메모리 `project_menu_parser_holiday_gap_incident`.
+
 ## 결론 먼저
 
 네 결론 **"현재 x-밴드 파서는 정상, 밀림은 옛 파서/캐시 산출"** 이 prod 물증으로 확정됐다.
