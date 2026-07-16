@@ -16,6 +16,11 @@ import type { StaffFull } from '../types'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
 
+// 식단표 파서 버전 — 파서 산출 형식(x-밴딩·토요일 컬럼)이 바뀔 때마다 올린다.
+// 업로드 시 백엔드로 전송하며, 백엔드 MIN_PARSER_VERSION 과 대조해 낡은 캐시 번들을 차단한다.
+// (functions/api/menu/index.ts 의 MIN_PARSER_VERSION 과 동기화)
+const PARSER_VERSION = 2
+
 const HIRE_DATES: Record<string, string> = {
   '2018042451': '2018-04-24',
   '2021061451': '2021-06-14',
@@ -39,12 +44,6 @@ function calcLeaveQuota(staffId: string): number {
 
 function localYMD(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-/** 전날의 로컬 YMD (월/연 경계 안전) */
-function prevYMD(date: Date): string {
-  const p = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1)
-  return localYMD(p)
 }
 
 const SHIFT_LABEL: Record<RawShift, string> = { '당': '당', '비': '비', '주': '주', '휴': '휴' }
@@ -337,7 +336,8 @@ export default function StaffServicePage() {
         }
       }
       dateCols.sort((a, b) => a.x - b.x)
-      // 토요일 제외 (메뉴 없음)
+      // weekdayCols(토 제외) — 섹션 헤더 x경계 판정·구조 가드(②③)의 기준.
+      // 추출용 colRanges 는 토요일까지 포함(4번) — 토 점심도 저장 대상.
       const weekdayCols = dateCols.filter(d => d.dow !== '토')
       if (weekdayCols.length < 3) throw new Error('날짜를 찾을 수 없습니다')
 
@@ -366,9 +366,12 @@ export default function StaffServicePage() {
 
       if (!lunchAY || !lunchBY || !dinnerY) throw new Error('메뉴 섹션을 찾을 수 없습니다')
 
-      // 4) 열별 x 범위 계산
-      const colRanges = weekdayCols.map((col, idx) => {
-        const nextX = idx < weekdayCols.length - 1 ? weekdayCols[idx + 1].x : col.x + 120
+      // 4) 열별 x 범위 계산 — 토요일 포함 전체 컬럼.
+      //    각 컬럼 오른쪽 경계 = 다음 헤더 x. 마지막 평일(금)은 토요일 헤더로 경계 지어져
+      //    토 콘텐츠의 금요일 유입을 차단한다(과거 col.x+120 고정폭이 낸 6/08 유형 사고).
+      //    마지막 컬럼(토)만 다음 헤더가 없어 col.x+120 사용.
+      const colRanges = dateCols.map((col, idx) => {
+        const nextX = idx < dateCols.length - 1 ? dateCols[idx + 1].x : col.x + 120
         return { ...col, xMin: col.x - 10, xMax: nextX - 10 }
       })
 
@@ -407,28 +410,41 @@ export default function StaffServicePage() {
 
       const menus = extracted
         // 모두 비어있으면 저장 안 함 — PDF 에 해당 날짜 컬럼이 있어도 메뉴가 없는 경우 차단
+        // (토요일도 점심만 있으면 통과 — 백엔드가 미운영 토요일은 별도로 걸러냄)
         .filter(m => m.lunch_a || m.lunch_b || m.dinner)
         .map(({ date, lunch_a, lunch_b, dinner }) => ({ date, lunch_a, lunch_b, dinner }))
 
-      // 6.5) 비정상 파싱 감지 가드 — 깨진 데이터가 정상 데이터를 조용히 덮어쓰는 것 방지.
-      // 정상 PDF 는 통과, 이상 신호 감지 시에만 upsert 차단 + 한글 toast 경고.
-      // ① 비-공휴일 평일(월~금)인데 중식A·중식B·석식이 전부 공란
+      // 6.5) 비정상 파싱 감지 가드(방어심층, dc981f0 복원) — 깨진 데이터가 정상 데이터를
+      //   조용히 덮어쓰는 것 방지. 근본 차단은 백엔드 버전 게이트이며 이건 보조 방어선이다.
+      //   실측 보정: 정상 주에도 평일 1일이 미운영일 수 있어(예: 7/17 식단 없음) 단일 공란·
+      //   단일 누락은 허용하고, 2일 이상 이상 신호일 때만 차단해 오차단을 막는다.
+      // ① 비-공휴일 평일이 2일 이상 전부 공란 → 열 밀림/양식 변경 의심
       const emptyWeekdays = extracted
         .filter(m => WEEKDAY_DOWS.includes(m.dow) && !m.lunch_a && !m.lunch_b && !m.dinner)
         .map(m => m.date)
-      if (emptyWeekdays.length > 0) {
-        throw new Error(`비정상 파싱 감지: 평일인데 메뉴가 비어 있습니다 (${emptyWeekdays.join(', ')}). 양식이 바뀌었거나 열이 밀렸을 수 있어 저장을 중단합니다.`)
+      if (emptyWeekdays.length >= 2) {
+        throw new Error(`비정상 파싱 감지: 평일 ${emptyWeekdays.length}일이 비어 있습니다 (${emptyWeekdays.join(', ')}). 양식이 바뀌었거나 열이 밀렸을 수 있어 저장을 중단합니다.`)
       }
 
-      // ② 정상 저장될 일수가 기대 운영일수(평일·공휴일 제외)보다 적음
-      const expectedDays = colRanges.filter(
-        col => WEEKDAY_DOWS.includes(col.dow) && !holidayMap[col.ymd]
+      // ② 저장될 평일 수가 '달력상 그 주 평일 운영일수'보다 2일 이상 부족 → 다수 누락.
+      //    기준을 colRanges(파싱된 헤더)가 아니라 달력에서 독립적으로 잡는다 — 그래야 평일
+      //    헤더가 통째로 파싱 안 돼 colRanges 자체가 줄어든 경우까지 ①과 무관하게 잡는다.
+      const anchor = new Date(dateCols[0].ymd + 'T00:00:00')
+      const monday = new Date(anchor)
+      monday.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7))  // 그 주 월요일
+      let calendarWeekdays = 0
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(monday); d.setDate(monday.getDate() + i)
+        if (!holidayMap[localYMD(d)]) calendarWeekdays++
+      }
+      const weekdayMenuCount = extracted.filter(
+        m => WEEKDAY_DOWS.includes(m.dow) && (m.lunch_a || m.lunch_b || m.dinner)
       ).length
-      if (menus.length < expectedDays) {
-        throw new Error(`비정상 파싱 감지: 운영일 ${expectedDays}일 중 ${menus.length}일분만 인식되었습니다. 일부 날짜가 누락되어 저장을 중단합니다.`)
+      if (weekdayMenuCount < calendarWeekdays - 1) {
+        throw new Error(`비정상 파싱 감지: 그 주 평일 운영일 ${calendarWeekdays}일 중 ${weekdayMenuCount}일분만 인식되었습니다. 다수 날짜가 누락되어 저장을 중단합니다.`)
       }
 
-      // ③ 날짜 헤더 x 간격 불균등 — 한 칸이 중앙값의 ~1.8배↑ (열 헤더가 통째로 빠진 신호)
+      // ③ 날짜 헤더 x 간격 불균등 — 한 칸이 중앙값의 ~1.8배↑ (열이 통째로 빠진 신호)
       const headerXs = weekdayCols.map(c => c.x)
       const gaps = headerXs.slice(1).map((x, i) => x - headerXs[i])
       if (gaps.length >= 2) {
@@ -451,8 +467,8 @@ export default function StaffServicePage() {
       const uploadJson = await uploadRes.json() as any
       const pdfKey = uploadJson.success ? uploadJson.data.key : undefined
 
-      // 8) DB에 메뉴 저장
-      await menuApi.upsert(menus, pdfKey)
+      // 8) DB에 메뉴 저장 (파서 버전 토큰 동봉 — 백엔드가 낡은 캐시 번들 차단)
+      await menuApi.upsert(menus, pdfKey, PARSER_VERSION)
       qc.invalidateQueries({ queryKey: ['menu'] })
 
       toast.success(`${menus.length}일분 메뉴 등록 완료`, { id: toastId })
@@ -554,12 +570,11 @@ export default function StaffServicePage() {
       const raw = getRawShift(staffId, date)
       const leaveType = myLeaveMap[ymd]?.type
       const isHoliday = !!holidayMap[ymd]
-      const isPrevDayHoliday = !!holidayMap[prevYMD(date)]
-      const provided = calcProvidedMeals(raw, leaveType, dow, isHoliday, isPrevDayHoliday)
+      const provided = calcProvidedMeals(raw, leaveType, dow, isHoliday)
       const skipped = mealMap[ymd] ?? 0
       totalProvided += provided
       totalSkipped += Math.min(skipped, provided)
-      totalAllowance += calcWeekendAllowance(raw, dow, isHoliday, isPrevDayHoliday)
+      totalAllowance += calcWeekendAllowance(raw, dow, isHoliday)
     }
 
     return {
@@ -579,14 +594,14 @@ export default function StaffServicePage() {
 
     const days: Array<{
       date: Date | null; ymd: string; day: number; dow: number
-      isToday: boolean; isHoliday: boolean; isPrevDayHoliday: boolean; holidayName: string; isWeekend: boolean
+      isToday: boolean; isHoliday: boolean; holidayName: string; isWeekend: boolean
       rawShift: RawShift; myLeave: LeaveItem | null
       teamLeaveList: LeaveItem[]; skipped: number; provided: number
       hasInspect: boolean
     }> = []
 
     for (let i = 0; i < startDow; i++) {
-      days.push({ date: null, ymd: '', day: 0, dow: -1, isToday: false, isHoliday: false, isPrevDayHoliday: false, holidayName: '', isWeekend: false, rawShift: '휴', myLeave: null, teamLeaveList: [], skipped: 0, provided: 0, hasInspect: false })
+      days.push({ date: null, ymd: '', day: 0, dow: -1, isToday: false, isHoliday: false, holidayName: '', isWeekend: false, rawShift: '휴', myLeave: null, teamLeaveList: [], skipped: 0, provided: 0, hasInspect: false })
     }
 
     for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -596,13 +611,11 @@ export default function StaffServicePage() {
       const raw = getRawShift(staffId, date)
       const myLeave = myLeaveMap[ymd] ?? null
       const isHoliday = !!holidayMap[ymd]
-      const isPrevDayHoliday = !!holidayMap[prevYMD(date)]
-      const provided = calcProvidedMeals(raw, myLeave?.type, dow, isHoliday, isPrevDayHoliday)
+      const provided = calcProvidedMeals(raw, myLeave?.type, dow, isHoliday)
       days.push({
         date, ymd, day: d, dow,
         isToday: ymd === todayYMD,
         isHoliday,
-        isPrevDayHoliday,
         holidayName: holidayMap[ymd] ?? '',
         isWeekend: dow === 0 || dow === 6,
         rawShift: raw,
@@ -920,33 +933,32 @@ export default function StaffServicePage() {
     const menu = menuData
 
     if (!menu) return null
-    // 식당 미운영일에는 표시 차단 — 일요일/공휴일/공휴일직후토요일 (mealCalc 운영규칙과 동일)
+    // 식당 미운영일에는 표시 차단 — 일요일/(그날 자체가)공휴일.
+    // '공휴일 직후 토요일 자동 휴무'는 상시 규칙이 아니므로 제거 — 저장된 메뉴가 있으면 표시한다
+    // (그 토요일에 식당이 열면 메뉴가 저장돼 있고, 닫으면 애초에 저장이 없어 !menu 로 배제됨).
     // 일반 토요일은 점심만 운영하므로 표시 허용 (시간대로 isLunch/isDinner 컨트롤)
     const dow = now.getDay()
     if (dow === 0) return null
     if (holidayMap[todayStr]) return null
-    if (dow === 6) {
-      const yest = new Date(now); yest.setDate(yest.getDate() - 1)
-      const yestYMD = `${yest.getFullYear()}-${String(yest.getMonth()+1).padStart(2,'0')}-${String(yest.getDate()).padStart(2,'0')}`
-      if (holidayMap[yestYMD]) return null
-    }
     const isLunch = hm >= 480 && hm < 780
     const isDinner = hm >= 780 && hm < 1110
     if (!isLunch && !isDinner) return null
 
     return (
       <div className="grid grid-cols-2 gap-2 px-3 pt-2">
-        {isLunch && menu.lunch_a && (
+        {isLunch && (menu.lunch_a || menu.lunch_b) && (
           <>
-            <div
-              className="rounded-md p-3 border"
-              style={{ background: 'rgba(6, 182, 212, 0.08)', borderColor: 'rgba(6, 182, 212, 0.2)' }}
-            >
-              <div className="text-caption font-bold leading-none mb-1.5" style={{ color: '#06b6d4' }}>중식 A코너</div>
-              <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-line">
-                {menu.lunch_a.split(' / ').join('\n')}
+            {menu.lunch_a && (
+              <div
+                className="rounded-md p-3 border"
+                style={{ background: 'rgba(6, 182, 212, 0.08)', borderColor: 'rgba(6, 182, 212, 0.2)' }}
+              >
+                <div className="text-caption font-bold leading-none mb-1.5" style={{ color: '#06b6d4' }}>중식 A코너</div>
+                <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-line">
+                  {menu.lunch_a.split(' / ').join('\n')}
+                </div>
               </div>
-            </div>
+            )}
             {menu.lunch_b && (
               <div
                 className="rounded-md p-3 border"
@@ -1509,7 +1521,7 @@ export default function StaffServicePage() {
 
             {/* Weekend allowance info */}
             {(() => {
-              const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow, selCell.isHoliday, selCell.isPrevDayHoliday)
+              const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow, selCell.isHoliday)
               if (allow > 0) return (
                 <div
                   className="mb-4 px-3 py-2 rounded-sm border"

@@ -320,8 +320,8 @@ export const educationApi = {
 export const menuApi = {
   getByDate:  (date: string) => api.get<{ date: string; lunch_a: string | null; lunch_b: string | null; dinner: string | null; pdf_key?: string }>(`/menu?date=${date}`),
   getByWeek:  (weekStart: string) => api.get<{ date: string; lunch_a: string | null; lunch_b: string | null; dinner: string | null; pdf_key?: string }[]>(`/menu?week=${weekStart}`),
-  upsert:     (menus: { date: string; lunch_a?: string; lunch_b?: string; dinner?: string }[], pdfKey?: string) =>
-    api.post<{ date: string; id: string }[]>('/menu', { menus, pdf_key: pdfKey }),
+  upsert:     (menus: { date: string; lunch_a?: string; lunch_b?: string; dinner?: string }[], pdfKey?: string, parserVersion?: number) =>
+    api.post<{ date: string; id: string }[]>('/menu', { menus, pdf_key: pdfKey, parser_version: parserVersion }),
 }
 
 export const holidayApi = {
