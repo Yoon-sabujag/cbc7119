@@ -400,7 +400,10 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
           const nextMarks: Record<number, FaMark> = {}   // 저장기록 없으면 i1 무마크. 있으면 line_results 로 복원.
           if (Array.isArray(arr)) arr.forEach((v: any, i: number) => { if (v === 'normal' || v === 'caution' || v === 'bad') nextMarks[i] = v })
           setFaMarks(nextMarks)
-          setFaChecked(saved ? new Set() : new Set(divManualIds))   // 신규 개소: 수동 전체선택 / 저장기록 조회: 선택 없음
+          // 리뷰 모드(체크 해제)는 저장된 line_results(카드 데이터)가 있을 때만. 카드 이전 압력기록(line_results=null)은
+          // 아직 카드 미점검 → 수동 항목 전체선택 유지(사용자가 이 개소 카드 점검 가능). prod 혼재 데이터 대응.
+          const hasCardData = Array.isArray(arr) && arr.length > 0
+          setFaChecked(hasCardData ? new Set() : new Set(divManualIds))
         }
       })
       .catch(() => setPrevRecords([]))
