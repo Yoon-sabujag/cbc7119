@@ -490,7 +490,6 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
 
       // 카드 line_results 정본 = div_pressures(경로 /api/div/pressure). i1 = 압력 자동판정, i0/i2/i3 = 수동.
       // 도면(lockToPoint) 진입도 handleSave 공유 → 이 payload 한 곳으로 양 진입 커버(FloorPlanPage 어댑터 무변경).
-      const finalMemo = [faAutoMemo(divItems, faMarks), memo.trim()].filter(Boolean).join('\n')
       const pressureRes = await fetch('/api/div/pressure', {
         method:'POST', headers: hdrs,
         body: JSON.stringify({
@@ -507,7 +506,7 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
           result:       faMarks[1] ?? 'normal',
           line_results: JSON.stringify(faLineResults(divItems, faMarks)),
           drain,
-          memo:      finalMemo || null,
+          memo:      memo || null,
           photo_key: photoKey ?? null,
           inspector: staff?.name ?? null,
         })
@@ -531,6 +530,8 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
       // 점검 기록 연동 — 해당 층 체크포인트에 결과 반영
       const cpId = DIV_PT_CP[currentPt.id]
       if (cpId) {
+        // 자동특이사항+메모 합성은 check_records 마커에만(div_pressures.memo 는 raw memo — staging parity)
+        const finalMemo = [faAutoMemo(divItems, faMarks), memo.trim()].filter(Boolean).join('\n')
         await onSaveRecord(cpId, faWorst(faMarks), finalMemo, photoKey ?? undefined).catch(() => {/* 점검 기록 실패해도 압력 저장은 유지 */})
       }
 
