@@ -22,10 +22,11 @@ const REPORT_CARDS: { type: ReportType; title: string; sub: string }[] = [
   { type: '소방펌프',    title: '월간 소방펌프 점검일지',     sub: '소방펌프 · 월간' },
 ]
 
-const MATRIX_CONFIG: Record<string, { category: string; sheetIndex: number; itemCount: number; name: string; inspectorRow?: number }> = {
-  '피난방화': { category: '특별피난계단', sheetIndex: 6, itemCount: 9, name: '피난방화시설', inspectorRow: 29 },
-  '방화셔터': { category: '방화셔터', sheetIndex: 7, itemCount: 9, name: '방화셔터', inspectorRow: 29 },
-  '제연':     { category: '전실제연댐퍼', sheetIndex: 8, itemCount: 9, name: '제연설비', inspectorRow: 29 },
+const MATRIX_CONFIG: Record<string, { category: string; sheetIndex: number; itemCount: number; name: string; inspectorRow?: number; secondaryCategory?: string; primaryItems?: number }> = {
+  // 피난방화 sheet6: 특별피난계단(rows 1-5) + 완강기(rows 6-9, secondary) 병합.
+  '피난방화': { category: '특별피난계단', sheetIndex: 6, itemCount: 9, name: '피난방화시설', inspectorRow: 29, secondaryCategory: '완강기', primaryItems: 5 },
+  '방화셔터': { category: '방화셔터', sheetIndex: 7, itemCount: 10, name: '방화셔터', inspectorRow: 31 },
+  '제연':     { category: '전실제연댐퍼', sheetIndex: 8, itemCount: 10, name: '제연설비', inspectorRow: 31 },
   '자탐':     { category: '소방용전원공급반', sheetIndex: 9, itemCount: 10, name: '자동화재탐지설비', inspectorRow: 31 },
 }
 
@@ -56,7 +57,10 @@ async function downloadReport(type: ReportType, year: number): Promise<void> {
         }
       }
     }
-    await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name, cfg.inspectorRow)
+    const secondary = cfg.secondaryCategory
+      ? await api.get<any[]>(`/reports/check-monthly?year=${year}&category=${encodeURIComponent(cfg.secondaryCategory)}`)
+      : undefined
+    await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name, cfg.inspectorRow, false, secondary, cfg.primaryItems)
   } else if (type === '소방펌프') {
     const data = await api.get<any[]>(
       `/reports/check-monthly?year=${year}&category=${encodeURIComponent('소방펌프')}`
@@ -91,7 +95,10 @@ async function generateReportBlob(type: ReportType, year: number): Promise<{ blo
           }
         }
       }
-      const blob = await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name, cfg.inspectorRow, true) as Blob
+      const secondary = cfg.secondaryCategory
+        ? await api.get<any[]>(`/reports/check-monthly?year=${year}&category=${encodeURIComponent(cfg.secondaryCategory)}`)
+        : undefined
+      const blob = await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name, cfg.inspectorRow, true, secondary, cfg.primaryItems) as Blob
       return { blob, filename: `${year}년도_${cfg.name}_점검일지.xlsx` }
     }
     if (type === '소방펌프') {

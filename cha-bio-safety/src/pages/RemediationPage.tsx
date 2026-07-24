@@ -15,6 +15,10 @@ const zoneLabel = (zone: string) => ZONE_LABEL[zone] ?? zone
 function recordPlace(rec: any): string {
   const zk = zoneLabel(rec.zone ?? '')
   const spot = rec.locationDetail || rec.markerLabel
+  if (rec.category === '특별피난계단') {
+    const swNo = (rec.locationNo ?? '').replace(/^S/, '')
+    return swNo ? `계단실 ${swNo}, ${rec.floor}` : `${zk} ${rec.floor}`
+  }
   if (rec.category === '유도등' && spot) return `${zk} ${rec.floor} ${spot}`
   return `${zk} ${rec.floor}${rec.location ? ' · ' + rec.location : ''}`
 }

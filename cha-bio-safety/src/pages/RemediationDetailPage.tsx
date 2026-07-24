@@ -83,9 +83,13 @@ export default function RemediationDetailPage() {
   }, [isExtinguisher, record?.id])
 
   // 점검 시 증상에 따라 기본 조치 선택 (소화전)
+  // 증분 B: memo 는 auto 특이사항(프리픽스·라인 포함)이라 exact-match 깨짐 →
+  // 저장된 remediation_symbol(정확 심볼)로 읽는다. 전실제연댐퍼(아래)도 증분 D 부터 동일 전환.
   useEffect(() => {
     if (!isHydrant || !record) return
-    const sym = record.memo ?? ''
+    // 신규(증분B) 기록은 remediationSymbol 우선. 레거시 open 기록은 remediation_symbol=NULL 이라
+    // 심볼 문자열이 memo 에 저장돼 있으므로 memo 폴백(신규 memo 는 프리픽스라 오매칭 없음).
+    const sym = record.remediationSymbol || record.memo || ''
     if (sym === '경종 파손') setActionPick('경종 교체')
     else if (sym === '위치표시등 점등 이상') setActionPick('위치표시등 교체')
     else if (sym === '호스걸이 파손') setActionPick('호스걸이 교체')
@@ -93,18 +97,21 @@ export default function RemediationDetailPage() {
   }, [isHydrant, record?.id])
 
   // 점검 시 증상에 따라 기본 조치 선택 (방화셔터)
+  // 증분 E: Family A 전환으로 memo 는 합성 auto-memo → exact-match 깨짐 → remediation_symbol 우선(소화전/댐퍼 미러). 레거시 open 기록 memo 폴백.
   useEffect(() => {
     if (!isFireShutter || !record) return
-    const sym = record.memo ?? ''
+    const sym = record.remediationSymbol || record.memo || ''
     if (sym === '방화셔터 라인 표시 필요') setActionPick('방화셔터 라인 표시함')
     else if (sym === '연동제어기 기판 작동 불') setActionPick('연동제어기 기판 교체')
     else setActionPick('직접 입력')
   }, [isFireShutter, record?.id])
 
   // 점검 시 증상에 따라 기본 조치 선택 (전실제연댐퍼)
+  // 증분 D: memo 는 auto 특이사항(층/항목 합성)이라 exact-match 깨짐 →
+  // 저장된 remediation_symbol(정확 심볼)로 읽는다(소화전과 동일). 레거시 open 기록은 memo 폴백.
   useEffect(() => {
     if (!isSmokeDamper || !record) return
-    const sym = record.memo ?? ''
+    const sym = record.remediationSymbol || record.memo || ''
     if (sym === '기판 조작 불량') setActionPick('기판 교체')
     else if (sym === '모터 기능 이상') setActionPick('모터 교체')
     else setActionPick('직접 입력')
@@ -312,6 +319,11 @@ export default function RemediationDetailPage() {
                 {(() => {
                   const zk = ZONE_LABEL[record.zone] ?? record.zone
                   const spot = record.locationDetail || record.markerLabel
+                  // 특별피난계단: 계단실 + 층 (location_no=S{n})
+                  if (record.category === '특별피난계단') {
+                    const swNo = (record.locationNo ?? '').replace(/^S/, '')
+                    return swNo ? `계단실 ${swNo}, ${record.floor}` : `${zk} ${record.floor}`
+                  }
                   if (record.category === '유도등' && spot) return `${zk} ${record.floor} ${spot}`
                   return `${zk} ${record.floor}${record.location ? ` · ${record.location}` : ''}`
                 })()}

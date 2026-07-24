@@ -1,6 +1,14 @@
 import { getMonthlySchedule } from './shiftCalc'
 import { DOW_KO } from './shiftCalc'
 
+// 라인별 결과 → 엑셀 심볼. normal→'○', caution→'△', bad→'Ｘ'(전각), 그 외/null/undefined→null.
+export function symbolFor(r: any): string | null {
+  if (r === 'normal') return '○'
+  if (r === 'caution') return '△'
+  if (r === 'bad') return 'Ｘ'
+  return null
+}
+
 // ── 상수 ──────────────────────────────────────────────────────
 // '소방용 가압송수장치 점검 일지'의 측정점 라벨
 // 양식: 지상층 = `{zone 한국어} {floor 코드} {위치명}` / 지하층 = `B{N}F {위치명}`
@@ -143,6 +151,16 @@ export async function generateDivExcel(year: number, divRaw: any[], timing: '월
   const byLoc: Record<string, any[]> = {}
   divRaw.forEach((r: any) => { (byLoc[r.location_no] ??= []).push(r) })
 
+  // 증분 E-2: line_results[idx] → 심볼(○/△/Ｘ). 배열 부재(레거시행)면 '○' 폴백(점검 존재=양호 규약, 회귀 0).
+  function divMark(entry: any, idx: number): string | null {
+    if (!entry) return null
+    let arr: any[] | null = Array.isArray(entry.line_results) ? entry.line_results : null
+    if (!arr && typeof entry.line_results === 'string' && entry.line_results) {
+      try { const p = JSON.parse(entry.line_results); if (Array.isArray(p)) arr = p } catch { /* noop */ }
+    }
+    return arr && arr.length ? (symbolFor(arr[idx]) ?? '○') : '○'
+  }
+
   function esc(s: string) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   }
@@ -204,10 +222,10 @@ export async function generateDivExcel(year: number, divRaw: any[], timing: '월
       if (isLeft) {
         // 좌측: B{tr+2}=날짜, D=밸브, F=압력, H=압력스위치, I=청소, J=압력값, K=점검자
         xml = patchCell(xml, `B${tr + 2}`, entry?.day ?? null)
-        xml = patchCell(xml, `D${tr}`,     entry ? '○' : null)
-        xml = patchCell(xml, `F${tr}`,     entry ? '○' : null)
-        xml = patchCell(xml, `H${tr}`,     entry ? '○' : null)
-        xml = patchCell(xml, `I${tr}`,     entry ? '○' : null)
+        xml = patchCell(xml, `D${tr}`,     divMark(entry, 0))   // 밸브(i0 수동)
+        xml = patchCell(xml, `F${tr}`,     divMark(entry, 1))   // 압력상태(i1 자동판정)
+        xml = patchCell(xml, `H${tr}`,     divMark(entry, 2))   // 압력스위치(i2 수동)
+        xml = patchCell(xml, `I${tr}`,     divMark(entry, 3))   // 청소(i3 수동)
         xml = patchCell(xml, `J${tr}`,     fmt(entry?.pressure_1))
         xml = patchCell(xml, `J${tr + 1}`, fmt(entry?.pressure_2))
         xml = patchCell(xml, `J${tr + 2}`, fmt(entry?.pressure_set))
@@ -215,10 +233,10 @@ export async function generateDivExcel(year: number, divRaw: any[], timing: '월
       } else {
         // 우측: L{tr+2}=날짜, N=밸브, P=압력, Q=압력스위치, T=청소, V=압력값, X=점검자
         xml = patchCell(xml, `L${tr + 2}`, entry?.day ?? null)
-        xml = patchCell(xml, `N${tr}`,     entry ? '○' : null)
-        xml = patchCell(xml, `P${tr}`,     entry ? '○' : null)
-        xml = patchCell(xml, `Q${tr}`,     entry ? '○' : null)
-        xml = patchCell(xml, `T${tr}`,     entry ? '○' : null)
+        xml = patchCell(xml, `N${tr}`,     divMark(entry, 0))   // 밸브(i0 수동)
+        xml = patchCell(xml, `P${tr}`,     divMark(entry, 1))   // 압력상태(i1 자동판정)
+        xml = patchCell(xml, `Q${tr}`,     divMark(entry, 2))   // 압력스위치(i2 수동)
+        xml = patchCell(xml, `T${tr}`,     divMark(entry, 3))   // 청소(i3 수동)
         xml = patchCell(xml, `V${tr}`,     fmt(entry?.pressure_1))
         xml = patchCell(xml, `V${tr + 1}`, fmt(entry?.pressure_2))
         xml = patchCell(xml, `V${tr + 2}`, fmt(entry?.pressure_set))
@@ -378,9 +396,12 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
 
       // 날짜
       xml = patchCell(xml, `${col}${dateRow}`, day)
-      // 체크마크
-      for (const row of checkRows) {
-        xml = patchCell(xml, `${col}${row}`, entry ? '○' : null)
+      // 체크마크 — line_results[i] 기준 행별 ○/△/Ｘ (개소당 시트라 개소별 배열 그대로).
+      // line_results 부재(증분 B 미카드 카테고리)면 기존과 동치(entry 존재 시 '○').
+      for (let i = 0; i < checkRows.length; i++) {
+        const row = checkRows[i]
+        const mark = !entry ? null : (entry.line_results?.length ? symbolFor(entry.line_results[i]) : '○')
+        xml = patchCell(xml, `${col}${row}`, mark)
       }
       // 점검자
       xml = patchCell(xml, `${col}${inspRow}`, entry?.inspector ?? null)
@@ -438,7 +459,9 @@ export async function generateMatrixExcel(
   itemCount: number,
   reportName: string,
   inspectorRow?: number,
-  returnBlob = false
+  returnBlob = false,
+  secondaryData?: any[],   // 피난방화 sheet6: 완강기 데이터(rows 6-9). 없으면 primary 만.
+  primaryItems?: number,   // primary(예: 특별피난계단) 항목 수(rows 1-5). 나머지는 secondary.
 ): Promise<Blob | void> {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
@@ -484,22 +507,42 @@ export async function generateMatrixExcel(
   const checkRows = [11, 13, 15, 17, 19, 21, 23, 25, 27]
   if (itemCount >= 10) checkRows.push(29)
 
-  // 월별 집계: data 배열 전체에서 해당 월 점검 여부 판단
+  // primary 항목 수(secondary 있으면 rows split). 없으면 전 행 primary.
+  const primItems = primaryItems ?? checkRows.length
+  const RANK: Record<string, number> = { normal: 0, caution: 1, bad: 2 }
+  // 특정 월/항목의 CP 전체 worst (line_results[idx], bad>caution>normal). 없으면 null.
+  const worstFor = (rows: any[], m: number, idx: number): string | null => {
+    let worst: string | null = null
+    for (const cp of rows) {
+      const lr = cp?.months?.[m]?.line_results
+      const v = Array.isArray(lr) && lr.length ? lr[idx] : undefined
+      if (v === 'normal' || v === 'caution' || v === 'bad') {
+        if (worst === null || RANK[v] > RANK[worst]) worst = v
+      }
+    }
+    return worst
+  }
+
+  // 월별 집계: 항목별 worst-across-CPs → symbolFor. line_results 전무 시 '○' 폴백(비-카드 매트릭스 유지).
   for (let m = 1; m <= 12; m++) {
     const col = MATRIX_DATE_COLS[m - 1]
-    // 해당 월에 점검 기록이 있는 첫 번째 체크포인트 찾기
-    const entry = data.find(cp => cp.months?.[m])
-    const monthChecked = !!entry
-    const day = entry?.months?.[m]?.day ? Number(entry.months[m].day) : null
-    const inspector = entry?.months?.[m]?.inspector ?? null
+    const primEntry = data.find(cp => cp.months?.[m])
+    const primaryChecked = !!primEntry
+    const secondaryChecked = !!secondaryData && secondaryData.some(cp => cp.months?.[m])
+    // 날짜·점검자는 primary(예: 특별피난계단)에서만
+    const day = primEntry?.months?.[m]?.day ? Number(primEntry.months[m].day) : null
+    const inspector = primEntry?.months?.[m]?.inspector ?? null
 
-    // 날짜 (row 9)
     xml = patchCell(xml, `${col}9`, day)
-    // 체크 항목 (each row)
-    for (const row of checkRows) {
-      xml = patchCell(xml, `${col}${row}`, monthChecked ? '○' : null)
+    for (let r = 0; r < checkRows.length; r++) {
+      const isPrimary = r < primItems
+      const rows = isPrimary ? data : (secondaryData ?? [])
+      const idx  = isPrimary ? r : r - primItems
+      const worst = worstFor(rows, m, idx)
+      const checked = isPrimary ? primaryChecked : secondaryChecked
+      const mark = worst ? symbolFor(worst) : (checked ? '○' : null)
+      xml = patchCell(xml, `${col}${checkRows[r]}`, mark)
     }
-    // 점검자
     if (inspectorRow) {
       xml = patchCell(xml, `${col}${inspectorRow}`, inspector)
     }
@@ -591,8 +634,8 @@ export async function generatePumpExcel(
   const sheets: { name: string; fn: string }[] = []
 
   for (let m = 1; m <= 12; m++) {
-    const hasRecord = data.some(cp => cp.months?.[m])
-    if (!hasRecord) continue
+    const entry = data.find(cp => cp.months?.[m])?.months?.[m]
+    if (!entry) continue
 
     const fn = `pm${sheets.length + 1}.xml`
     let xml = templateXml
@@ -600,9 +643,13 @@ export async function generatePumpExcel(
 
     xml = patchCell(xml, 'D3', String(year))
     xml = patchCell(xml, 'G3', String(m))
-    for (const row of PUMP_RESULT_ROWS) {
-      xml = patchCell(xml, `I${row}`,  hasRecord ? '○' : null)
-      xml = patchCell(xml, `AJ${row}`, hasRecord ? '○' : null)
+    // 좌 I열 = items 0-9, 우 AJ열 = items 10-19. line_results 부재면 기존과 동치('○').
+    for (let i = 0; i < PUMP_RESULT_ROWS.length; i++) {
+      const row = PUMP_RESULT_ROWS[i]
+      const left  = entry.line_results?.length ? symbolFor(entry.line_results[i])      : '○'
+      const right = entry.line_results?.length ? symbolFor(entry.line_results[i + 10]) : '○'
+      xml = patchCell(xml, `I${row}`,  left)
+      xml = patchCell(xml, `AJ${row}`, right)
     }
 
     newFiles[`xl/worksheets/${fn}`] = strToU8(xml)

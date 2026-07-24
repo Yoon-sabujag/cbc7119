@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../utils/api'
-import { DIV_ORDER } from '../utils/generateExcel'
+import { DIV_ORDER, symbolFor } from '../utils/generateExcel'
 
 type ReportType = 'div-early' | 'div-late' | '소화전' | '청정소화약제' | '비상콘센트'
   | '피난방화' | '방화셔터' | '제연' | '자탐' | '소방펌프'
@@ -30,8 +30,8 @@ const REPORT_GRID: Record<string, { rows: number; cols: number }> = {
   '청정소화약제': { rows: 10, cols: 12 },
   '비상콘센트': { rows: 7, cols: 12 },
   '피난방화': { rows: 9, cols: 12 },
-  '방화셔터': { rows: 9, cols: 12 },
-  '제연': { rows: 9, cols: 12 },
+  '방화셔터': { rows: 10, cols: 12 },
+  '제연': { rows: 10, cols: 12 },
   '자탐': { rows: 10, cols: 12 },
   '소방펌프': { rows: 10, cols: 2 },
 }
@@ -126,7 +126,7 @@ function buildDivOverlay(data: any[], year?: number): OI[] {
 }
 
 // ── 월간/연간 (캘리브레이션 기반) ────────────────────────────
-function buildCheckOverlay(data: any[], rt: string, year?: number): OI[] {
+function buildCheckOverlay(data: any[], rt: string, year?: number, secondaryData?: any[]): OI[] {
   const items: OI[] = []
   const calib = loadCalib(rt as ReportType)
   const grid = REPORT_GRID[rt]
@@ -152,19 +152,49 @@ function buildCheckOverlay(data: any[], rt: string, year?: number): OI[] {
   }
   const inspY = calib.firstInspector?.y
 
-  // 해당 월에 데이터가 하나라도 있으면 → 모든 항목에 ○ (엑셀 생성 로직과 동일)
-  const activeMonths = new Set<number>()
-  for (const cp of data) {
-    const months = cp.months ?? {}
-    for (let m = 1; m <= 12; m++) {
-      if (months[m] || months[String(m)]) activeMonths.add(m)
+  // 항목별 심볼 — line_results[r] 기준 ○/△/Ｘ (엑셀 생성 로직과 동일). 부재면 '○' 폴백.
+  if (MATRIX_TYPES.has(rt)) {
+    // 매트릭스: 항목별 worst-across-CPs (generateMatrixExcel 과 동일). 피난방화면 rows 5-8=완강기(secondary).
+    const RANK: Record<string, number> = { normal: 0, caution: 1, bad: 2 }
+    const primItems = rt === '피난방화' ? 5 : itemYs.length
+    const worstFor = (rows: any[], m: number, idx: number): string | null => {
+      let worst: string | null = null
+      for (const cp of rows) {
+        const cell = cp.months?.[m] ?? cp.months?.[String(m)]
+        const lr = cell?.line_results
+        const v = Array.isArray(lr) && lr.length ? lr[idx] : undefined
+        if (v === 'normal' || v === 'caution' || v === 'bad') { if (worst === null || RANK[v] > RANK[worst]) worst = v }
+      }
+      return worst
     }
-  }
-
-  for (const m of activeMonths) {
-    if (m - 1 >= monthXs.length) continue
-    for (let r = 0; r < itemYs.length; r++) {
-      items.push({ x: monthXs[m - 1], y: itemYs[r], text: '○', fontSize: 11, fontWeight: 900 })
+    const anyMonth = (rows: any[], m: number) => rows.some(cp => (cp.months?.[m] ?? cp.months?.[String(m)]))
+    for (let m = 1; m <= 12; m++) {
+      if (m - 1 >= monthXs.length) continue
+      const primChecked = anyMonth(data, m)
+      const secChecked = !!secondaryData && anyMonth(secondaryData, m)
+      for (let r = 0; r < itemYs.length; r++) {
+        const isPrim = r < primItems
+        const rows = isPrim ? data : (secondaryData ?? [])
+        const idx  = isPrim ? r : r - primItems
+        const worst = worstFor(rows, m, idx)
+        const checked = isPrim ? primChecked : secChecked
+        const sym = worst ? symbolFor(worst) : (checked ? '○' : null)
+        if (sym) items.push({ x: monthXs[m - 1], y: itemYs[r], text: sym, fontSize: 11, fontWeight: 900 })
+      }
+    }
+  } else {
+    // 개소별 (소화전/청정/비상콘센트) — 기존 per-cp 렌더
+    for (const cp of data) {
+      const months = cp.months ?? {}
+      for (let m = 1; m <= 12; m++) {
+        const cell = months[m] ?? months[String(m)]
+        if (!cell) continue
+        if (m - 1 >= monthXs.length) continue
+        for (let r = 0; r < itemYs.length; r++) {
+          const sym = cell.line_results?.length ? symbolFor(cell.line_results[r]) : '○'
+          if (sym) items.push({ x: monthXs[m - 1], y: itemYs[r], text: sym, fontSize: 11, fontWeight: 900 })
+        }
+      }
     }
   }
 
@@ -205,28 +235,43 @@ function buildPumpOverlay(data: any[], year?: number, month?: number): OI[] {
   const calib = loadCalib('소방펌프')
   if (year) items.push({ x: calib?.yearPos?.x ?? 20.60, y: calib?.yearPos?.y ?? 14.20, text: String(year), fontSize: 30 })
   if (month) items.push({ x: 28.79, y: 13.59, text: String(month), fontSize: 30 })
-  const hasData = data.some(cp => Object.keys(cp.months ?? {}).length > 0)
-  if (!hasData) return items
+  // 미리보기 대상 월의 pump entry(1개소). month 지정 시 그 달, 없으면 첫 기록.
+  let entry: any = null
+  for (const cp of data) {
+    const months = cp.months ?? {}
+    if (month != null) { entry = months[month] ?? months[String(month)]; if (entry) break }
+  }
+  if (!entry) {
+    for (const cp of data) {
+      const months = cp.months ?? {}
+      const k = Object.keys(months)[0]
+      if (k) { entry = months[k]; break }
+    }
+  }
+  if (!entry) return items
+  // 좌 i / 우 i+10 행별 심볼. line_results 부재면 '○' 폴백.
+  const left  = (i: number) => (entry.line_results?.length ? symbolFor(entry.line_results[i])      : '○')
+  const right = (i: number) => (entry.line_results?.length ? symbolFor(entry.line_results[i + 10]) : '○')
   if (calib) {
     const { itemYs, monthXs } = calcGrid(calib, 10, 2)
     for (let i = 0; i < 10; i++) {
-      items.push({ x: monthXs[0], y: itemYs[i], text: '○', fontSize: 11, fontWeight: 900 })
-      items.push({ x: monthXs[1], y: itemYs[i], text: '○', fontSize: 11, fontWeight: 900 })
+      const l = left(i);  if (l) items.push({ x: monthXs[0], y: itemYs[i], text: l, fontSize: 11, fontWeight: 900 })
+      const r = right(i); if (r) items.push({ x: monthXs[1], y: itemYs[i], text: r, fontSize: 11, fontWeight: 900 })
     }
   } else {
     const rows = [30.44, 35.19, 40.02, 44.86, 49.70, 54.53, 59.37, 64.21, 69.04, 73.88]
     for (let i = 0; i < 10; i++) {
-      items.push({ x: 44.83, y: rows[i], text: '○', fontSize: 11, fontWeight: 900 })
-      items.push({ x: 89.46, y: rows[i], text: '○', fontSize: 11, fontWeight: 900 })
+      const l = left(i);  if (l) items.push({ x: 44.83, y: rows[i], text: l, fontSize: 11, fontWeight: 900 })
+      const r = right(i); if (r) items.push({ x: 89.46, y: rows[i], text: r, fontSize: 11, fontWeight: 900 })
     }
   }
   return items
 }
 
-function buildOverlay(rt: ReportType, data: any[], year?: number, month?: number): OI[] {
+function buildOverlay(rt: ReportType, data: any[], year?: number, month?: number, secondaryData?: any[]): OI[] {
   if (rt === 'div-early' || rt === 'div-late') return buildDivOverlay(data, year)
   if (rt === '소방펌프') return buildPumpOverlay(data, year, month)
-  if (REPORT_GRID[rt]) return buildCheckOverlay(data, rt, year)
+  if (REPORT_GRID[rt]) return buildCheckOverlay(data, rt, year, secondaryData)
   return []
 }
 
@@ -251,7 +296,15 @@ export function ExcelPreview({ reportType, year, month }: ExcelPreviewProps) {
     staleTime: 5 * 60 * 1000,
   })
 
-  const overlay = reportType && data && data.length > 0 && !calibMode ? buildOverlay(reportType, data, year, month) : []
+  // 피난방화 sheet6 는 완강기(secondary, rows 6-9)도 병합 — 엑셀 다운로드와 프리뷰 일치.
+  const { data: secondaryData } = useQuery<any[]>({
+    queryKey: ['report-preview-sec', reportType, year],
+    queryFn: () => api.get<any[]>(`/reports/check-monthly?year=${year}&category=${encodeURIComponent('완강기')}`),
+    enabled: reportType === '피난방화',
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const overlay = reportType && data && data.length > 0 && !calibMode ? buildOverlay(reportType, data, year, month, secondaryData) : []
   const previewSrc = reportType ? PREVIEW_IMAGES[reportType] : null
   const hasCalib = reportType ? !!loadCalib(reportType) : false
   const isDivType = reportType === 'div-early' || reportType === 'div-late'
