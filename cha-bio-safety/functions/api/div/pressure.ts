@@ -49,6 +49,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     oil?: string
     memo?: string
     photo_key?: string
+    line_results?: string
   }
 
   const timing = body.timing ?? 'early'
@@ -56,8 +57,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   try {
     await env.DB.prepare(`
-      INSERT INTO div_pressures (id, year, month, day, timing, location_no, floor, position, pressure_1, pressure_2, pressure_set, inspector, result, drain, oil, memo, photo_key, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
+      INSERT INTO div_pressures (id, year, month, day, timing, location_no, floor, position, pressure_1, pressure_2, pressure_set, inspector, result, drain, oil, memo, photo_key, line_results, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
       ON CONFLICT(id) DO UPDATE SET
         day          = excluded.day,
         pressure_1   = excluded.pressure_1,
@@ -68,13 +69,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         drain        = excluded.drain,
         oil          = excluded.oil,
         memo         = excluded.memo,
-        photo_key    = excluded.photo_key
+        photo_key    = excluded.photo_key,
+        line_results = excluded.line_results
     `).bind(
       id, body.year, body.month, body.day ?? null, timing, body.location_no, body.floor, body.position,
       body.pressure_1, body.pressure_2 ?? null, body.pressure_set ?? null,
       body.inspector ?? null,
       body.result ?? 'normal', body.drain ?? 'none', body.oil ?? 'sufficient',
-      body.memo ?? null, body.photo_key ?? null
+      body.memo ?? null, body.photo_key ?? null, body.line_results ?? null
     ).run()
 
     return Response.json({ ok: true, id })

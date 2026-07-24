@@ -8,9 +8,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
     const record = await env.DB.prepare(`
       SELECT r.id, r.result, r.memo, r.photo_key,
              COALESCE(r.status, 'open') as status,
-             r.resolution_memo, r.resolution_photo_key, r.materials_used, r.guide_light_type, r.floor_plan_marker_id, r.location_detail,
+             r.resolution_memo, r.resolution_photo_key, r.materials_used, r.guide_light_type, r.floor_plan_marker_id, r.location_detail, r.remediation_symbol,
              r.resolved_at, r.resolved_by, r.checked_at, r.staff_id,
-             cp.category, cp.location, cp.floor, cp.zone,
+             cp.category, cp.location, cp.floor, cp.zone, cp.location_no,
              s.name AS staff_name,
              rs.name AS resolved_by_name,
              fpm.label AS marker_label,
@@ -40,6 +40,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         resolutionPhotoKey:   record.resolution_photo_key,
         materialsUsed:        record.materials_used,
         guideLightType:       record.guide_light_type,
+        remediationSymbol:    record.remediation_symbol,
         markerLabel:          record.marker_label,
         extinguisherType:     record.ext_type,
         locationDetail:       record.location_detail,
@@ -52,6 +53,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         location:             record.location,
         floor:                record.floor,
         zone:                 record.zone,
+        locationNo:           record.location_no,
       },
     })
   } catch (e) {

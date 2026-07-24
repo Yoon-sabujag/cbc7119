@@ -30,6 +30,9 @@ export interface MonthRecordEntry {
   staffName?: string
   recordId?:  string
   status?:    'open' | 'resolved'
+  memo?:         string    // 특이사항(자동+수동 통합) — Family A 카드 readonly 조회용
+  line_results?: any[]     // 라인 인덱스순 결과 배열 — Family A 카드 항목별 아이콘용
+  remediation_symbol?: string  // 소화전 라인3 피커 선택값 복원용(재방문 시 auto 정합)
 }
 
 export interface UseRevisitArgs {

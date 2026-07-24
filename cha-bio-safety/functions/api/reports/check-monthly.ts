@@ -16,6 +16,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       CAST(strftime('%m', cr.checked_at) AS INTEGER) AS month,
       strftime('%d', cr.checked_at)                  AS day,
       cr.result,
+      cr.line_results,
       s.name        AS inspector_name
     FROM check_points cp
     LEFT JOIN check_records cr
@@ -29,8 +30,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   // 개소별 → 월별 그룹
   const byLocation: Record<string, {
     checkpoint_id: string; location_no: string | null; location: string; floor: string;
-    months: Record<number, { day: string; inspector: string }>
+    months: Record<number, { day: string; inspector: string; line_results: any[] | null; worst: string | null }>
   }> = {}
+
+  const rank: Record<string, number> = { normal: 0, caution: 1, bad: 2 }
 
   for (const r of rows.results ?? []) {
     if (!byLocation[r.checkpoint_id]) {
@@ -39,7 +42,21 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       }
     }
     if (r.month) {
-      byLocation[r.checkpoint_id].months[r.month] = { day: r.day, inspector: r.inspector_name ?? '' }
+      // line_results 부재 시 반드시 null (빈배열 [] 은 소비측에서 truthy 라 '○' 폴백을 무력화 → 비-카드 회귀). BL-01
+      let parsed: any[] | null = null
+      try { if (r.line_results) { const p = JSON.parse(r.line_results); if (Array.isArray(p)) parsed = p } } catch { parsed = null }
+      const m = byLocation[r.checkpoint_id].months
+      const existing = m[r.month]
+      // worst(bad>caution>normal) 는 다중행 fold 로 승격. day/inspector 는 원본대로 last-row-wins 유지(회귀 방지). WR-01
+      const curRank = existing?.worst != null ? (rank[existing.worst] ?? -1) : -1
+      const newRank = r.result != null ? (rank[r.result] ?? -1) : -1
+      const promote = !existing || newRank >= curRank   // 동률/최초는 최신행 채택(last-wins 와 정합)
+      m[r.month] = {
+        day: r.day,                                       // last-row-wins (원본 동일)
+        inspector: r.inspector_name ?? '',                // last-row-wins (원본 동일)
+        line_results: promote ? parsed : existing!.line_results,
+        worst: promote ? (r.result ?? null) : existing!.worst,
+      }
     }
   }
 

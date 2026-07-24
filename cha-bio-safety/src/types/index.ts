@@ -62,6 +62,7 @@ export interface RemediationRecord {
   resolutionPhotoKey: string | null
   materialsUsed: string | null
   guideLightType: string | null
+  remediationSymbol: string | null
   markerLabel: string | null
   extinguisherType: string | null
   locationDetail: string | null
@@ -74,6 +75,7 @@ export interface RemediationRecord {
   location: string
   floor: string
   zone: string
+  locationNo: string | null
 }
 
 // ── Legal Inspection ─────────────────────────────────────

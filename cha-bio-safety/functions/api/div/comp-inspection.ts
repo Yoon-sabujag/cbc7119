@@ -27,6 +27,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     year: number
     month: number
     day?: number
+    timing?: string
     tank_drain?: string
     oil?: string
     result?: string
@@ -35,12 +36,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     inspector?: string
   }
 
-  const id = `COMP-${body.year}-${String(body.month).padStart(2, '0')}-${body.location_no}`
+  // 월초(early)/월말(late) 구분 — DIV 압력과 동일하게 주기별 개별 저장.
+  const timing = body.timing === 'late' ? 'late' : 'early'
+  const id = `COMP-${body.year}-${String(body.month).padStart(2, '0')}-${timing}-${body.location_no}`
 
   await env.DB.prepare(`
-    INSERT INTO comp_inspections (id, div_id, floor, position, year, month, day, tank_drain, oil, result, memo, photo_key, inspector, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
-    ON CONFLICT(div_id, year, month) DO UPDATE SET
+    INSERT INTO comp_inspections (id, div_id, floor, position, year, month, day, timing, tank_drain, oil, result, memo, photo_key, inspector, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
+    ON CONFLICT(div_id, year, month, timing) DO UPDATE SET
       day        = excluded.day,
       tank_drain = excluded.tank_drain,
       oil        = excluded.oil,
@@ -50,7 +53,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       inspector  = excluded.inspector
   `).bind(
     id, body.location_no, body.floor, body.position,
-    body.year, body.month, body.day ?? null,
+    body.year, body.month, body.day ?? null, timing,
     body.tank_drain ?? 'none', body.oil ?? 'sufficient',
     body.result ?? 'normal', body.memo ?? null, body.photo_key ?? null,
     body.inspector ?? null

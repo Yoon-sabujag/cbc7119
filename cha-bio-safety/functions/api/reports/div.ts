@@ -7,7 +7,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const timing = url.searchParams.get('timing')
 
   let query = `
-    SELECT year, month, day, timing, location_no, floor, position, pressure_1, pressure_2, pressure_set, inspector
+    SELECT year, month, day, timing, location_no, floor, position, pressure_1, pressure_2, pressure_set, inspector, line_results
     FROM div_pressures
     WHERE year = ?`
   const params: (string | number)[] = [year]

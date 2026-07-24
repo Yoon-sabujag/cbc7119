@@ -40,7 +40,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
              COALESCE(r.status, 'open') as status,
              r.resolution_memo, r.resolution_photo_key, r.materials_used,
              r.resolved_at, r.resolved_by, r.checked_at, r.staff_id,
-             cp.category, cp.location, cp.floor, cp.zone,
+             cp.category, cp.location, cp.floor, cp.zone, cp.location_no,
              s.name AS staff_name,
              fpm.label AS marker_label
       FROM check_records r
@@ -73,6 +73,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       staffName:            r.staff_name,
       category:             r.category,
       location:             r.location,
+      locationNo:           r.location_no,
       floor:                r.floor,
       zone:                 r.zone,
       markerLabel:          r.marker_label,
