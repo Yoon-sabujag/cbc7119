@@ -26,6 +26,7 @@ import type { ScheduleItem } from '../types'
 import { computeCardCompletion } from '../utils/inspectionProgress'
 import { getReplaceWarning } from '../utils/extinguisher'
 import { CCTV_DVRS } from '../utils/cctv'
+import { inspectionContent, type InspectionItem } from '../data/inspectionContent'
 import {
   ChevronLeft, ChevronRight, Bell, X, TrendingUp, Flame,
   BellRing, BellOff, RefreshCw, Maximize2, Plus,  // Phase 25 화재수신반
@@ -37,6 +38,8 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Wrench, HelpCircle,
   // 라벨 / 빈상태 (1종) — 260527-gql §7.1 enforce
   ClipboardList,
+  // 점검내용 카드 접기/펼치기
+  ChevronDown, ChevronUp, Check,
 } from 'lucide-react'
 import {
   StairsIcon, ShutterIcon, ExitSignIcon, SmokeVentIcon, HoseReelIcon, FireExtinguisherCustom,
@@ -311,90 +314,94 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
   monthRecords:   Record<string, MonthRecordEntry>
   scheduleItems:  ScheduleItem[]
   onClose:        () => void
-  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string; line_results?: string; remediation_symbol?: string }) => Promise<void>
 }) {
-  const photo = usePhotoUpload('inspection')
+  const photo = usePhotoUpload()
   const navigate = useNavigate()
-  const [selectedSW,  setSelectedSW]  = useState<number | null>(null)
-  const [floorResults, setFloorResults] = useState<Record<string, CheckResult>>({})
-  const [memo,        setMemo]        = useState('')
-  const [submitting,  setSubmitting]  = useState(false)
-  const [justSaved,   setJustSaved]   = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [visible,     setVisible]     = useState(false)
+  const strItems: InspectionItem[] = inspectionContent['특별피난계단']?.items ?? []
+  const [selectedSW,    setSelectedSW]    = useState<number | null>(null)
+  const [selectedFloor, setSelectedFloor] = useState<Floor | null>(null)
+  const [faMarks,       setFaMarks]       = useState<Record<number, FaMark>>({})
+  const [faChecked,     setFaChecked]     = useState<Set<number>>(new Set())
+  const [faReinspecting, setFaReinspecting] = useState(false)
+  const [memo,          setMemo]          = useState('')
+  const [submitting,    setSubmitting]    = useState(false)
+  const [justSaved,     setJustSaved]     = useState(false)
+  const [submitError,   setSubmitError]   = useState<string | null>(null)
+  const [visible,       setVisible]       = useState(false)
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
   const swDef = STAIRWELLS.find(s => s.id === selectedSW) ?? null
+  const swFloors: Floor[] = swDef?.floors ?? []
 
-  // 선택된 계단실의 CP 목록
-  const swCPs = useMemo(() =>
-    selectedSW
-      ? allCheckpoints.filter(cp => group.categories.includes(cp.category) && cp.locationNo === `S${selectedSW}`)
-      : [],
-    [selectedSW, allCheckpoints, group]
+  // 계단실 선택 시 첫 층 자동 선택
+  useEffect(() => {
+    if (selectedSW && swFloors.length > 0 && (!selectedFloor || !swFloors.includes(selectedFloor))) setSelectedFloor(swFloors[0])
+  }, [selectedSW])// eslint-disable-line
+
+  // 선택된 (계단실, 층) 의 CP — 다른 개소와 동일하게 이 CP 하나에 line_results[5] 저장.
+  const selectedCp = useMemo(() =>
+    (selectedSW && selectedFloor)
+      ? allCheckpoints.find(cp => group.categories.includes(cp.category) && cp.locationNo === `S${selectedSW}` && cp.floor === selectedFloor) ?? null
+      : null,
+    [allCheckpoints, group, selectedSW, selectedFloor]
   )
 
-  // 계단실 바뀌면 기존 records 로드 + 초기화
-  const prevSW = useRef(selectedSW)
-  useEffect(() => {
-    if (prevSW.current !== selectedSW) {
-      prevSW.current = selectedSW
-      const init: Record<string, CheckResult> = {}
-      swCPs.forEach(cp => { init[cp.id] = (records[cp.id] as CheckResult) ?? 'normal' })
-      setFloorResults(init)
-      setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
-    }
-  })// eslint-disable-line
-
-  const swDoneCount = swCPs.filter(cp => records[cp.id]).length
-
-  // 재진입 팝업 (공통 훅) — 선택된 계단실의 첫 CP 기준
-  // 계단실 일괄 저장이라 개별 CP 기반이지만, 첫 CP 만 있어도 완료/미조치 상태를 드러내기에 충분.
+  // 재진입 팝업 (선택 CP 기준)
   const { popupState, dismiss } = useInspectionRevisitPopup({
-    checkpointId: swCPs[0]?.id ?? null,
+    checkpointId: selectedCp?.id ?? null,
     category:     '특별피난계단',
     monthRecords,
     scheduleItems,
   })
 
+  // CP 바뀌면 기간 스코프 로드 + 첫 진입 전체선택 + 수동 memo 복원(auto 스트립)
+  useEffect(() => {
+    if (!selectedCp) return
+    const saved = monthRecords[selectedCp.id]?.line_results
+    const nextMarks: Record<number, FaMark> = {}
+    if (Array.isArray(saved)) saved.forEach((v, i) => { if (v === 'normal' || v === 'caution' || v === 'bad') nextMarks[i] = v })
+    setFaMarks(nextMarks)
+    setFaChecked(new Set(strItems.map(it => it.i)))
+    setFaReinspecting(false)
+    photo.reset(); setSubmitError(null); setJustSaved(false)
+    const savedMemo = monthRecords[selectedCp.id]?.memo ?? ''
+    const autoAtSave = faAutoMemo(strItems, nextMarks)
+    setMemo(autoAtSave && savedMemo.startsWith(autoAtSave) ? savedMemo.slice(autoAtSave.length).replace(/^\n/, '') : savedMemo)
+  }, [selectedCp?.id])// eslint-disable-line
+
+  const faAuto = faAutoMemo(strItems, faMarks)
+  const faResolved = faAllResolved(strItems, faMarks)
+  const faSaved = !!selectedCp && Array.isArray(monthRecords[selectedCp.id]?.line_results) && (monthRecords[selectedCp.id]!.line_results as any[]).length > 0
+  const faShowDone = faSaved && !faReinspecting
+  const faReadonly = !!popupState || faShowDone
+  const faAllChecked = strItems.length > 0 && faChecked.size === strItems.length
+
+  const toggleItem = (i: number) => setFaChecked(prev => { const n = new Set(prev); if (n.has(i)) n.delete(i); else n.add(i); return n })
+  const toggleSelectAll = () => { if (faReadonly) return; setFaChecked(faAllChecked ? new Set<number>() : new Set(strItems.map(it => it.i))) }
+  const applyResult = (val: CheckResult) => {
+    if (faReadonly || faChecked.size === 0) return
+    setFaMarks(prev => { const n = { ...prev }; faChecked.forEach(i => { n[i] = val }); return n })
+    setFaChecked(new Set())
+  }
+
   const handleSave = async () => {
-    if (!swDef || swCPs.length === 0) return
+    if (!selectedCp || !faResolved || faReadonly) return  // 완료(done)/재진입 상태면 재저장 금지 — 확인(재점검) 후에만
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
-      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
-      // 사진은 계단실 단위 메타에 가깝다. 모든 층 record 에 동일 photoKey 를 박으면
-      // 상세 진입 시 전층이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 층,
-      // 없으면 첫 층 1건에만 attach.
-      const photoTargetCp = photoKey
-        ? (swCPs.find(cp => {
-            const r = floorResults[cp.id] ?? 'normal'
-            return r === 'caution' || r === 'bad'
-          }) ?? swCPs[0])
-        : null
-      for (const cp of swCPs) {
-        const keyForCp = photoTargetCp && cp.id === photoTargetCp.id ? photoKey : undefined
-        await onSave(cp.id, floorResults[cp.id] ?? 'normal', memo, keyForCp ?? undefined)
-      }
-      setJustSaved(true); setMemo(''); photo.reset()
+      const lineResultsArr = faLineResults(strItems, faMarks)
+      const finalMemo = [faAuto, memo.trim()].filter(Boolean).join('\n')
+      // 다른 Family A 개소와 동일 — 선택된 층 CP 하나에 line_results[5]+worst+memo 저장(서버 worst 롤업).
+      await onSave(selectedCp.id, faWorst(faMarks), finalMemo, photoKey ?? undefined, { line_results: JSON.stringify(lineResultsArr) })
+      photo.reset(); setJustSaved(true); setFaReinspecting(false)
     } catch (e: any) {
       setSubmitError(e.message ?? '저장 오류')
     } finally {
       setSubmitting(false)
     }
   }
-
-  // result-mini 클래스 매핑 (Wave 5 — Stairwell/Cctv 공용 컴팩트 픽커)
-  const resultMiniCls = (active: boolean, value: CheckResult) =>
-    active
-      ? value === 'normal' ? 'border-safe-bar bg-safe-bg text-safe'
-        : value === 'caution' ? 'border-warning-bar bg-warning-bg text-warning'
-        : 'border-danger-bar bg-danger-bg text-danger'
-      : 'border-border-default bg-surface-page text-text-tertiary'
-
-  const resultIcon = (value: CheckResult) =>
-    value === 'normal' ? CheckCircle2 : value === 'caution' ? AlertTriangle : XCircle
 
   return (
     <div
@@ -421,7 +428,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
         <div className="flex gap-1.5">
           {STAIRWELLS.map(sw => {
             const swCPsAll = allCheckpoints.filter(cp => group.categories.includes(cp.category) && cp.locationNo === `S${sw.id}`)
-            const done = swCPsAll.length > 0 && swCPsAll.every(cp => records[cp.id])
+            const done = swCPsAll.length > 0 && swCPsAll.every(cp => isCpCompleted(monthRecords[cp.id]))
             const isActive = selectedSW === sw.id
             const stateCls = isActive
               ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
@@ -431,26 +438,66 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
             return (
               <button
                 key={sw.id}
-                onClick={() => setSelectedSW(sw.id)}
+                onClick={() => { setSelectedSW(sw.id); setSelectedFloor(null) }}
                 className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap inline-flex items-center justify-center transition-colors ${stateCls}`}
               >
-                {sw.id}{done && !isActive && <span className="text-caption ml-1 opacity-85">✓</span>}
+                {sw.id}{done && !isActive && <Check size={12} className="inline-block ml-1 opacity-85" />}
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* 폼 영역 */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5 relative">
+      {/* 층 선택 (선택된 계단실의 접근 가능 층) */}
+      {selectedSW && (
+        <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+          <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {swFloors.map(f => {
+              const cp = allCheckpoints.find(c => group.categories.includes(c.category) && c.locationNo === `S${selectedSW}` && c.floor === f)
+              const fDone = cp ? isCpCompleted(monthRecords[cp.id]) : false
+              const isSel = f === selectedFloor
+              return (
+                <button key={f} onClick={() => setSelectedFloor(f)}
+                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                    isSel ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                          : 'border border-border-strong bg-surface-page text-text-secondary'
+                  }`}>
+                  {f}{fDone && <Check size={11} className="inline-block ml-1 opacity-75" />}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 본문 (스크롤) — 다른 개소와 동일: 점검내용 카드 + 결과버튼 + 특이사항 + 사진 */}
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5">
         {!selectedSW && (
-          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">계단실을 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">계단실을 선택해 주세요</div>
+        )}
+        {selectedSW && !selectedCp && (
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">층을 선택해 주세요</div>
         )}
 
-        {swDef && (
-          <div className="relative flex flex-col gap-2.5">
-            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
-            {popupState && (
+        {/* 점검 내용 카드 — 오버레이에 덮이지 않음(readonly 조회) */}
+        {selectedCp && (
+          <FamilyACard
+            category="특별피난계단"
+            items={strItems}
+            marks={faMarks}
+            checked={faChecked}
+            readonly={faReadonly}
+            allChecked={faAllChecked}
+            onSelectAll={toggleSelectAll}
+            onToggleCheck={toggleItem}
+          />
+        )}
+
+        {/* 결과 ~ 특이사항 (이미 점검한 개소 오버레이가 이 영역만 덮음) */}
+        {selectedCp && (
+          <div className="relative">
+            {popupState ? (
               <InspectionRevisitPopup
                 variant={popupState.variant}
                 checkedAt={popupState.checkedAt}
@@ -459,115 +506,87 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
                 onClose={dismiss}
                 onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
               />
-            )}
-            {/* 완료 뱃지 */}
-            {swDoneCount > 0 && !justSaved && (
-              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-1.5 text-label font-semibold text-safe inline-flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-safe flex-shrink-0" />
-                {swDoneCount}/{swCPs.length}층 이미 점검 완료
-              </div>
-            )}
+            ) : faShowDone ? (
+              <InspectionRevisitPopup
+                variant="completed"
+                checkedAt={monthRecords[selectedCp.id]?.checkedAt ?? ''}
+                inspectorName={monthRecords[selectedCp.id]?.staffName ?? '—'}
+                onClose={() => setFaReinspecting(true)}
+              />
+            ) : null}
 
-            {/* 층별 결과 — 2열 */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* 왼쪽 열 */}
-              <div className="flex flex-col gap-1.5">
-                {swDef.floors.slice(0, swDef.leftCount).map(floor => {
-                  const cp = swCPs.find(c => c.floor === floor)
-                  if (!cp) return null
-                  const curResult = floorResults[cp.id] ?? 'normal'
-                  return (
-                    <div key={floor} className="bg-surface-raised border border-border-default rounded-md px-2 pt-2 pb-1.5">
-                      <div className="text-caption font-bold text-text-secondary mb-1.5">{floor}</div>
-                      <div className="flex gap-1">
-                        {INSPECT_RESULT_OPTIONS.map(opt => {
-                          const Icon = resultIcon(opt.value)
-                          const active = curResult === opt.value
-                          return (
-                            <button
-                              key={opt.value}
-                              onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))}
-                              className={`flex-1 px-1 py-1.5 rounded-pill border-[1.5px] text-caption font-bold whitespace-nowrap inline-flex items-center justify-center gap-1 cursor-pointer transition-colors ${resultMiniCls(active, opt.value)}`}
-                            >
-                              <Icon className="w-3 h-3 flex-shrink-0" />
-                              {opt.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
+            {/* 결과 버튼 — 체크된 행에 적용 */}
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-caption font-semibold text-text-tertiary tracking-wider">점검 결과</span>
+                <span className="text-caption text-text-tertiary">· 선택 {faChecked.size}개</span>
               </div>
-              {/* 오른쪽 열 */}
-              <div className="flex flex-col gap-1.5">
-                {swDef.floors.slice(swDef.leftCount).map(floor => {
-                  const cp = swCPs.find(c => c.floor === floor)
-                  if (!cp) return null
-                  const curResult = floorResults[cp.id] ?? 'normal'
+              <div className="flex gap-1.5">
+                {INSPECT_RESULT_OPTIONS.map(opt => {
+                  const RIcon = RESULT_ICONS[opt.value]
+                  const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                                  : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
+                                  :                            'border-2 border-danger-bar bg-danger-bg text-danger'
+                  const disabled = faChecked.size === 0 || faReadonly
                   return (
-                    <div key={floor} className="bg-surface-raised border border-border-default rounded-md px-2 pt-2 pb-1.5">
-                      <div className="text-caption font-bold text-text-secondary mb-1.5">{floor}</div>
-                      <div className="flex gap-1">
-                        {INSPECT_RESULT_OPTIONS.map(opt => {
-                          const Icon = resultIcon(opt.value)
-                          const active = curResult === opt.value
-                          return (
-                            <button
-                              key={opt.value}
-                              onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))}
-                              className={`flex-1 px-1 py-1.5 rounded-pill border-[1.5px] text-caption font-bold whitespace-nowrap inline-flex items-center justify-center gap-1 cursor-pointer transition-colors ${resultMiniCls(active, opt.value)}`}
-                            >
-                              <Icon className="w-3 h-3 flex-shrink-0" />
-                              {opt.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
+                    <button key={opt.value} onClick={() => applyResult(opt.value)} disabled={disabled}
+                            className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md transition-colors ${
+                              disabled ? 'border border-border-default bg-surface-raised text-text-tertiary opacity-50 cursor-default' : `${activeCls} cursor-pointer`
+                            }`}>
+                      {RIcon ? <RIcon size={20} /> : null}
+                      <span className="text-caption font-bold">{opt.label}</span>
+                    </button>
                   )
                 })}
               </div>
             </div>
 
-            {/* 특이사항 + 사진 */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
+            {/* 특이사항(자동 + 수동 합성) + 사진 */}
+            <div className="mt-2.5">
+              <div className="flex items-center justify-between mb-1">
                 <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
                 <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
               <div className="flex gap-2 items-start">
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
-                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary" />
+                <textarea
+                  value={[faAuto, memo].filter(Boolean).join('\n')}
+                  onChange={e => { const v = e.target.value; setMemo(faAuto && v.startsWith(faAuto) ? v.slice(faAuto.length).replace(/^\n/, '') : v) }}
+                  placeholder="특이사항을 입력하세요"
+                  className="flex-1 h-[72px] px-2.5 py-2 rounded-md bg-surface-raised border border-border-strong text-text-primary text-caption resize-none outline-none box-border focus:border-border-focus transition-colors" />
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
 
-            {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label font-semibold text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label font-semibold text-safe inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-safe flex-shrink-0" />저장 완료</div>}
+            {submitError && <div className="mt-2 bg-danger-bg/40 border border-danger-bar/30 rounded-sm px-3 py-2 text-caption text-danger">{submitError}</div>}
+            {justSaved && !submitError && <div className="mt-2 bg-safe-bg/40 border border-safe-bar/30 rounded-sm px-3 py-2 text-caption text-safe inline-flex items-center gap-1.5"><Check size={12} />저장 완료</div>}
           </div>
         )}
       </div>
 
       {/* 저장 버튼 */}
-      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
-        <button onClick={onClose}
-          className="px-[18px] py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-label font-semibold cursor-pointer transition-colors">
-          닫기
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={submitting || photo.uploading || !selectedSW}
-          className="flex-1 py-3.5 rounded-md text-body font-bold border-0 transition-all"
-          style={{
-            background: (submitting || photo.uploading || !selectedSW) ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-            color:      (submitting || photo.uploading || !selectedSW) ? 'var(--text-tertiary)' : '#fff',
-            cursor:     (submitting || photo.uploading || !selectedSW) ? 'default' : 'pointer',
-            boxShadow:  (submitting || photo.uploading || !selectedSW) ? 'none' : '0 4px 14px rgba(37,99,235,0.35)',
-          }}
-        >
-          {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : `계단실 ${selectedSW ?? ''} 점검 저장`}
-        </button>
+      <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        {selectedCp && !faResolved && (
+          <div className="mb-1.5 text-caption text-warning font-semibold text-center leading-snug">
+            모든 항목의 점검 결과를 입력해야 저장됩니다 (‘전체 선택’ → 정상)
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
+            닫기
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={submitting || photo.uploading || !selectedCp || !faResolved || faReadonly}
+            className={`flex-1 py-3 rounded-md border-0 text-label font-bold transition-shadow ${
+              submitting || photo.uploading || !selectedCp || !faResolved || faReadonly
+                ? 'bg-border-default text-text-tertiary cursor-default'
+                : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] text-text-on-accent cursor-pointer hover:shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
+            }`}
+          >
+            {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : (selectedCp && !faResolved) ? '전 항목 결과 입력 필요' : '점검 기록 저장'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -1046,13 +1065,17 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
   monthRecords:   Record<string, MonthRecordEntry>
   scheduleItems:  ScheduleItem[]
   onClose:        () => void
-  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string; line_results?: string; remediation_symbol?: string }) => Promise<void>
 }) {
-  const photo = usePhotoUpload('inspection')
+  const photo = usePhotoUpload()
   const navigate = useNavigate()
+  const ppItems: InspectionItem[] = inspectionContent['소방용전원공급반']?.items ?? []
   const [zone,        setZone]        = useState<PPZone | null>(null)
   const [pickerIdx,   setPickerIdx]   = useState<number>(0)
-  const [result,      setResult]      = useState<CheckResult>('normal')
+  // 소방용전원공급반 — 표준 Family A 카드 (special 없음, C/D 자동만)
+  const [faMarks,     setFaMarks]     = useState<Record<number, FaMark>>({})
+  const [faChecked,   setFaChecked]   = useState<Set<number>>(new Set())
+  const [faReinspecting, setFaReinspecting] = useState(false)
   const [memo,        setMemo]        = useState('')
   const [submitting,  setSubmitting]  = useState(false)
   const [justSaved,   setJustSaved]   = useState(false)
@@ -1069,24 +1092,12 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
       .sort((a, b) => FLOOR_ORDER.indexOf(a.floor) - FLOOR_ORDER.indexOf(b.floor))
   }, [zone, allCheckpoints])
   const selectedCP = zoneCPs[pickerIdx] ?? null
-  const isDone     = selectedCP ? !!records[selectedCP.id] : false
-  const doneCount  = zoneCPs.filter(cp => records[cp.id]).length
+  const doneCount  = zoneCPs.filter(cp => isCpCompleted(monthRecords[cp.id])).length
   const totalCount = zoneCPs.length
 
   const prevZone = useRef(zone)
   useEffect(() => {
-    if (prevZone.current !== zone) {
-      prevZone.current = zone
-      setPickerIdx(0); setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
-    }
-  }) // eslint-disable-line
-
-  const prevIdx = useRef(pickerIdx)
-  useEffect(() => {
-    if (prevIdx.current !== pickerIdx) {
-      prevIdx.current = pickerIdx
-      setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
-    }
+    if (prevZone.current !== zone) { prevZone.current = zone; setPickerIdx(0) }
   }) // eslint-disable-line
 
   // 재진입 팝업 (공통 훅)
@@ -1097,25 +1108,51 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
     scheduleItems,
   })
 
-  const handleSave = async () => {
+  // 선택 CP 변경(구역/스와이프) 시 기간 스코프 로드 + 첫 진입 전체선택 + 수동 memo 복원(auto 스트립)
+  useEffect(() => {
     if (!selectedCP) return
+    const saved = monthRecords[selectedCP.id]?.line_results
+    const nextMarks: Record<number, FaMark> = {}
+    if (Array.isArray(saved)) saved.forEach((v, i) => { if (v === 'normal' || v === 'caution' || v === 'bad') nextMarks[i] = v })
+    setFaMarks(nextMarks)
+    setFaChecked(new Set(ppItems.map(it => it.i)))
+    setFaReinspecting(false)
+    photo.reset(); setSubmitError(null); setJustSaved(false)
+    const savedMemo = monthRecords[selectedCP.id]?.memo ?? ''
+    const autoAtSave = faAutoMemo(ppItems, nextMarks)
+    setMemo(autoAtSave && savedMemo.startsWith(autoAtSave) ? savedMemo.slice(autoAtSave.length).replace(/^\n/, '') : savedMemo)
+  }, [selectedCP?.id])// eslint-disable-line
+
+  const faAuto = faAutoMemo(ppItems, faMarks)
+  const faResolved = faAllResolved(ppItems, faMarks)
+  const faSaved = !!selectedCP && Array.isArray(monthRecords[selectedCP.id]?.line_results) && (monthRecords[selectedCP.id]!.line_results as any[]).length > 0
+  const faShowDone = faSaved && !faReinspecting
+  const faReadonly = !!popupState || faShowDone
+  const faAllChecked = ppItems.length > 0 && faChecked.size === ppItems.length
+
+  const toggleItem = (i: number) => setFaChecked(prev => { const n = new Set(prev); if (n.has(i)) n.delete(i); else n.add(i); return n })
+  const toggleSelectAll = () => { if (faReadonly) return; setFaChecked(faAllChecked ? new Set<number>() : new Set(ppItems.map(it => it.i))) }
+  const applyResult = (val: CheckResult) => {
+    if (faReadonly || faChecked.size === 0) return
+    setFaMarks(prev => { const n = { ...prev }; faChecked.forEach(i => { n[i] = val }); return n })
+    setFaChecked(new Set())
+  }
+
+  const handleSave = async () => {
+    if (!selectedCP || !faResolved || faReadonly) return
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
-      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
-      await onSave(selectedCP.id, result, memo, photoKey ?? undefined)
-      setJustSaved(true); setMemo(''); photo.reset()
+      const lineResultsArr = faLineResults(ppItems, faMarks)
+      const finalMemo = [faAuto, memo.trim()].filter(Boolean).join('\n')
+      // 서버 worst 롤업. 출력=자탐 매트릭스 sheet9 에 line_results[10] 자동 반영(추가 엑셀 작업 0).
+      await onSave(selectedCP.id, faWorst(faMarks), finalMemo, photoKey ?? undefined, { line_results: JSON.stringify(lineResultsArr) })
+      photo.reset(); setJustSaved(true); setFaReinspecting(false)
     } catch (e: any) {
       setSubmitError(e.message ?? '저장 오류')
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const resultIcon = (v: CheckResult) => {
-    if (v === 'normal')  return <CheckCircle2 size={16} className="flex-shrink-0" />
-    if (v === 'caution') return <AlertTriangle size={16} className="flex-shrink-0" />
-    return <XCircle size={16} className="flex-shrink-0" />
   }
 
   return (
@@ -1138,7 +1175,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
         <div className="flex gap-1.5">
           {(['research','office','underground'] as PPZone[]).map(z => {
             const zCPs   = allCheckpoints.filter(cp => cp.category === '소방용전원공급반' && cp.locationNo?.startsWith(PP_ZONE_PREFIX[z]))
-            const allDone = zCPs.length > 0 && zCPs.every(cp => records[cp.id])
+            const allDone = zCPs.length > 0 && zCPs.every(cp => isCpCompleted(monthRecords[cp.id]))
             const isActive = zone === z
             const ZIcon    = ZONE_ICONS[z]
             const baseCls  = 'flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors'
@@ -1147,14 +1184,14 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)} className={`${baseCls} ${stateCls}`}>
-                {ZIcon && <ZIcon size={14} />}{PP_ZONE_LABELS[z]}{!isActive && allDone && <span className="text-caption ml-1 opacity-85">✓</span>}
+                {ZIcon && <ZIcon size={14} />}{PP_ZONE_LABELS[z]}{!isActive && allDone && <Check size={12} className="inline-block ml-1 opacity-85" />}
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* 개소 선택 — DIV 스타일 카드 + 좌우 스와이프 */}
+      {/* 개소 선택 — 카드 + 좌우 스와이프 */}
       {zone && zoneCPs.length >= 1 && (
         <div className="bg-surface-raised border-b border-border-default px-3.5 pt-2.5 pb-2 flex-shrink-0">
           <div
@@ -1191,15 +1228,29 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
       )}
 
       {/* 폼 영역 */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-3 relative">
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-3">
         {!zone && (
-          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">구역을 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">구역을 선택해 주세요</div>
         )}
 
+        {/* 점검 내용 카드 — 오버레이에 덮이지 않음(readonly 조회) */}
+        {selectedCP && (
+          <FamilyACard
+            category="소방용전원공급반"
+            items={ppItems}
+            marks={faMarks}
+            checked={faChecked}
+            readonly={faReadonly}
+            allChecked={faAllChecked}
+            onSelectAll={toggleSelectAll}
+            onToggleCheck={toggleItem}
+          />
+        )}
+
+        {/* 결과 ~ 특이사항 (이미 점검한 개소 오버레이가 이 영역만 덮음) */}
         {selectedCP && (
           <div className="relative flex flex-col gap-3">
-            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
-            {popupState && (
+            {popupState ? (
               <InspectionRevisitPopup
                 variant={popupState.variant}
                 checkedAt={popupState.checkedAt}
@@ -1208,45 +1259,51 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
                 onClose={dismiss}
                 onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
               />
-            )}
-            {isDone && !justSaved && (
-              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label font-semibold text-safe inline-flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-safe flex-shrink-0" />
-                <span>이미 점검 완료된 항목입니다</span>
-              </div>
-            )}
+            ) : faShowDone ? (
+              <InspectionRevisitPopup
+                variant="completed"
+                checkedAt={monthRecords[selectedCP.id]?.checkedAt ?? ''}
+                inspectorName={monthRecords[selectedCP.id]?.staffName ?? '—'}
+                onClose={() => setFaReinspecting(true)}
+              />
+            ) : null}
 
-            {/* 점검 결과 */}
+            {/* 결과 버튼 — 체크된 행에 적용 */}
             <div>
-              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-caption font-semibold text-text-tertiary tracking-wider">점검 결과</span>
+                <span className="text-caption text-text-tertiary">· 선택 {faChecked.size}개</span>
+              </div>
               <div className="flex gap-1.5">
                 {INSPECT_RESULT_OPTIONS.map(opt => {
-                  const isActive = result === opt.value
-                  const baseCls  = 'flex-1 py-2.5 rounded-md border-[1.5px] inline-flex items-center justify-center gap-1.5 text-label font-bold cursor-pointer whitespace-nowrap transition-colors'
-                  const stateCls = !isActive                 ? 'border-border-default bg-surface-raised text-text-tertiary'
-                                 : opt.value === 'normal'    ? 'border-safe-bar bg-safe-bg text-safe'
-                                 : opt.value === 'caution'   ? 'border-warning-bar bg-warning-bg text-warning'
-                                 :                             'border-danger-bar bg-danger-bg text-danger'
+                  const RIcon = RESULT_ICONS[opt.value]
+                  const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                                  : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
+                                  :                            'border-2 border-danger-bar bg-danger-bg text-danger'
+                  const disabled = faChecked.size === 0 || faReadonly
                   return (
-                    <button key={opt.value} onClick={() => setResult(opt.value)} className={`${baseCls} ${stateCls}`}>
-                      {resultIcon(opt.value)}
-                      <span>{opt.label}</span>
+                    <button key={opt.value} onClick={() => applyResult(opt.value)} disabled={disabled}
+                            className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md transition-colors ${
+                              disabled ? 'border border-border-default bg-surface-raised text-text-tertiary opacity-50 cursor-default' : `${activeCls} cursor-pointer`
+                            }`}>
+                      {RIcon ? <RIcon size={20} /> : null}
+                      <span className="text-caption font-bold">{opt.label}</span>
                     </button>
                   )
                 })}
               </div>
             </div>
 
-            {/* 특이사항 + 사진 */}
+            {/* 특이사항(자동 + 수동 합성) + 사진 */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1">
                 <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
                 <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
               <div className="flex gap-2 items-start">
                 <textarea
-                  value={memo}
-                  onChange={e => setMemo(e.target.value)}
+                  value={[faAuto, memo].filter(Boolean).join('\n')}
+                  onChange={e => { const v = e.target.value; setMemo(faAuto && v.startsWith(faAuto) ? v.slice(faAuto.length).replace(/^\n/, '') : v) }}
                   placeholder="특이사항을 입력하세요"
                   className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary"
                 />
@@ -1257,7 +1314,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
             {submitError && (
               <div className="bg-danger-bg border border-danger-bar text-danger rounded-sm px-3 py-2 text-label font-semibold">{submitError}</div>
             )}
-            {justSaved && (
+            {justSaved && !submitError && (
               <div className="bg-safe-bg border border-safe-bar text-safe rounded-sm px-3 py-2 text-label font-semibold inline-flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="flex-shrink-0" />
                 <span>저장 완료</span>
@@ -1268,24 +1325,31 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
       </div>
 
       {/* 저장 버튼 */}
-      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
-        <button
-          onClick={onClose}
-          className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-label font-semibold cursor-pointer transition-colors"
-        >닫기</button>
-        <button
-          onClick={handleSave}
-          disabled={submitting || photo.uploading || !selectedCP}
-          className="flex-1 py-3.5 rounded-md text-body font-bold border-0 transition-all"
-          style={{
-            background: (submitting || photo.uploading || !selectedCP) ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-            color:      (submitting || photo.uploading || !selectedCP) ? 'var(--text-tertiary)' : '#fff',
-            cursor:     (submitting || photo.uploading || !selectedCP) ? 'default' : 'pointer',
-            boxShadow:  (submitting || photo.uploading || !selectedCP) ? 'none' : '0 4px 14px rgba(37,99,235,0.35)',
-          }}
-        >
-          {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : '점검 기록 저장'}
-        </button>
+      <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        {selectedCP && !faResolved && (
+          <div className="mb-1.5 text-caption text-warning font-semibold text-center leading-snug">
+            모든 항목의 점검 결과를 입력해야 저장됩니다 (‘전체 선택’ → 정상)
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-label font-semibold cursor-pointer transition-colors"
+          >닫기</button>
+          <button
+            onClick={handleSave}
+            disabled={submitting || photo.uploading || !selectedCP || !faResolved || faReadonly}
+            className="flex-1 py-3.5 rounded-md text-body font-bold border-0 transition-all"
+            style={{
+              background: (submitting || photo.uploading || !selectedCP || !faResolved || faReadonly) ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
+              color:      (submitting || photo.uploading || !selectedCP || !faResolved || faReadonly) ? 'var(--text-tertiary)' : '#fff',
+              cursor:     (submitting || photo.uploading || !selectedCP || !faResolved || faReadonly) ? 'default' : 'pointer',
+              boxShadow:  (submitting || photo.uploading || !selectedCP || !faResolved || faReadonly) ? 'none' : '0 4px 14px rgba(37,99,235,0.35)',
+            }}
+          >
+            {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : (selectedCP && !faResolved) ? '전 항목 결과 입력 필요' : '점검 기록 저장'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -1546,60 +1610,42 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
   monthRecords:   Record<string, MonthRecordEntry>
   scheduleItems:  ScheduleItem[]
   onClose:        () => void
-  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string; line_results?: string; remediation_symbol?: string }) => Promise<void>
   initialCpId?:   string
 }) {
-  const photo = usePhotoUpload('inspection')
+  const photo = usePhotoUpload()
   const navigate = useNavigate()
-  // QR에서 넘어온 경우 초기 항목 자동 선택
+  const dmpItems: InspectionItem[] = inspectionContent['전실제연댐퍼']?.items ?? []
+
+  // QR 진입 초기값
   const initCp = initialCpId ? allCheckpoints.find(cp => cp.id === initialCpId) : null
   const initItem: '전실제연댐퍼'|'연결송수관'|null = initCp?.category === '전실제연댐퍼' ? '전실제연댐퍼' : initCp?.category === '연결송수관' ? '연결송수관' : null
-  // 전실제연댐퍼 QR: locationNo에서 계단전실 번호 추출 (예: "B5F-2" → "2")
+  // 전실제연댐퍼 QR: locationNo 마지막 세그먼트 = 계단전실 번호 (예: "B5F-2" → "2"), floor = 층
   const initStair = initCp?.category === '전실제연댐퍼' && initCp.locationNo ? initCp.locationNo.split('-').pop() ?? null : null
-  // 연결송수관 QR: location으로 subItem 설정
+  const initFloor: Floor|null = initCp?.category === '전실제연댐퍼' ? (initCp.floor as Floor) : null
+  // 연결송수관 QR: location 으로 subItem 설정
   const initSubItem = initCp?.category === '연결송수관' ? initCp.location : null
-  const [item,        setItem]        = useState<'전실제연댐퍼'|'연결송수관'|null>(initItem)
-  // 연결송수관 states
-  const [subItem,     setSubItem]     = useState<string|null>(initSubItem)
-  const [result,      setResult]      = useState<CheckResult>('normal')
-  // 전실제연댐퍼 states — StairwellModal 패턴
+
+  const [item,          setItem]          = useState<'전실제연댐퍼'|'연결송수관'|null>(initItem)
+  // 연결송수관 states (카드 없음 — 별개 소화설비, 탭으로만 묶임)
+  const [subItem,       setSubItem]       = useState<string|null>(initSubItem)
+  const [result,        setResult]        = useState<CheckResult>('normal')
+  // 전실제연댐퍼 states — 계단전실+층 피커 → 표준 Family A 카드 (StairwellModal 패턴)
   const [selectedStair, setSelectedStair] = useState<string|null>(initStair)
-  const [selectedEquip, setSelectedEquip] = useState<string|null>(!initStair && initCp?.category === '전실제연댐퍼' && !initCp.locationNo ? initCp.id : null)
-  const [floorResults,  setFloorResults]  = useState<Record<string, CheckResult>>({})
+  const [selectedFloor, setSelectedFloor] = useState<Floor|null>(initFloor)
+  const [faMarks,       setFaMarks]       = useState<Record<number, FaMark>>({})
+  const [faChecked,     setFaChecked]     = useState<Set<number>>(new Set())
+  const [faReinspecting, setFaReinspecting] = useState(false)
 
   const [memo,        setMemo]        = useState('')
   const [submitting,  setSubmitting]  = useState(false)
   const [justSaved,   setJustSaved]   = useState(false)
   const [submitError, setSubmitError] = useState<string|null>(null)
   const [visible,     setVisible]     = useState(false)
-  // Wave 2 sp7 패턴 — 댐퍼 증상 피커(equip + yscp 두 모드에서 result !== 'normal' 시 표시)
-  const [damperSymptomPick, setDamperSymptomPick] = useState<string>('기판 조작 불량')
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
-  // Reset on item change
-  const prevItem = useRef(item)
-  useEffect(() => {
-    if (prevItem.current !== item) {
-      prevItem.current = item
-      setSubItem(null); setSelectedStair(null); setSelectedEquip(null)
-      setFloorResults({}); setResult('normal')
-      setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
-      setDamperSymptomPick('기판 조작 불량')
-    }
-  }) // eslint-disable-line
-
-  // Reset on 연결송수관 subItem change
-  const prevSub = useRef(subItem)
-  useEffect(() => {
-    if (prevSub.current !== subItem) {
-      prevSub.current = subItem
-      setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
-      setDamperSymptomPick('기판 조작 불량')
-    }
-  }) // eslint-disable-line
-
-  // 계단전실 unique numbers (from locationNo last segment)
+  // 계단전실 unique 번호 (locationNo 마지막 세그먼트) — LIVE = {2,4,5}
   const stairNums = useMemo(() => {
     const nums = new Set(
       allCheckpoints
@@ -1609,66 +1655,30 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     return Array.from(nums).sort((a, b) => Number(a) - Number(b))
   }, [allCheckpoints])
 
-  // 배기팬/급기팬 (locationNo가 없는 장비 항목)
-  const equipCPs = useMemo(() => {
-    const order: Floor[] = ['B5','B4','B3','B2','B1','1F','2F']
-    return allCheckpoints
-      .filter(cp => cp.category === '전실제연댐퍼' && !cp.locationNo)
-      .sort((a, b) => order.indexOf(a.floor) - order.indexOf(b.floor))
-  }, [allCheckpoints])
-
-  // 선택된 계단전실의 층별 CP 목록
-  const stairCPs = useMemo(() => {
-    if (!selectedStair) return []
-    const order: Floor[] = ['B5','B4','B3','B2','B1','1F']
-    return order
-      .map(f => allCheckpoints.find(cp => cp.category === '전실제연댐퍼' && cp.locationNo?.endsWith(`-${selectedStair}`) && cp.floor === f))
-      .filter(Boolean) as CheckPoint[]
+  // 선택된 계단전실의 접근 가능 층 (지상→지하 순, 계단전실별 범위 상이)
+  const stairFloors = useMemo(() => {
+    if (!selectedStair) return [] as Floor[]
+    const order: Floor[] = ['1F','B1','B2','B3','B4','B5']
+    return order.filter(f => allCheckpoints.some(cp => cp.category === '전실제연댐퍼' && cp.locationNo?.endsWith(`-${selectedStair}`) && cp.floor === f))
   }, [selectedStair, allCheckpoints])
 
-  // Reset on stairwell change — load existing records
-  const prevStair = useRef(selectedStair)
-  useEffect(() => {
-    if (prevStair.current !== selectedStair) {
-      prevStair.current = selectedStair
-      setSelectedEquip(null)
-      if (selectedStair) {
-        const init: Record<string, CheckResult> = {}
-        stairCPs.forEach(cp => { init[cp.id] = (records[cp.id] as CheckResult) ?? 'normal' })
-        setFloorResults(init)
-      }
-      setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
-    }
-  }) // eslint-disable-line
+  // 선택된 (계단전실, 층) CP — 다른 Family A 개소와 동일하게 이 CP 하나에 line_results[10] 저장
+  const selectedCp = useMemo(() =>
+    (item === '전실제연댐퍼' && selectedStair && selectedFloor)
+      ? allCheckpoints.find(cp => cp.category === '전실제연댐퍼' && cp.locationNo?.endsWith(`-${selectedStair}`) && cp.floor === selectedFloor) ?? null
+      : null,
+    [allCheckpoints, item, selectedStair, selectedFloor]
+  )
 
-  // Reset on equip change
-  const prevEquip = useRef(selectedEquip)
-  useEffect(() => {
-    if (prevEquip.current !== selectedEquip) {
-      prevEquip.current = selectedEquip
-      setSelectedStair(null)
-      setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
-      setDamperSymptomPick('기판 조작 불량')
-    }
-  }) // eslint-disable-line
-
-  const stairDoneCount = stairCPs.filter(cp => records[cp.id]).length
-
-  const JD_FLOOR_LABEL: Record<string, string> = {
-    'B5':'지하5층','B4':'지하4층','B3':'지하3층','B2':'지하2층','B1':'지하1층','1F':'지상1층','2F':'지상2층'
-  }
-
-  // 연결송수관 cpId
+  // 연결송수관 cpId (location 으로만 식별 — locationNo 없음)
   const yscpId = useMemo(() => {
     if (item === '연결송수관' && subItem)
       return allCheckpoints.find(cp => cp.category === '연결송수관' && cp.location === subItem)?.id ?? null
     return null
   }, [item, subItem, allCheckpoints])
 
-  // 재진입 팝업 (공통 훅) — 선택된 개소 / 카테고리 기준
-  const revisitCpId = item === '연결송수관'
-    ? yscpId
-    : (selectedEquip ?? (selectedStair ? stairCPs[0]?.id ?? null : null))
+  // 재진입 팝업 (선택 개소 / 카테고리 기준)
+  const revisitCpId = item === '연결송수관' ? yscpId : (selectedCp?.id ?? null)
   const { popupState, dismiss } = useInspectionRevisitPopup({
     checkpointId: revisitCpId ?? null,
     category:     item === '연결송수관' ? '연결송수관' : '전실제연댐퍼',
@@ -1676,34 +1686,89 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     scheduleItems,
   })
 
-  // 전실제연댐퍼 계단전실 일괄 저장
-  const handleStairSave = async () => {
-    if (stairCPs.length === 0) return
+  // 항목(전실제연댐퍼 ↔ 연결송수관) 전환 시 리셋
+  const prevItem = useRef(item)
+  useEffect(() => {
+    if (prevItem.current !== item) {
+      prevItem.current = item
+      setSubItem(null); setSelectedStair(null); setSelectedFloor(null)
+      setFaMarks({}); setFaChecked(new Set()); setFaReinspecting(false)
+      setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
+    }
+  }) // eslint-disable-line
+
+  // 연결송수관 위치 전환 시 리셋
+  const prevSub = useRef(subItem)
+  useEffect(() => {
+    if (prevSub.current !== subItem) {
+      prevSub.current = subItem
+      setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
+    }
+  }) // eslint-disable-line
+
+  // 계단전실 선택 시 첫 층 자동 선택 (StairwellModal 패턴)
+  useEffect(() => {
+    if (selectedStair && stairFloors.length > 0 && (!selectedFloor || !stairFloors.includes(selectedFloor))) setSelectedFloor(stairFloors[0])
+  }, [selectedStair])// eslint-disable-line
+
+  // 선택 CP 변경 시 기간 스코프 로드 + 첫 진입 전체선택 + 수동 memo 복원(auto 스트립)
+  useEffect(() => {
+    if (!selectedCp) return
+    const saved = monthRecords[selectedCp.id]?.line_results
+    const nextMarks: Record<number, FaMark> = {}
+    if (Array.isArray(saved)) saved.forEach((v, i) => { if (v === 'normal' || v === 'caution' || v === 'bad') nextMarks[i] = v })
+    setFaMarks(nextMarks)
+    setFaChecked(new Set(dmpItems.map(it => it.i)))
+    setFaReinspecting(false)
+    photo.reset(); setSubmitError(null); setJustSaved(false)
+    const savedMemo = monthRecords[selectedCp.id]?.memo ?? ''
+    const autoAtSave = faAutoMemoFor('전실제연댐퍼', dmpItems, nextMarks)
+    setMemo(autoAtSave && savedMemo.startsWith(autoAtSave) ? savedMemo.slice(autoAtSave.length).replace(/^\n/, '') : savedMemo)
+  }, [selectedCp?.id])// eslint-disable-line
+
+  const faAuto = faAutoMemoFor('전실제연댐퍼', dmpItems, faMarks)
+  const faResolved = faAllResolved(dmpItems, faMarks)
+  const faSaved = !!selectedCp && Array.isArray(monthRecords[selectedCp.id]?.line_results) && (monthRecords[selectedCp.id]!.line_results as any[]).length > 0
+  const faShowDone = faSaved && !faReinspecting
+  const faReadonly = !!popupState || faShowDone
+  const faAllChecked = dmpItems.length > 0 && faChecked.size === dmpItems.length
+
+  const toggleItem = (i: number) => setFaChecked(prev => { const n = new Set(prev); if (n.has(i)) n.delete(i); else n.add(i); return n })
+  const toggleSelectAll = () => { if (faReadonly) return; setFaChecked(faAllChecked ? new Set<number>() : new Set(dmpItems.map(it => it.i))) }
+  const applyResult = (val: CheckResult) => {
+    if (faReadonly || faChecked.size === 0) return
+    setFaMarks(prev => { const n = { ...prev }; faChecked.forEach(i => { n[i] = val }); return n })
+    setFaChecked(new Set())
+  }
+
+  // 전실제연댐퍼 저장 — 선택 (계단전실,층) CP 1건에 line_results[10]+worst+조치심볼 (StairwellModal 미러)
+  const handleDamperSave = async () => {
+    if (!selectedCp || !faResolved || faReadonly) return  // 완료(done)/재진입 상태면 재저장 금지
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
-      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
-      // 계단전실 한 동을 층별로 일괄 점검. 사진은 stair 단위 메타에 가까우므로
-      // 모든 층 record 에 동일 photoKey 가 박혀 상세 전 record 가 같은 사진을 표시하지 않도록,
-      // caution/bad 가 있으면 그 첫 층, 없으면 첫 층 1건에만 attach.
-      const photoTargetCp = photoKey
-        ? (stairCPs.find(cp => {
-            const r = floorResults[cp.id] ?? 'normal'
-            return r === 'caution' || r === 'bad'
-          }) ?? stairCPs[0])
-        : null
-      // 댐퍼 증상 피커 — stair 모드에서도 nonnormal 층 1+ 있을 때 finalMemo 분기 (Wave 2 패턴 일관)
-      const hasNonNormal = stairCPs.some(cp => {
-        const r = floorResults[cp.id] ?? 'normal'
-        return r !== 'normal'
-      })
-      const finalMemo = hasNonNormal
-        ? (damperSymptomPick === '직접 입력' ? memo.trim() : damperSymptomPick)
-        : memo
-      for (const cp of stairCPs) {
-        const keyForCp = photoTargetCp && cp.id === photoTargetCp.id ? photoKey : undefined
-        await onSave(cp.id, floorResults[cp.id] ?? 'normal', finalMemo, keyForCp ?? undefined)
-      }
+      const lineResultsArr = faLineResults(dmpItems, faMarks)
+      const finalMemo = [faAuto, memo.trim()].filter(Boolean).join('\n')
+      // 서버가 worst 롤업으로 result 덮음. 댐퍼는 조치용 remediation_symbol 도 함께 저장(i4 기판 > i0 모터).
+      const faExtra: { line_results: string; remediation_symbol?: string } = { line_results: JSON.stringify(lineResultsArr) }
+      const sym = damperRemediationSymbol(faMarks)
+      if (sym) faExtra.remediation_symbol = sym
+      await onSave(selectedCp.id, faWorst(faMarks), finalMemo, photoKey ?? undefined, faExtra)
+      photo.reset(); setJustSaved(true); setFaReinspecting(false)
+    } catch (e: any) {
+      setSubmitError(e.message ?? '저장 오류')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // 연결송수관 저장 (카드 없음, 단일 결과 — 별개 소화설비)
+  const handleYscpSave = async () => {
+    if (!yscpId) return
+    setSubmitting(true); setSubmitError(null)
+    try {
+      const photoKey = await photo.upload()
+      await onSave(yscpId, result, memo, photoKey ?? undefined)
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
       setSubmitError(e.message ?? '저장 오류')
@@ -1712,36 +1777,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     }
   }
 
-  // 연결송수관 or 장비 개별 저장
-  const handleSingleSave = async () => {
-    const cpId = item === '연결송수관' ? yscpId : selectedEquip
-    if (!cpId) return
-    setSubmitting(true); setSubmitError(null)
-    try {
-      const photoKey = await photo.upload()
-      if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
-      // 댐퍼 증상 피커 — 전실제연댐퍼 equip 모드 + result !== 'normal' 시만 적용.
-      // 연결송수관(yscp)은 별개 소화설비 (탭으로만 묶임) — 증상 피커 패턴 적용 X.
-      const finalMemo = (item === '전실제연댐퍼' && result !== 'normal')
-        ? (damperSymptomPick === '직접 입력' ? memo.trim() : damperSymptomPick)
-        : memo
-      await onSave(cpId, result, finalMemo, photoKey ?? undefined)
-      setJustSaved(true); setMemo(''); photo.reset()
-    } catch (e: any) {
-      setSubmitError(e.message ?? '저장 오류')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const canSave = (item === '전실제연댐퍼' && selectedStair && stairCPs.length > 0)
-    || (item === '전실제연댐퍼' && selectedEquip)
-    || (item === '연결송수관' && subItem)
-
-  // 전실제연댐퍼 UI mode
-  const jdMode = item === '전실제연댐퍼' ? (selectedStair ? 'stair' : selectedEquip ? 'equip' : 'select') : null
-
-  // 결과 picker 클래스 매핑 (BaeyeonModal 과 동일 — pill + lucide outline + status outline+tinted bg)
+  // 결과 picker 클래스 (연결송수관 — pill + lucide outline + status outline+tinted bg)
   const resultPickerCls = (active: boolean, value: CheckResult) =>
     active
       ? value === 'normal' ? 'border-safe-bar bg-safe-bg text-safe'
@@ -1749,28 +1785,20 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         : 'border-danger-bar bg-danger-bg text-danger'
       : 'border-border-default bg-surface-raised text-text-tertiary'
 
-  // result-mini 클래스 매핑 (stair 모드 — 축소판)
-  const resultMiniCls = (active: boolean, value: CheckResult) =>
-    active
-      ? value === 'normal' ? 'border-safe-bar bg-safe-bg text-safe'
-        : value === 'caution' ? 'border-warning-bar bg-warning-bg text-warning'
-        : 'border-danger-bar bg-danger-bg text-danger'
-      : 'border-border-default bg-surface-page text-text-tertiary'
-
   const resultIcon = (value: CheckResult) =>
     value === 'normal' ? CheckCircle2 : value === 'caution' ? AlertTriangle : XCircle
 
   return (
     <div
-      className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col"
+      className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden"
       style={{ top:'var(--sat, 0px)', bottom:NAV_BOTTOM, transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}
     >
 
       {/* 헤더 */}
       <div className="flex items-center gap-2.5 h-12 px-3 bg-surface-page border-b border-border-default flex-shrink-0">
         <Shield className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
-        <div className="flex-1">
-          <div className="text-title font-semibold text-text-primary truncate">
+        <div className="flex-1 min-w-0">
+          <div className="text-title font-semibold text-text-primary leading-tight truncate">
             {group.labels[0]}
             {group.labels.length > 1 && (
               <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>
@@ -1785,7 +1813,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         <div className="flex gap-2">
           {(['전실제연댐퍼','연결송수관'] as const).map(label => {
             const catCPs  = allCheckpoints.filter(cp => cp.category === label)
-            const allDone = catCPs.length > 0 && catCPs.every(cp => records[cp.id])
+            const allDone = catCPs.length > 0 && catCPs.every(cp => isCpCompleted(monthRecords[cp.id]))
             const isSel   = item === label
             const cls = isSel
               ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
@@ -1795,7 +1823,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
             return (
               <button key={label} onClick={() => setItem(label)}
                 className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                {label}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
+                {label}{allDone && !isSel && <Check size={12} className="inline-block ml-1 opacity-80" />}
               </button>
             )
           })}
@@ -1806,10 +1834,10 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
       {item === '전실제연댐퍼' && (
         <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default flex-shrink-0">
           <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">계단전실 선택</div>
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-1.5">
             {stairNums.map(num => {
               const sCPs = allCheckpoints.filter(cp => cp.category === '전실제연댐퍼' && cp.locationNo?.endsWith(`-${num}`))
-              const done = sCPs.length > 0 && sCPs.every(cp => records[cp.id])
+              const done = sCPs.length > 0 && sCPs.every(cp => isCpCompleted(monthRecords[cp.id]))
               const isSel = selectedStair === num
               const cls = isSel
                 ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
@@ -1817,24 +1845,32 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                   ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
-                <button key={num} onClick={() => { setSelectedEquip(null); setSelectedStair(num) }}
-                  className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                  {num}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
+                <button key={num} onClick={() => { setSelectedStair(num); setSelectedFloor(null) }}
+                  className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap inline-flex items-center justify-center cursor-pointer transition-colors ${cls}`}>
+                  {num}{done && !isSel && <Check size={12} className="inline-block ml-1 opacity-80" />}
                 </button>
               )
             })}
-            {equipCPs.length > 0 && equipCPs.map(cp => {
-              const done = !!records[cp.id]
-              const isSel = selectedEquip === cp.id
-              const cls = isSel
-                ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                : done
-                  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
-                  : 'border border-border-strong bg-surface-page text-text-secondary'
+          </div>
+        </div>
+      )}
+
+      {/* 전실제연댐퍼 → 층 선택 (선택된 계단전실의 접근 가능 층) */}
+      {item === '전실제연댐퍼' && selectedStair && (
+        <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+          <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {stairFloors.map(f => {
+              const cp = allCheckpoints.find(c => c.category === '전실제연댐퍼' && c.locationNo?.endsWith(`-${selectedStair}`) && c.floor === f)
+              const fDone = cp ? isCpCompleted(monthRecords[cp.id]) : false
+              const isSel = f === selectedFloor
               return (
-                <button key={cp.id} onClick={() => { setSelectedStair(null); setSelectedEquip(cp.id) }}
-                  className={`px-2.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                  {cp.location}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
+                <button key={f} onClick={() => setSelectedFloor(f)}
+                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                    isSel ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                          : 'border border-border-strong bg-surface-page text-text-secondary'
+                  }`}>
+                  {f}{fDone && <Check size={11} className="inline-block ml-1 opacity-75" />}
                 </button>
               )
             })}
@@ -1849,7 +1885,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
           <div className="flex flex-wrap gap-2">
             {allCheckpoints.filter(cp => cp.category === '연결송수관').map(cp => {
               const isSel  = subItem === cp.location
-              const isDone = !!records[cp.id]
+              const isDone = isCpCompleted(monthRecords[cp.id])
               const cls = isSel
                 ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                 : isDone
@@ -1858,7 +1894,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               return (
                 <button key={cp.id} onClick={() => setSubItem(cp.location)}
                   className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                  {cp.location}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
+                  {cp.location}{isDone && !isSel && <Check size={12} className="inline-block ml-1 opacity-80" />}
                 </button>
               )
             })}
@@ -1866,16 +1902,109 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         </div>
       )}
 
-      {/* 폼 영역 */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5 relative">
+      {/* 본문 (스크롤) */}
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5">
         {!item && (
-          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">항목을 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">항목을 선택해 주세요</div>
         )}
 
-        {/* 점검 폼 컨테이너 (재진입 팝업 부분 오버레이의 부모) — item 선택 후에만 렌더 */}
-        {item && (
+        {/* 전실제연댐퍼 — 표준 Family A 카드 (계단전실+층 피커) */}
+        {item === '전실제연댐퍼' && (
+          <>
+            {!selectedStair && (
+              <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">계단전실을 선택해 주세요</div>
+            )}
+            {selectedStair && !selectedCp && (
+              <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">층을 선택해 주세요</div>
+            )}
+
+            {/* 점검 내용 카드 — 오버레이에 덮이지 않음(readonly 조회) */}
+            {selectedCp && (
+              <FamilyACard
+                category="전실제연댐퍼"
+                items={dmpItems}
+                marks={faMarks}
+                checked={faChecked}
+                readonly={faReadonly}
+                allChecked={faAllChecked}
+                onSelectAll={toggleSelectAll}
+                onToggleCheck={toggleItem}
+              />
+            )}
+
+            {/* 결과 ~ 특이사항 (이미 점검한 개소 오버레이가 이 영역만 덮음) */}
+            {selectedCp && (
+              <div className="relative">
+                {popupState ? (
+                  <InspectionRevisitPopup
+                    variant={popupState.variant}
+                    checkedAt={popupState.checkedAt}
+                    inspectorName={popupState.inspectorName}
+                    recordId={popupState.recordId}
+                    onClose={dismiss}
+                    onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+                  />
+                ) : faShowDone ? (
+                  <InspectionRevisitPopup
+                    variant="completed"
+                    checkedAt={monthRecords[selectedCp.id]?.checkedAt ?? ''}
+                    inspectorName={monthRecords[selectedCp.id]?.staffName ?? '—'}
+                    onClose={() => setFaReinspecting(true)}
+                  />
+                ) : null}
+
+                {/* 결과 버튼 — 체크된 행에 적용 */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-caption font-semibold text-text-tertiary tracking-wider">점검 결과</span>
+                    <span className="text-caption text-text-tertiary">· 선택 {faChecked.size}개</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {INSPECT_RESULT_OPTIONS.map(opt => {
+                      const RIcon = RESULT_ICONS[opt.value]
+                      const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                                      : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
+                                      :                            'border-2 border-danger-bar bg-danger-bg text-danger'
+                      const disabled = faChecked.size === 0 || faReadonly
+                      return (
+                        <button key={opt.value} onClick={() => applyResult(opt.value)} disabled={disabled}
+                                className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md transition-colors ${
+                                  disabled ? 'border border-border-default bg-surface-raised text-text-tertiary opacity-50 cursor-default' : `${activeCls} cursor-pointer`
+                                }`}>
+                          {RIcon ? <RIcon size={20} /> : null}
+                          <span className="text-caption font-bold">{opt.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* 특이사항(자동 + 수동 합성) + 사진 */}
+                <div className="mt-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                    <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    <textarea
+                      value={[faAuto, memo].filter(Boolean).join('\n')}
+                      onChange={e => { const v = e.target.value; setMemo(faAuto && v.startsWith(faAuto) ? v.slice(faAuto.length).replace(/^\n/, '') : v) }}
+                      placeholder="특이사항을 입력하세요"
+                      className="flex-1 h-[72px] px-2.5 py-2 rounded-md bg-surface-raised border border-border-strong text-text-primary text-caption resize-none outline-none box-border focus:border-border-focus transition-colors" />
+                    <PhotoButton hook={photo} label="촬영" noCapture />
+                  </div>
+                </div>
+
+                {submitError && <div className="mt-2 bg-danger-bg/40 border border-danger-bar/30 rounded-sm px-3 py-2 text-caption text-danger">{submitError}</div>}
+                {justSaved && !submitError && <div className="mt-2 bg-safe-bg/40 border border-safe-bar/30 rounded-sm px-3 py-2 text-caption text-safe inline-flex items-center gap-1.5"><Check size={12} />저장 완료</div>}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 연결송수관 — 개별 폼 (카드 없음, 별개 소화설비) */}
+        {item === '연결송수관' && (
           <div className="relative flex flex-col gap-2.5">
-            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 폼 서브 컨테이너만 덮음) */}
             {popupState && (
               <InspectionRevisitPopup
                 variant={popupState.variant}
@@ -1886,252 +2015,311 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                 onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
               />
             )}
-
-        {/* 전실제연댐퍼 — 계단전실 2열 층별 리스트 (StairwellModal 패턴) */}
-        {jdMode === 'stair' && (
-          <>
-            {stairDoneCount > 0 && !justSaved && (
-              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-1.5 text-label text-safe flex items-center gap-1.5">
-                ✓ {stairDoneCount}/{stairCPs.length}층 이미 점검 완료
-              </div>
+            {!subItem && (
+              <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">위치를 선택해 주세요</div>
             )}
-
-            {/* 층별 결과 — 2열 */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* 왼쪽 열 */}
-              <div className="flex flex-col gap-1.5">
-                {stairCPs.slice(0, Math.ceil(stairCPs.length / 2)).map(cp => {
-                  const curResult = floorResults[cp.id] ?? 'normal'
-                  const isInit = !!(initCp && cp.floor === initCp.floor)
-                  return (
-                    <div key={cp.id}
-                      className={`bg-surface-raised rounded-[10px] px-[9px] pt-[9px] pb-[7px] ${isInit ? 'border-2 border-fire-bar' : 'border border-border-default'}`}>
-                      <div className={`text-caption font-bold mb-1.5 ${isInit ? 'text-fire-bar' : 'text-text-secondary'}`}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
-                      <div className="flex gap-1">
-                        {INSPECT_RESULT_OPTIONS.map(opt => {
-                          const Icon = resultIcon(opt.value)
-                          const active = curResult === opt.value
-                          return (
-                            <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))}
-                              className={`flex-1 px-1 py-1.5 rounded-pill border-[1.5px] text-caption font-bold whitespace-nowrap inline-flex items-center justify-center gap-[3px] cursor-pointer transition-colors ${resultMiniCls(active, opt.value)}`}>
-                              <Icon className="w-3 h-3 flex-shrink-0" />
-                              {opt.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              {/* 오른쪽 열 */}
-              <div className="flex flex-col gap-1.5">
-                {stairCPs.slice(Math.ceil(stairCPs.length / 2)).map(cp => {
-                  const curResult = floorResults[cp.id] ?? 'normal'
-                  const isInit = !!(initCp && cp.floor === initCp.floor)
-                  return (
-                    <div key={cp.id}
-                      className={`bg-surface-raised rounded-[10px] px-[9px] pt-[9px] pb-[7px] ${isInit ? 'border-2 border-fire-bar' : 'border border-border-default'}`}>
-                      <div className={`text-caption font-bold mb-1.5 ${isInit ? 'text-fire-bar' : 'text-text-secondary'}`}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
-                      <div className="flex gap-1">
-                        {INSPECT_RESULT_OPTIONS.map(opt => {
-                          const Icon = resultIcon(opt.value)
-                          const active = curResult === opt.value
-                          return (
-                            <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))}
-                              className={`flex-1 px-1 py-1.5 rounded-pill border-[1.5px] text-caption font-bold whitespace-nowrap inline-flex items-center justify-center gap-[3px] cursor-pointer transition-colors ${resultMiniCls(active, opt.value)}`}>
-                              <Icon className="w-3 h-3 flex-shrink-0" />
-                              {opt.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* 댐퍼 증상 피커 (stair 모드 — nonnormal 층 1+ 있을 때만 표시, Wave 2 sp7 패턴 일관) */}
-            {stairCPs.some(cp => (floorResults[cp.id] ?? 'normal') !== 'normal') && (
-              <div>
-                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => {
-                    const active = damperSymptomPick === s
-                    return (
-                      <button key={s} onClick={() => setDamperSymptomPick(s)}
-                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
-                          active
-                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
-                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
-                        }`}>
-                        {s}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 특이사항 + 사진 (stair 모드 — 메모 1건, 모든 층 record 에 동일 박힘) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-caption font-semibold text-text-tertiary tracking-wider">
-                  {stairCPs.some(cp => (floorResults[cp.id] ?? 'normal') !== 'normal') && damperSymptomPick === '직접 입력'
-                    ? '증상 상세 및 특이사항 (선택)'
-                    : '특이사항 (선택)'}
-                </label>
-                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
-              </div>
-              <div className="flex gap-2 items-start">
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
-                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none font-sans outline-none box-border placeholder:text-text-tertiary" />
-                <PhotoButton hook={photo} label="촬영" noCapture />
-              </div>
-            </div>
-
-            {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
-          </>
-        )}
-
-        {/* 전실제연댐퍼 — 장비(배기/급기팬) 개별 폼 */}
-        {jdMode === 'equip' && selectedEquip && (() => {
-          const eqCp = equipCPs.find(cp => cp.id === selectedEquip)
-          if (!eqCp) return null
-          const eqDone = !!records[eqCp.id]
-          return (
-            <>
-              {eqDone && !justSaved && (
-                <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
-              )}
-              <div>
-                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
-                <div className="flex gap-2">
-                  {INSPECT_RESULT_OPTIONS.map(opt => {
-                    const Icon = resultIcon(opt.value)
-                    const active = result === opt.value
-                    return (
-                      <button key={opt.value} onClick={() => setResult(opt.value)}
-                        className={`flex-1 px-2 py-[9px] rounded-pill border-[1.5px] text-body-sm font-bold whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${resultPickerCls(active, opt.value)}`}>
-                        <Icon className="w-4 h-4 flex-shrink-0" />
-                        {opt.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              {/* 댐퍼 증상 피커 (Wave 2 sp7 패턴 — result !== 'normal' 시 표시) */}
-              {result !== 'normal' && (
+            {subItem && (
+              <>
+                {yscpId && isCpCompleted(monthRecords[yscpId]) && !justSaved && (
+                  <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5"><Check size={14} />이미 점검 완료된 항목입니다</div>
+                )}
                 <div>
-                  <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => {
-                      const active = damperSymptomPick === s
+                  <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+                  <div className="flex gap-2">
+                    {INSPECT_RESULT_OPTIONS.map(opt => {
+                      const Icon = resultIcon(opt.value)
+                      const active = result === opt.value
                       return (
-                        <button key={s} onClick={() => setDamperSymptomPick(s)}
-                          className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
-                            active
-                              ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
-                              : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
-                          }`}>
-                          {s}
+                        <button key={opt.value} onClick={() => setResult(opt.value)}
+                          className={`flex-1 px-2 py-[9px] rounded-pill border-[1.5px] text-body-sm font-bold whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${resultPickerCls(active, opt.value)}`}>
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          {opt.label}
                         </button>
                       )
                     })}
                   </div>
                 </div>
-              )}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-caption font-semibold text-text-tertiary tracking-wider">
-                    {result !== 'normal' && damperSymptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
-                  </label>
-                  <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
+                {/* 연결송수관은 증상 피커 없음 — 전실제연댐퍼와 별개 소화설비 */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                    <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                      className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none font-sans outline-none box-border placeholder:text-text-tertiary" />
+                    <PhotoButton hook={photo} label="촬영" noCapture />
+                  </div>
                 </div>
-                <div className="flex gap-2 items-start">
-                  <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
-                    className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none font-sans outline-none box-border placeholder:text-text-tertiary" />
-                  <PhotoButton hook={photo} label="촬영" noCapture />
-                </div>
-              </div>
-              {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-              {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
-            </>
-          )
-        })()}
-
-        {/* 전실제연댐퍼 — 선택 안내 */}
-        {item === '전실제연댐퍼' && jdMode === 'select' && (
-          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">계단전실을 선택해 주세요</div>
-        )}
-
-        {/* 연결송수관 — 개별 폼 */}
-        {item === '연결송수관' && !subItem && (
-          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">위치를 선택해 주세요</div>
-        )}
-        {item === '연결송수관' && subItem && (
-          <>
-            {yscpId && records[yscpId] && !justSaved && (
-              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
+                {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+                {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe flex items-center gap-1.5"><Check size={14} />저장 완료</div>}
+              </>
             )}
-            <div>
-              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
-              <div className="flex gap-2">
-                {INSPECT_RESULT_OPTIONS.map(opt => {
-                  const Icon = resultIcon(opt.value)
-                  const active = result === opt.value
-                  return (
-                    <button key={opt.value} onClick={() => setResult(opt.value)}
-                      className={`flex-1 px-2 py-[9px] rounded-pill border-[1.5px] text-body-sm font-bold whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${resultPickerCls(active, opt.value)}`}>
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      {opt.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            {/* 연결송수관은 증상 피커 없음 — 전실제연댐퍼와 별개 소화설비 (탭으로만 묶임) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
-                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
-              </div>
-              <div className="flex gap-2 items-start">
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
-                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none font-sans outline-none box-border placeholder:text-text-tertiary" />
-                <PhotoButton hook={photo} label="촬영" noCapture />
-              </div>
-            </div>
-            {submitError && <div className="bg-danger-bg border border-danger-bar rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
-            {justSaved  && <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
-          </>
-        )}
           </div>
         )}
       </div>
 
       {/* 저장 버튼 */}
-      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
-        <button onClick={onClose}
-          className="px-[18px] py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-label font-semibold cursor-pointer">
-          닫기
-        </button>
-        <button
-          onClick={jdMode === 'stair' ? handleStairSave : handleSingleSave}
-          disabled={submitting || photo.uploading || !canSave}
-          className="flex-1 py-[13px] rounded-md border-none text-white text-body-sm font-bold cursor-pointer transition-colors disabled:text-text-tertiary disabled:cursor-default"
-          style={{ background: submitting||photo.uploading||!canSave ? 'var(--border-strong)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)' }}
-        >
-          {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : jdMode === 'stair' ? `계단전실 ${selectedStair} 점검 저장` : '점검 기록 저장'}
-        </button>
+      <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        {item === '전실제연댐퍼' && selectedCp && !faResolved && (
+          <div className="mb-1.5 text-caption text-warning font-semibold text-center leading-snug">
+            모든 항목의 점검 결과를 입력해야 저장됩니다 (‘전체 선택’ → 정상)
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
+            닫기
+          </button>
+          {item === '연결송수관' ? (
+            <button
+              onClick={handleYscpSave}
+              disabled={submitting || photo.uploading || !yscpId}
+              className={`flex-1 py-3 rounded-md border-0 text-label font-bold transition-shadow ${
+                submitting || photo.uploading || !yscpId
+                  ? 'bg-border-default text-text-tertiary cursor-default'
+                  : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] text-text-on-accent cursor-pointer hover:shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
+              }`}
+            >
+              {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : '점검 기록 저장'}
+            </button>
+          ) : (
+            <button
+              onClick={handleDamperSave}
+              disabled={submitting || photo.uploading || !selectedCp || !faResolved || faReadonly}
+              className={`flex-1 py-3 rounded-md border-0 text-label font-bold transition-shadow ${
+                submitting || photo.uploading || !selectedCp || !faResolved || faReadonly
+                  ? 'bg-border-default text-text-tertiary cursor-default'
+                  : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] text-text-on-accent cursor-pointer hover:shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
+              }`}
+            >
+              {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : (selectedCp && !faResolved) ? '전 항목 결과 입력 필요' : '점검 기록 저장'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
 // ── Inspection Modal (전체화면) ────────────────────────
+// ── Family A (증상피커 없는 공용 InspectionModal) 점검내용 카드 대상 카테고리 ──
+// 증분 A: 청정소화약제·소방펌프·완강기 (Family A 공용카드, 증상피커 없음).
+// 증분 B: 소화전 추가 — 소화전+비상콘센트 그룹이 Family A 이중 카드(pairedBC 함께 저장).
+//         소화전은 라인0(위치표시등)/라인3(소화전함·호스) 특례(faAutoMemoFor·hydrantRemediationSymbol).
+// 완강기 카드는 A 포함(사용자 확정, 13개소); 완강기 엑셀(피난방화 sheet6)만 증분 C.
+const FAMILY_A_CATEGORIES = ['청정소화약제', '소방펌프', '완강기', '소화전', '방화셔터']
+
+// 명시적 결과(정상/주의/불량). 마크 없음 = 아직 결과 미입력(점검 미완료).
+type FaMark = CheckResult
+
+// 마크에서 worst 스칼라 결과 계산 (bad>caution>normal)
+function faWorst(marks: Record<number, FaMark>): CheckResult {
+  const vals = Object.values(marks)
+  if (vals.includes('bad')) return 'bad'
+  if (vals.includes('caution')) return 'caution'
+  return 'normal'
+}
+
+// 마크 → line_results 배열. **위치(item.i)** 기준으로 채운다 — item.i 를 배열 인덱스로 써서
+// 카드가 항목 일부만 노출해도 리포트 행 정합이 유지된다(예: 소방용전원공급반 카드 i6·i9 만 노출 →
+// 자탐 sheet9 7·10행에 정확히 반영, 나머지 인덱스는 null → 엑셀 worstFor 가 checked?'○' 폴백으로 채움).
+// 연속 항목(0..N-1) 카테고리는 순서=i 라 기존(items.map)과 완전히 동일.
+function faLineResults(items: InspectionItem[], marks: Record<number, FaMark>): (string | null)[] {
+  if (items.length === 0) return []
+  const size = Math.max(...items.map(it => it.i)) + 1
+  const arr: (string | null)[] = new Array(size).fill(null)
+  items.forEach(it => { arr[it.i] = marks[it.i] ?? 'normal' })
+  return arr
+}
+
+// 마크 → auto 특이사항(주의/불량만 C/D 자동문구 '\n' join, normal 은 문구 없음, 번호·꺾쇠 없음)
+function faAutoMemo(items: InspectionItem[], marks: Record<number, FaMark>): string {
+  return items
+    .filter(it => marks[it.i] === 'caution' || marks[it.i] === 'bad')
+    .map(it => (marks[it.i] === 'bad' ? it.bad : it.caution))
+    .join('\n')
+}
+
+// 전 항목이 명시적 결과를 가졌는지 (저장 가능 조건)
+function faAllResolved(items: InspectionItem[], marks: Record<number, FaMark>): boolean {
+  return items.length > 0 && items.every(it => marks[it.i] != null)
+}
+
+// 소화전 라인별 특례를 반영한 auto 특이사항.
+//  - special[i].symbol (라인0 위치표시등): caution/bad 무관 고정 문구(C/D 대체)
+//  - special[3].picker (소화전함·호스): prefix + 선택값(경종/호스걸이/직접입력 텍스트)
+// special 없는 카테고리(청정·펌프·완강기·비상콘센트)는 기존 faAutoMemo 로 위임 → A 회귀 0.
+function faAutoMemoFor(
+  category: string,
+  items: InspectionItem[],
+  marks: Record<number, FaMark>,
+  ctx?: { hydrantPick?: string; hydrantCustom?: string },
+): string {
+  const special = inspectionContent[category]?.special
+  if (!special) return faAutoMemo(items, marks)
+  return items
+    .filter(it => marks[it.i] === 'caution' || marks[it.i] === 'bad')
+    .map(it => {
+      const sp = special[String(it.i)]
+      if (sp?.symbol) return sp.symbol as string
+      if (sp?.picker) {
+        const prefix = (marks[it.i] === 'bad' ? sp.badPrefix : sp.cautionPrefix) as string
+        const suffix = ctx?.hydrantPick === '직접 입력'
+          ? (ctx?.hydrantCustom ?? '').trim()
+          : (ctx?.hydrantPick ?? (sp.picker as string[])[0])
+        return `${prefix.replace(/\s*$/, '')} ${suffix}`.trimEnd()
+      }
+      return (marks[it.i] === 'bad' ? it.bad : it.caution)
+    })
+    .join('\n')
+}
+
+// 소화전 조치용 remediation_symbol 도출(개소당 단일). 우선순위: 라인3(피커) > 라인0(위치표시등).
+// 라인3 우선이라 재방문 시 remediation_symbol 로 피커 선택값 복원 가능(라인0 은 고정문구=무상태).
+function hydrantRemediationSymbol(
+  marks: Record<number, FaMark>,
+  hydrantPick: string,
+  hydrantCustom: string,
+): string | undefined {
+  const special = inspectionContent['소화전']?.special
+  if (!special) return undefined
+  if (marks[3] === 'caution' || marks[3] === 'bad') {
+    if (hydrantPick === '직접 입력') return hydrantCustom.trim() || undefined
+    const symbols = special['3'].symbols as Record<string, string>
+    return symbols[hydrantPick] ?? symbols['경종']
+  }
+  if (marks[0] === 'caution' || marks[0] === 'bad') return special['0'].symbol as string
+  return undefined
+}
+
+// 전실제연댐퍼 조치용 remediation_symbol 도출(개소당 단일). 우선순위: i4(수동기동→'기판 조작 불량') > i0(공기유입구→'모터 기능 이상').
+// 반환값은 special[i].symbol 문자열 그대로 — RemediationDetailPage 가 이 심볼로 기본 조치/자재를 역매핑.
+function damperRemediationSymbol(marks: Record<number, FaMark>): string | undefined {
+  const special = inspectionContent['전실제연댐퍼']?.special
+  if (!special) return undefined
+  if (marks[4] === 'caution' || marks[4] === 'bad') return special['4'].symbol as string
+  if (marks[0] === 'caution' || marks[0] === 'bad') return special['0'].symbol as string
+  return undefined
+}
+
+// 방화셔터 조치용 remediation_symbol 도출(개소당 단일). 우선순위: i2(연동제어기 전원·스위치→'연동제어기 기판 작동 불', 기능결함) > i9(표식→'방화셔터 라인 표시 필요').
+function fireShutterRemediationSymbol(marks: Record<number, FaMark>): string | undefined {
+  const special = inspectionContent['방화셔터']?.special
+  if (!special) return undefined
+  if (marks[2] === 'caution' || marks[2] === 'bad') return special['2'].symbol as string
+  if (marks[9] === 'caution' || marks[9] === 'bad') return special['9'].symbol as string
+  return undefined
+}
+
+// ── Family A 공용 "점검 내용" 카드 ──────────────────────────────
+// LOCKED UI: [좌 체크박스] · [텍스트 flex] · [우 결과아이콘], 헤더 접기/펼치기(localStorage 카테고리별 키).
+// readonly(재방문 활성 창): 체크박스 숨김 + 저장된 line_results 아이콘만 조회.
+function FamilyACard({ category, items, marks, checked, readonly, allChecked, onSelectAll, onToggleCheck, autoItems }: {
+  category:      string
+  items:         InspectionItem[]
+  marks:         Record<number, FaMark>
+  checked:       Set<number>
+  readonly:      boolean
+  allChecked:    boolean
+  onSelectAll:   () => void
+  onToggleCheck: (i: number) => void
+  autoItems?:    Record<number, string>   // i → 인라인 사유(자동판정 항목: 체크박스 잠금·선택 제외). 미전달 시 기존 9종 100% 동치.
+}) {
+  const storageKey = `jc-collapsed-${category}`
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(storageKey) === '1' } catch { return false }
+  })
+  const toggleCollapse = () => {
+    setCollapsed(prev => {
+      const next = !prev
+      try { localStorage.setItem(storageKey, next ? '1' : '0') } catch { /* ignore */ }
+      return next
+    })
+  }
+
+  const title = category === '소방펌프' ? `점검 내용 (${items.length})` : '점검 내용'
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {/* 타이틀 행 — 카드 바깥 좌상단(타이틀+전체선택) + 우측끝 접기/펼치기 */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-caption font-semibold text-text-tertiary tracking-wider shrink-0">{title}</span>
+          {!collapsed && !readonly && (
+            <button
+              type="button"
+              onClick={onSelectAll}
+              className="px-2 py-0.5 rounded-[5px] border border-border-strong text-caption font-semibold text-text-secondary cursor-pointer hover:bg-surface-active transition-colors shrink-0">
+              {allChecked ? '선택 해제' : '전체 선택'}
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={toggleCollapse}
+          aria-expanded={!collapsed}
+          className="flex items-center gap-1 text-caption font-bold text-accent cursor-pointer bg-transparent shrink-0">
+          {collapsed ? '펼치기' : '접기'}
+          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </button>
+      </div>
+
+      {/* 카드 — 테두리 안에는 항목 리스트만 */}
+      {!collapsed && (
+        <div className="rounded-lg border border-border-default bg-surface-raised overflow-hidden">
+          {items.map((it, idx) => {
+            const mark = marks[it.i]
+            // 결과가 입력된 항목만 아이콘 표시(정상=초록/주의=△/불량=Ｘ). 미입력=아이콘 없음 = 점검 미완료.
+            const displayResult: FaMark | null = mark ?? null
+            const RIcon = displayResult ? RESULT_ICONS[displayResult] : null
+            const iconCls = displayResult === 'caution' ? 'text-warning'
+                          : displayResult === 'bad'     ? 'text-danger'
+                          :                                'text-safe'
+            const isChecked = checked.has(it.i)
+            const isAuto      = !!autoItems && (it.i in autoItems)   // 자동/잠금 항목(DIV i1 압력상태 = detectDivTrend)
+            const interactive = !readonly && !isAuto                 // 클릭·체크 가능(autoItems 미전달이면 !readonly 와 동치 → 9종 회귀 0)
+            return (
+              <div
+                key={it.i}
+                role={interactive ? 'checkbox' : undefined}
+                aria-checked={interactive ? isChecked : undefined}
+                tabIndex={interactive ? 0 : undefined}
+                onClick={interactive ? () => onToggleCheck(it.i) : undefined}
+                onKeyDown={interactive ? (e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggleCheck(it.i) } }) : undefined}
+                className={`flex items-center gap-2.5 px-3 py-2.5 ${idx > 0 ? 'border-t border-border-default' : ''} transition-colors ${
+                  interactive ? 'cursor-pointer hover:bg-surface-active' : ''
+                }`}>
+                {/* 좌 체크박스 (readonly·자동판정 항목이면 숨김) */}
+                {interactive && (
+                  <div
+                    className={`w-5 h-5 shrink-0 rounded-[5px] border-[1.5px] flex items-center justify-center transition-colors ${
+                      isChecked ? 'bg-accent border-accent' : 'bg-surface-page border-border-strong'
+                    }`}>
+                    <Check size={13} className={`text-text-on-accent transition-opacity ${isChecked ? 'opacity-100' : 'opacity-0'}`} />
+                  </div>
+                )}
+                {/* 자동판정 항목(체크박스 없음)이 체크박스 있는 항목과 텍스트 좌측 정렬 유지 — 동폭 스페이서 */}
+                {isAuto && !readonly && <div className="w-5 h-5 shrink-0" aria-hidden />}
+                {/* 텍스트 */}
+                <span className="flex-1 text-caption text-text-primary leading-snug">{it.text}</span>
+                {/* 자동판정 항목(DIV i1): 결과아이콘 옆 인라인 사유 텍스트(체크박스·선택 없음) */}
+                {isAuto && autoItems?.[it.i] && (
+                  <span className="shrink-0 text-caption text-text-tertiary leading-snug">{autoItems[it.i]}</span>
+                )}
+                {/* 우 결과 아이콘 (미표시 시 빈 자리 유지) */}
+                <span className={`shrink-0 w-[22px] h-[22px] flex items-center justify-center ${iconCls}`}>
+                  {RIcon ? <RIcon size={19} /> : null}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function InspectionModal({ group, allCheckpoints, records, monthRecords, recordCounts, markerRecords, scheduleItems, onClose, onSave, initialCpId }: {
   group:          typeof CATEGORY_GROUPS[0]
   allCheckpoints: CheckPoint[]
@@ -2141,11 +2329,20 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   markerRecords?: Record<string, CheckResult>
   scheduleItems:  ScheduleItem[]
   onClose:        () => void
-  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string }) => Promise<void>
+  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string; line_results?: string; remediation_symbol?: string }) => Promise<void>
   initialCpId?:   string
 }) {
   const navigate = useNavigate()
   const isGuideLight = group.categories.includes('유도등')
+  // Family A (청정·펌프·완강기·소화전): 공용 카드. faItems 는 selectedCP 정의 후 아래에서 계산.
+  const isFamilyA = FAMILY_A_CATEGORIES.includes(group.categories[0])
+  const [faMarks,   setFaMarks]   = useState<Record<number, FaMark>>({})
+  const [faChecked, setFaChecked] = useState<Set<number>>(new Set())
+  // 소화전+비상콘센트 두 번째 카드(비상콘센트, pairedBC) 전용 상태
+  const [faMarks2,   setFaMarks2]   = useState<Record<number, FaMark>>({})
+  const [faChecked2, setFaChecked2] = useState<Set<number>>(new Set())
+  const [faReinspecting,  setFaReinspecting]  = useState(false)  // 소화전/단일 카드 '재점검'(편집) 모드 — done 오버레이 해제
+  const [faReinspecting2, setFaReinspecting2] = useState(false)  // 비상콘센트(pairedBC) 카드 재점검 — 카드별 독립
   const [glMarkers, setGlMarkers] = useState<FloorPlanMarker[]>([])
   const photo   = usePhotoUpload('inspection')
   const bcPhoto = usePhotoUpload('inspection-bc')
@@ -2163,13 +2360,13 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   const [submitError,   setSubmitError]   = useState<string | null>(null)
   const [justSaved,     setJustSaved]     = useState(false)
   const [visible,       setVisible]       = useState(false)
-  const [bcResult,      setBcResult]      = useState<CheckResult>('normal')
-  const [bcMemo,        setBcMemo]        = useState('')
+  const [bcMemo,        setBcMemo]        = useState('')   // 비상콘센트(pairedBC) 수동 특이사항
   const [symptomPick,   setSymptomPick]   = useState<string>('점등 이상')
   const [symptomCustom, setSymptomCustom] = useState('')
   const [extSymptomPick, setExtSymptomPick] = useState<string>('받침 파손')
-  const [hydrantSymptomPick, setHydrantSymptomPick] = useState<string>('경종 파손')
-  const [shutterSymptomPick, setShutterSymptomPick] = useState<string>('방화셔터 라인 표시 필요')
+  // 소화전 라인3(소화전함·호스) 인라인 증상 피커. 구식 전역 4버튼 피커(hydrantSymptomPick)는 폐기.
+  const [hydrantLinePick,   setHydrantLinePick]   = useState<string>('경종')
+  const [hydrantLineCustom, setHydrantLineCustom] = useState('')
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -2344,6 +2541,15 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     [isSohwaGroup, selectedCP, floorCPs]
   )
 
+  // Family A 카드 항목. ★ group.categories[0] 이 아니라 선택 개소 카테고리 기준 —
+  // 소화전 없는 층의 단독 비상콘센트도 올바른 항목을 보이게 함.
+  const faCategory = isFamilyA ? (selectedCP?.category ?? group.categories[0]) : ''
+  const faItems: InspectionItem[] = faCategory ? (inspectionContent[faCategory]?.items ?? []) : []
+  const isHydrant = faCategory === '소화전'
+  const isFireShutter = faCategory === '방화셔터'
+  // 두 번째 카드(비상콘센트) — 소화전에 pairedBC 가 있을 때만
+  const faItems2: InspectionItem[] = pairedBC ? (inspectionContent['비상콘센트']?.items ?? []) : []
+
   // ── 소화기 상세정보 ──
   const isExtinguisher = group.categories.includes('소화기')
   const [extDetail, setExtDetail] = useState<ExtinguisherDetail | null>(null)
@@ -2409,9 +2615,59 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       setSubmitError(null)
       setJustSaved(false)
       photo.reset()
-      setBcResult('normal')
       setBcMemo('')
       bcPhoto.reset()
+      // Family A: 기간 스코프 로드 — monthRecords[cpId].line_results 에서 전 항목 결과(정상/주의/불량) 복원.
+      // 저장 기록 없으면 빈 카드(전 항목 결과 미입력 = 점검 미완료). 새 점검 기간 = 빈 카드.
+      if (isFamilyA) {
+        const saved = monthRecords[selectedCP.id]?.line_results
+        const nextMarks: Record<number, FaMark> = {}
+        if (Array.isArray(saved)) {
+          saved.forEach((v, i) => { if (v === 'normal' || v === 'caution' || v === 'bad') nextMarks[i] = v })
+        }
+        setFaMarks(nextMarks)
+        // 첫 진입 시 점검 내용 전체 선택 상태(전 항목 체크) — 정상 일괄 적용 등 빠른 입력 목적.
+        setFaChecked(new Set(faItems.map(it => it.i)))
+        setFaReinspecting(false)   // 개소 전환 시 재점검 모드 해제 → 저장된 개소면 done 오버레이 표시
+        setFaReinspecting2(false)  // 카드별 독립 — 개소 전환 시 둘 다 해제
+        // 소화전 라인3 피커 선택값 복원(remediation_symbol → pick/custom). 라인3 우선 저장이라 역매핑 가능.
+        let hpick = '경종', hcustom = ''
+        if (selectedCP.category === '소화전') {
+          const sym = monthRecords[selectedCP.id]?.remediation_symbol ?? ''
+          if (sym === '경종 파손') hpick = '경종'
+          else if (sym === '호스걸이 파손') hpick = '호스걸이'
+          else if (sym && sym !== '위치표시등 점등 이상' && (nextMarks[3] === 'caution' || nextMarks[3] === 'bad')) { hpick = '직접 입력'; hcustom = sym }
+          setHydrantLinePick(hpick)
+          setHydrantLineCustom(hcustom)
+        }
+        // WR-02: 저장된 memo 에서 자동문구(auto) 프리픽스를 벗겨 수동분(manual)만 복원.
+        // auto 는 복원된 marks(+소화전 피커)로 결정적이라 저장 당시와 일치 → 남은 tail 이 수동 기입분.
+        const savedMemo = monthRecords[selectedCP.id]?.memo ?? ''
+        const autoAtSave = faAutoMemoFor(selectedCP.category, faItems, nextMarks, { hydrantPick: hpick, hydrantCustom: hcustom })
+        const manual = autoAtSave && savedMemo.startsWith(autoAtSave)
+          ? savedMemo.slice(autoAtSave.length).replace(/^\n/, '')
+          : savedMemo
+        setMemo(manual)
+        // 두 번째 카드(비상콘센트, pairedBC) 복원 — line_results + manual memo
+        if (pairedBC) {
+          const saved2 = monthRecords[pairedBC.id]?.line_results
+          const nextMarks2: Record<number, FaMark> = {}
+          if (Array.isArray(saved2)) {
+            saved2.forEach((v, i) => { if (v === 'normal' || v === 'caution' || v === 'bad') nextMarks2[i] = v })
+          }
+          setFaMarks2(nextMarks2)
+          setFaChecked2(new Set(faItems2.map(it => it.i)))  // 첫 진입 시 전체 선택
+          const savedMemo2 = monthRecords[pairedBC.id]?.memo ?? ''
+          const autoAtSave2 = faAutoMemo(faItems2, nextMarks2)
+          const manual2 = autoAtSave2 && savedMemo2.startsWith(autoAtSave2)
+            ? savedMemo2.slice(autoAtSave2.length).replace(/^\n/, '')
+            : savedMemo2
+          setBcMemo(manual2)
+        } else {
+          setFaMarks2({})
+          setFaChecked2(new Set())
+        }
+      }
       // 소화기면 상세정보 로드
       if (isExtinguisher) {
         setExtDetail(null)
@@ -2549,6 +2805,44 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     try {
       const photoKey = await photo.upload()
       if (photo.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(photo.vaultBacked))
+      // ── Family A: 카드 기반 저장 (line_results + auto/manual 분리 memo + 로컬 worst) ──
+      if (isFamilyA) {
+        // 편집 중인(=done 오버레이로 덮이지 않은) 카드만 저장. done 카드는 이미 저장돼 있어 건너뜀
+        // → 한쪽만 재점검한 경우 그 카드만 저장(변경 없는 카드는 재기록·재타임스탬프 안 함).
+        const save1 = !faShowDone1
+        const save2 = !!pairedBC && !faShowDone2
+        if (save1) {
+          const lineResultsArr = faLineResults(faItems, faMarks)
+          // 소화전 특례(라인0 고정심볼·라인3 피커 프리픽스) 반영 auto. 비-소화전은 일반 C/D.
+          const auto = faAutoMemoFor(faCategory, faItems, faMarks, { hydrantPick: hydrantLinePick, hydrantCustom: hydrantLineCustom })
+          const faFinalMemo = [auto, memo.trim()].filter(Boolean).join('\n')
+          // 서버가 worst 롤업으로 result 덮음. 소화전은 조치용 remediation_symbol 도 함께 저장.
+          const faExtra: { line_results: string; remediation_symbol?: string } = { line_results: JSON.stringify(lineResultsArr) }
+          if (isHydrant) {
+            const sym = hydrantRemediationSymbol(faMarks, hydrantLinePick, hydrantLineCustom)
+            if (sym) faExtra.remediation_symbol = sym
+          } else if (isFireShutter) {
+            const sym = fireShutterRemediationSymbol(faMarks)
+            if (sym) faExtra.remediation_symbol = sym
+          }
+          await onSave(selectedCP.id, faWorst(faMarks), faFinalMemo, photoKey ?? undefined, faExtra)
+        }
+        // pairedBC(비상콘센트) — 편집 중일 때만 별도 저장 (특례 없음, 일반 C/D)
+        if (save2 && pairedBC) {
+          const lr2 = faLineResults(faItems2, faMarks2)
+          const finalMemo2 = [faAutoMemo(faItems2, faMarks2), bcMemo.trim()].filter(Boolean).join('\n')
+          const bcPhotoKey = await bcPhoto.upload()
+          await onSave(pairedBC.id, faWorst(faMarks2), finalMemo2, bcPhotoKey ?? undefined, { line_results: JSON.stringify(lr2) })
+        }
+        photo.reset()
+        bcPhoto.reset()
+        setJustSaved(true)
+        // 자동 다음이동 안 함 — 저장 직후 각 카드 '이미 점검 완료' done 상태로 완료를 확인시킨다.
+        // (monthRecords 낙관적 갱신으로 faSaved1/2=true → faShowDone1/2=true → done 오버레이)
+        setFaReinspecting(false)
+        setFaReinspecting2(false)
+        return
+      }
       let finalMemo = memo
       let extra: { guide_light_type?: string; floor_plan_marker_id?: string } | undefined
       let cpIdToSave = selectedCP.id
@@ -2567,18 +2861,9 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         }
       } else if (isExtinguisher && result !== 'normal') {
         finalMemo = extSymptomPick === '직접 입력' ? memo.trim() : extSymptomPick
-      } else if (selectedCP?.category === '소화전' && result !== 'normal') {
-        finalMemo = hydrantSymptomPick === '직접 입력' ? memo.trim() : hydrantSymptomPick
-      } else if (selectedCP?.category === '방화셔터' && result !== 'normal') {
-        finalMemo = shutterSymptomPick === '직접 입력' ? memo.trim() : shutterSymptomPick
       }
-      // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
-      const bcPhotoKey = pairedBC ? await bcPhoto.upload() : null
-      if (pairedBC && bcPhoto.hasPhoto && bcPhotoKey === null) throw new Error(photoUploadFailMsg(bcPhoto.vaultBacked))
+      // 소화전(+비상콘센트 pairedBC)은 이제 Family A 이중 카드라 위 isFamilyA 분기에서 함께 저장됨.
       await onSave(cpIdToSave, result, finalMemo, photoKey ?? undefined, extra)
-      if (pairedBC) {
-        await onSave(pairedBC.id, bcResult, bcMemo, bcPhotoKey ?? undefined)
-      }
       photo.reset()
       bcPhoto.reset()
       setJustSaved(true)
@@ -2591,6 +2876,73 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       setSubmitting(false)
     }
   }
+
+  // ── Family A 카드 상호작용 ──
+  const toggleFaCheck = (i: number) => setFaChecked(prev => {
+    const next = new Set(prev)
+    if (next.has(i)) next.delete(i); else next.add(i)
+    return next
+  })
+  // 체크된 행 전부에 결과 명시 적용(정상/주의/불량) 후 체크 해제.
+  const applyFaResult = (val: CheckResult) => {
+    if (faReadonly1 || faChecked.size === 0) return  // 재방문 readonly 에서 결과 적용 차단
+    setFaMarks(prev => {
+      const next = { ...prev }
+      faChecked.forEach(i => { next[i] = val })
+      return next
+    })
+    setFaChecked(new Set())
+  }
+  // 두 번째 카드(비상콘센트) 상호작용
+  const toggleFaCheck2 = (i: number) => setFaChecked2(prev => {
+    const next = new Set(prev)
+    if (next.has(i)) next.delete(i); else next.add(i)
+    return next
+  })
+  const applyFaResult2 = (val: CheckResult) => {
+    if (faReadonly2 || faChecked2.size === 0) return
+    setFaMarks2(prev => {
+      const next = { ...prev }
+      faChecked2.forEach(i => { next[i] = val })
+      return next
+    })
+    setFaChecked2(new Set())
+  }
+  // 이번 기간에 각 카드 레코드가 저장됐는가 (카드별 독립). pairedBC 없으면 faSaved2=false.
+  // 카드별 done 이라 부분저장(소화전만 저장·비상콘센트 실패) 시에도 비상콘센트는 편집 가능(유실 방지).
+  const faSaved1 = isFamilyA && !!selectedCP
+    && Array.isArray(monthRecords[selectedCP.id]?.line_results)
+    && (monthRecords[selectedCP.id]!.line_results as any[]).length > 0
+  const faSaved2 = !!pairedBC
+    && Array.isArray(monthRecords[pairedBC.id]?.line_results)
+    && (monthRecords[pairedBC.id]!.line_results as any[]).length > 0
+  // 각 카드 독립 done 상태 — 각자의 '확인(재점검)' 이 해당 카드만 편집 해제(스케줄 무관).
+  const faShowDone1 = faSaved1 && !faReinspecting
+  const faShowDone2 = faSaved2 && !faReinspecting2
+  // 재방문 활성 창(오버레이)/접근불가 OR 해당 카드 done 이면 그 카드 readonly.
+  const faReadonly1 = isFamilyA && (!!popupState || showAccessBlockedPopup || faShowDone1)
+  const faReadonly2 = isFamilyA && (!!popupState || showAccessBlockedPopup || faShowDone2)
+  // 전체 선택 / 선택 해제 토글 (타이틀 옆 버튼, 카드별)
+  const faAllChecked = isFamilyA && faItems.length > 0 && faChecked.size === faItems.length
+  const toggleSelectAllFa = () => {
+    if (faReadonly1) return
+    setFaChecked(faAllChecked ? new Set<number>() : new Set(faItems.map(it => it.i)))
+  }
+  const faAllChecked2 = !!pairedBC && faItems2.length > 0 && faChecked2.size === faItems2.length
+  const toggleSelectAllFa2 = () => {
+    if (faReadonly2) return
+    setFaChecked2(faAllChecked2 ? new Set<number>() : new Set(faItems2.map(it => it.i)))
+  }
+  // 소화전 라인3 '직접 입력' 선택 시 커스텀 텍스트 필수 — 비우면 remediation_symbol 미저장·
+  // auto 프리픽스만 남아 재방문 왕복이 깨지므로 저장을 막는다.
+  const faHydrantPickOk = !isHydrant
+    || !(faMarks[3] === 'caution' || faMarks[3] === 'bad')
+    || hydrantLinePick !== '직접 입력'
+    || !!hydrantLineCustom.trim()
+  // 전 항목이 명시적 결과를 가졌는가 — 저장 허용 조건(미입력 항목 있으면 저장 차단). 두 카드 모두 충족해야.
+  const faResolved = !isFamilyA || (faAllResolved(faItems, faMarks) && (!pairedBC || faAllResolved(faItems2, faMarks2)) && faHydrantPickOk)
+  const faAuto  = isFamilyA ? faAutoMemoFor(faCategory, faItems, faMarks, { hydrantPick: hydrantLinePick, hydrantCustom: hydrantLineCustom }) : ''
+  const faAuto2 = pairedBC ? faAutoMemo(faItems2, faMarks2) : ''
 
   // 현재 group 의 lucide/커스텀 아이콘 (헤더용)
   const headerGroupIdx = CATEGORY_GROUPS.findIndex(g => g === group)
@@ -2728,7 +3080,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       )}
 
       {/* ── 나머지 (스크롤 가능) ── */}
-      <div className="flex-1 overflow-y-auto px-3.5 pt-2.5 pb-2 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pt-2.5 pb-2 flex flex-col gap-2">
         {/* 접근불가 뱃지 (해당 항목만) */}
         {selectedCP?.defaultResult && (
           <div className="bg-warning-bg/40 border border-warning-bar/40 rounded-sm px-2.5 py-1.5 text-caption text-warning font-semibold">
@@ -2784,6 +3136,20 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           )
         })()}
 
+        {/* Family A 점검내용 카드 — 결과 블록 위, 오버레이에 덮이지 않음(readonly 조회 가능) */}
+        {selectedCP && isFamilyA && (
+          <FamilyACard
+            category={faCategory}
+            items={faItems}
+            marks={faMarks}
+            checked={faChecked}
+            readonly={faReadonly1}
+            allChecked={faAllChecked}
+            onSelectAll={toggleSelectAllFa}
+            onToggleCheck={toggleFaCheck}
+          />
+        )}
+
         {/* 결과 선택 ~ 특이사항 영역 (이미 점검한 개소 오버레이 포함) */}
         {selectedCP && (
           <div className="relative">
@@ -2792,7 +3158,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
               <AccessBlockedPopup
                 onConfirm={() => advanceToNextPending(selectedCP.id, true)}
               />
-            ) : popupState && (
+            ) : popupState ? (
               /* 재진입 팝업 (공통 컴포넌트) */
               <InspectionRevisitPopup
                 variant={popupState.variant}
@@ -2802,9 +3168,72 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                 onClose={dismiss}
                 onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
               />
+            ) : faShowDone1 ? (
+              /* 소화전/단일 카드: '이미 점검 완료' done 오버레이 (스케줄 무관). 확인=이 카드만 재점검 */
+              <InspectionRevisitPopup
+                variant="completed"
+                checkedAt={monthRecords[selectedCP.id]?.checkedAt ?? ''}
+                inspectorName={monthRecords[selectedCP.id]?.staffName ?? '—'}
+                onClose={() => setFaReinspecting(true)}
+              />
+            ) : null}
+
+            {/* Family A: 결과버튼 영역 — 체크된 행 전부에 적용(정상=되돌리기), 적용 후 체크 해제 */}
+            {isFamilyA && (
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-caption font-semibold text-text-tertiary tracking-wider">점검 결과</span>
+                  <span className="text-caption text-text-tertiary">· 선택 {faChecked.size}개</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {INSPECT_RESULT_OPTIONS.map(opt => {
+                    const RIcon = RESULT_ICONS[opt.value]
+                    const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                                    : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
+                                    :                            'border-2 border-danger-bar bg-danger-bg text-danger'
+                    const disabled = faChecked.size === 0 || faReadonly1  // WR-04
+                    return (
+                      <button key={opt.value} onClick={() => applyFaResult(opt.value)} disabled={disabled}
+                              className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md transition-colors ${
+                                disabled ? 'border border-border-default bg-surface-raised text-text-tertiary opacity-50 cursor-default' : `${activeCls} cursor-pointer`
+                              }`}>
+                        {RIcon ? <RIcon size={20} /> : null}
+                        <span className="text-caption font-bold">{opt.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 소화전 라인3(소화전함·호스) 인라인 증상 피커 — 라인3 마킹 시에만 (readonly 제외) */}
+            {isHydrant && (faMarks[3] === 'caution' || faMarks[3] === 'bad') && !faReadonly1 && (
+              <div className="mt-2.5">
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">소화전함·호스 증상</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['경종','호스걸이','직접 입력'].map(s => {
+                    const active = hydrantLinePick === s
+                    return (
+                      <button key={s} onClick={() => setHydrantLinePick(s)}
+                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                          active
+                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                        }`}>
+                        {s}
+                      </button>
+                    )
+                  })}
+                </div>
+                {hydrantLinePick === '직접 입력' && (
+                  <input value={hydrantLineCustom} onChange={e => setHydrantLineCustom(e.target.value)} placeholder="증상 항목 직접 입력"
+                    className="mt-1.5 w-full px-2.5 py-2 rounded-md bg-surface-raised border border-border-strong text-text-primary text-caption outline-none box-border focus:border-border-focus transition-colors" />
+                )}
+              </div>
             )}
 
             {/* 결과 선택 — 1행 3열 (정상/주의/불량, 기본값 정상) */}
+            {!isFamilyA && (
             <div>
               <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
               <div className="flex gap-1.5">
@@ -2826,6 +3255,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                 })}
               </div>
             </div>
+            )}
 
             {/* 유도등: 증상 피커 (점검 결과 아래, 특이사항 위) */}
             {isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && (
@@ -2871,64 +3301,28 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
               </div>
             )}
 
-            {/* 소화전: 증상 피커 */}
-            {selectedCP?.category === '소화전' && result !== 'normal' && (
-              <div className="mt-2.5">
-                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {['경종 파손','위치표시등 점등 이상','호스걸이 파손','직접 입력'].map(s => {
-                    const active = hydrantSymptomPick === s
-                    return (
-                      <button key={s} onClick={() => setHydrantSymptomPick(s)}
-                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
-                          active
-                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
-                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
-                        }`}>
-                        {s}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+            {/* (구식 소화전 전역 증상 피커 폐기 — 증분 B 라인3 인라인 피커로 대체) */}
 
-            {/* 방화셔터: 증상 피커 */}
-            {selectedCP?.category === '방화셔터' && result !== 'normal' && (
-              <div className="mt-2.5">
-                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {['방화셔터 라인 표시 필요','연동제어기 기판 작동 불','직접 입력'].map(s => {
-                    const active = shutterSymptomPick === s
-                    return (
-                      <button key={s} onClick={() => setShutterSymptomPick(s)}
-                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
-                          active
-                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
-                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
-                        }`}>
-                        {s}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 특이사항 + 증빙사진 (한 행) */}
+            {/* 특이사항 + 증빙사진 (한 행). Family A: 자동 특이사항(마킹행 C/D)이 이 입력란에 함께 기재됨(별도 프리뷰 박스 없음). */}
             <div className="mt-2.5">
               <div className="flex items-center justify-between mb-1">
                 <label className="text-caption font-semibold text-text-tertiary tracking-wider">
-                  {(isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && symptomPick === '직접 입력')
+                  {isFamilyA ? '특이사항 (선택)' :
+                    (isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && symptomPick === '직접 입력')
                     || (isExtinguisher && result !== 'normal' && extSymptomPick === '직접 입력')
-                    || (selectedCP?.category === '소화전' && result !== 'normal' && hydrantSymptomPick === '직접 입력')
-                    || (selectedCP?.category === '방화셔터' && result !== 'normal' && shutterSymptomPick === '직접 입력')
                     ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
                 </label>
                 <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
               <div className="flex gap-2 items-start">
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                <textarea
+                  value={isFamilyA ? [faAuto, memo].filter(Boolean).join('\n') : memo}
+                  onChange={e => {
+                    const v = e.target.value
+                    if (isFamilyA) setMemo(faAuto && v.startsWith(faAuto) ? v.slice(faAuto.length).replace(/^\n/, '') : v)
+                    else setMemo(v)
+                  }}
+                  placeholder="특이사항을 입력하세요"
                   className="flex-1 h-[72px] px-2.5 py-2 rounded-md bg-surface-raised border border-border-strong text-text-primary text-caption resize-none outline-none box-border focus:border-border-focus transition-colors" />
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
@@ -2936,7 +3330,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           </div>
         )}
 
-        {/* 비상콘센트 (소화전과 location_no가 같은 경우 함께 표시) */}
+        {/* 비상콘센트 (소화전과 location_no 가 같은 pairedBC) — Family A 두 번째 카드, 소화전과 함께 저장 */}
         {pairedBC && (
           <>
             <div className="h-px bg-border-default my-0.5" />
@@ -2945,36 +3339,66 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
               <div className="text-label font-bold text-text-primary mt-0.5">{pairedBC.location}</div>
               {pairedBC.description && <div className="text-caption text-text-tertiary mt-0.5">{pairedBC.description}</div>}
             </div>
-            <div>
-              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">비상콘센트 점검 결과</div>
-              <div className="flex gap-1.5">
-                {INSPECT_RESULT_OPTIONS.map(opt => {
-                  const RIcon = RESULT_ICONS[opt.value]
-                  const isSel = bcResult === opt.value
-                  const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
-                                  : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
-                                  :                            'border-2 border-danger-bar bg-danger-bg text-danger'
-                  return (
-                    <button key={opt.value} onClick={() => setBcResult(opt.value)}
-                            className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md cursor-pointer transition-colors ${
-                              isSel ? activeCls : 'border border-border-default bg-surface-raised text-text-tertiary hover:bg-surface-active'
-                            }`}>
-                      {RIcon ? <RIcon size={20} /> : null}
-                      <span className="text-caption font-bold">{opt.label}</span>
-                    </button>
-                  )
-                })}
+            <FamilyACard
+              category="비상콘센트"
+              items={faItems2}
+              marks={faMarks2}
+              checked={faChecked2}
+              readonly={faReadonly2}
+              allChecked={faAllChecked2}
+              onSelectAll={toggleSelectAllFa2}
+              onToggleCheck={toggleFaCheck2}
+            />
+            {/* 결과~특이사항 영역 — 소화전과 동일하게 완료 시 '이미 점검 완료' 오버레이가 덮음(렌더는 유지) */}
+            <div className="relative">
+              {faShowDone2 && (
+                <InspectionRevisitPopup
+                  variant="completed"
+                  checkedAt={monthRecords[pairedBC.id]?.checkedAt ?? ''}
+                  inspectorName={monthRecords[pairedBC.id]?.staffName ?? '—'}
+                  onClose={() => setFaReinspecting2(true)}
+                />
+              )}
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-caption font-semibold text-text-tertiary tracking-wider">비상콘센트 점검 결과</span>
+                  <span className="text-caption text-text-tertiary">· 선택 {faChecked2.size}개</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {INSPECT_RESULT_OPTIONS.map(opt => {
+                    const RIcon = RESULT_ICONS[opt.value]
+                    const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                                    : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
+                                    :                            'border-2 border-danger-bar bg-danger-bg text-danger'
+                    const disabled = faChecked2.size === 0 || faReadonly2
+                    return (
+                      <button key={opt.value} onClick={() => applyFaResult2(opt.value)} disabled={disabled}
+                              className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md transition-colors ${
+                                disabled ? 'border border-border-default bg-surface-raised text-text-tertiary opacity-50 cursor-default' : `${activeCls} cursor-pointer`
+                              }`}>
+                        {RIcon ? <RIcon size={20} /> : null}
+                        <span className="text-caption font-bold">{opt.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
-                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
-              </div>
-              <div className="flex gap-2 items-start">
-                <textarea value={bcMemo} onChange={e => setBcMemo(e.target.value)} placeholder="특이사항을 입력하세요"
-                  className="flex-1 h-[72px] px-2.5 py-2 rounded-md bg-surface-raised border border-border-strong text-text-primary text-caption resize-none outline-none box-border focus:border-border-focus transition-colors" />
-                <PhotoButton hook={bcPhoto} label="촬영" noCapture />
+              <div className="mt-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                  <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
+                </div>
+                <div className="flex gap-2 items-start">
+                  <textarea
+                    value={[faAuto2, bcMemo].filter(Boolean).join('\n')}
+                    onChange={e => {
+                      const v = e.target.value
+                      setBcMemo(faAuto2 && v.startsWith(faAuto2) ? v.slice(faAuto2.length).replace(/^\n/, '') : v)
+                    }}
+                    placeholder="특이사항을 입력하세요"
+                    className="flex-1 h-[72px] px-2.5 py-2 rounded-md bg-surface-raised border border-border-strong text-text-primary text-caption resize-none outline-none box-border focus:border-border-focus transition-colors" />
+                  <PhotoButton hook={bcPhoto} label="촬영" noCapture />
+                </div>
               </div>
             </div>
           </>
@@ -3005,22 +3429,31 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       </div>
 
       {/* ── 저장 버튼 ── */}
-      <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default shrink-0 flex gap-2">
-        <button onClick={onClose}
-                className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
-          닫기
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={submitting || photo.uploading || bcPhoto.uploading || !selectedCP || isAccessBlocked}
-          className={`flex-1 py-3 rounded-md border-0 text-label font-bold transition-shadow ${
-            submitting || photo.uploading || bcPhoto.uploading || !selectedCP || isAccessBlocked
-              ? 'bg-border-default text-text-tertiary cursor-default'
-              : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] text-text-on-accent cursor-pointer hover:shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
-          }`}
-        >
-          {(photo.uploading || bcPhoto.uploading) ? '사진 업로드 중...' : submitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '점검 기록 저장'}
-        </button>
+      <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default shrink-0">
+        {isFamilyA && selectedCP && !isAccessBlocked && !faResolved && (
+          <div className="mb-1.5 text-caption text-warning font-semibold text-center leading-snug">
+            {!faHydrantPickOk
+              ? '소화전함·호스 증상(직접 입력)을 입력해야 저장됩니다'
+              : '모든 항목의 점검 결과를 입력해야 저장됩니다 (‘전체 선택’ → 정상)'}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button onClick={onClose}
+                  className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
+            닫기
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={submitting || photo.uploading || bcPhoto.uploading || !selectedCP || isAccessBlocked || !faResolved}
+            className={`flex-1 py-3 rounded-md border-0 text-label font-bold transition-shadow ${
+              submitting || photo.uploading || bcPhoto.uploading || !selectedCP || isAccessBlocked || !faResolved
+                ? 'bg-border-default text-text-tertiary cursor-default'
+                : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] text-text-on-accent cursor-pointer hover:shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
+            }`}
+          >
+            {(photo.uploading || bcPhoto.uploading) ? '사진 업로드 중...' : submitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : (isFamilyA && !faResolved) ? '전 항목 결과 입력 필요' : '점검 기록 저장'}
+          </button>
+        </div>
       </div>
 
       {/* ── Phase 24: 정보 수정 모달 ── */}
@@ -3548,12 +3981,21 @@ export default function InspectionPage() {
         // 판단할 때 오탐을 유발하므로, 소스 단에서 차단한다. 마커 병행 키도 동일.
         const rawResult = (r as any).result
         if (!rawResult) continue
+        // line_results 는 서버가 원본 JSON 문자열(lineResults, camel)로 반환 — 파싱해 배열로.
+        let parsedLR: any[] | undefined
+        try {
+          const raw = (r as any).lineResults
+          if (raw) { const p = JSON.parse(raw); if (Array.isArray(p)) parsedLR = p }
+        } catch { /* 파싱 실패 무시 */ }
         const entry: MonthRecordEntry = {
           result:    rawResult,
           checkedAt: (r as any).checkedAt,
           staffName: (r as any).staffName ?? undefined,
           recordId:  (r as any).id,
           status:    ((r as any).status ?? 'open') as 'open' | 'resolved',
+          memo:         (r as any).memo ?? undefined,
+          line_results: parsedLR,
+          remediation_symbol: (r as any).remediationSymbol ?? undefined,
         }
         upsert(monthMap, cpId, entry)
         // 유도등 마커 병행 키 — 기록(result 유효) 있을 때만 적재
@@ -3629,16 +4071,22 @@ export default function InspectionPage() {
     return sess.id
   }
 
-  const handleSave = async (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string }) => {
+  const handleSave = async (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string; line_results?: string; remediation_symbol?: string }) => {
     const sid = await ensureSession()
     await inspectionApi.submitRecord(sid, { checkpointId: cpId, result, memo: memo.trim() || undefined, photoKey, ...(extra ?? {}) })
     // 로컬 즉시 반영 + DB와 동기화
     const nowIso = new Date().toISOString()
+    // 옵티미스틱: 카드가 넘긴 line_results(JSON 문자열)를 로컬 엔트리에도 파싱해 실어 즉시 반영
+    let localLR: any[] | undefined
+    try { if (extra?.line_results) { const p = JSON.parse(extra.line_results); if (Array.isArray(p)) localLR = p } } catch { /* 무시 */ }
     const localEntry: MonthRecordEntry = {
       result, checkedAt: nowIso,
       staffName: staff?.name ?? undefined,
       // recordId 는 loadTodayRecords() 가 서버 응답으로 채워줌
       status: 'open',
+      memo: memo.trim() || undefined,
+      line_results: localLR,
+      remediation_symbol: extra?.remediation_symbol,
     }
     setRecords(prev => ({ ...prev, [cpId]: result }))
     setMonthRecords(prev => {
