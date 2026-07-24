@@ -10,10 +10,11 @@
 | 바이너리 3 (xlsx cb1250de + PNG2) | `391348a3` | ✅ |
 | 공유모듈 familyCard 추출 (B 선결, 순환 import 방지) | `054366e5` | ✅ |
 | (B) DIV·컴프레셔 카드 → DivInspectModal.tsx (H1~12/C1~4) | `a0d44824` | ✅ |
+| (B) parity — div_pressures.memo=raw (staging 리뷰 반영) | `29c85345` | ✅ |
 | **빌드 (tsc+vite) 전체** | — | ✅ 통과 |
-| 마이그 실행 → cha-bio-db (0100→0101→0102) | — | ⏳ **대기(사용자 GO)** |
-| 배포 (cbc7119 --branch=production) | — | ⏳ 대기 |
-| UAT §5 전 카테고리 | — | ⏳ 배포 후 |
+| 마이그 실행 → cha-bio-db (0100→0101→0102) | — | ✅ 적용·검증(136행 early 백필) |
+| 배포 (cbc7119 --branch=production) | — | ✅ eafc8d34, health 200 |
+| UAT §5 전 카테고리 | — | ⏳ **사용자 검증 대기** |
 
 ## (B) DIV 포트 요약
 - 스칼라 result → faMarks[1] 자동판정 주입. i1=압력(detectDivTrend 자동), i0/i2/i3=수동.
