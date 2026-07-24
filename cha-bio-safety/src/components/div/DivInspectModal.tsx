@@ -14,9 +14,11 @@ import { DIV_POINTS as DIV_PTS, type DivPoint as DivPt } from '../../constants/d
 import { useDivNames } from '../../hooks/useDivNames'
 import { InspectionRevisitPopup } from '../InspectionRevisitPopup'
 import { useInspectionRevisitPopup, type MonthRecordEntry } from '../../hooks/useInspectionRevisitPopup'
+import { FamilyACard, faLineResults, faAllResolved, faAutoMemo, faWorst, RESULT_ICONS, INSPECT_RESULT_OPTIONS, type FaMark } from '../inspection/familyCard'
+import { inspectionContent, type InspectionItem } from '../../data/inspectionContent'
 import {
   ChevronLeft, ChevronRight, X, TrendingUp, Flame, BarChart3, Wind,
-  CheckCircle2, AlertTriangle, XCircle,
+  CheckCircle2, AlertTriangle, XCircle, Check,
   FlaskConical, Building2, TrainFront,
 } from 'lucide-react'
 
@@ -344,8 +346,14 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
 
   // ── 부가 항목 ──
   const [drain,  setDrain]  = useState<'none'|'yes'>('none')
-  const [result, setResult] = useState<CheckResult>('normal')
   const [memo,   setMemo]   = useState('')
+  // ── 점검 내용 카드 (i0 밸브·i1 압력상태[자동판정]·i2 압력스위치·i3 청소) ──
+  const divItems: InspectionItem[] = useMemo(() => inspectionContent['DIV']?.items ?? [], [])
+  const divManualIds = useMemo(() => divItems.filter(it => it.i !== 1).map(it => it.i), [divItems])
+  const [faMarks,   setFaMarks]   = useState<Record<number, FaMark>>({})            // i1 미판정=무마크(거짓'정상' 방지)
+  const [faChecked, setFaChecked] = useState<Set<number>>(() => new Set(divManualIds))  // 첫 진입 수동항목 전체선택
+  const [compRecords, setCompRecords] = useState<any[]>([])                          // 현재 개소 컴프레셔 이력(게이트용)
+  const dirtyRef = useRef(false)                                                     // 사용자 편집 여부(마크 복원 클로버 방지)
   const photo = usePhotoUpload('inspection')
   const [showCompressor, setShowCompressor] = useState(false)
 
@@ -383,15 +391,44 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
           return t(b) - t(a)
         })
         setPrevRecords(sorted)
+        // 저장 마크 복원 — 현 timing 매칭 저장기록의 line_results→faMarks. 사용자가 아직 이 개소를 편집 안 했을 때만(입력·자동판정 클로버 방지).
+        if (!dirtyRef.current) {
+          const now = new Date()
+          const saved = sorted.find((r: any) => r.year === now.getFullYear() && r.month === now.getMonth() + 1 && (r.timing ?? 'early') === timing)
+          let arr: any = saved?.line_results
+          if (typeof arr === 'string') { try { arr = JSON.parse(arr) } catch { arr = null } }
+          const nextMarks: Record<number, FaMark> = {}   // 저장기록 없으면 i1 무마크. 있으면 line_results 로 복원.
+          if (Array.isArray(arr)) arr.forEach((v: any, i: number) => { if (v === 'normal' || v === 'caution' || v === 'bad') nextMarks[i] = v })
+          setFaMarks(nextMarks)
+          setFaChecked(saved ? new Set() : new Set(divManualIds))   // 신규 개소: 수동 전체선택 / 저장기록 조회: 선택 없음
+        }
       })
       .catch(() => setPrevRecords([]))
-  }, [currentPt?.id])
+  }, [currentPt?.id, timing])// eslint-disable-line
 
-  // ── 자동 결과 판단 ──
+  // ── 현재 개소 컴프레셔 점검 이력 로드(저장 게이트용) ──
+  const loadComp = useCallback(() => {
+    if (!currentPt) { setCompRecords([]); return }
+    const token = useAuthStore.getState().token
+    fetch(`/api/div/comp-inspection?location=${currentPt.id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(r => r.json() as Promise<{ ok: boolean; records: any[] }>)
+      .then(j => setCompRecords(j.records ?? []))
+      .catch(() => setCompRecords([]))
+  }, [currentPt?.id])
+  useEffect(() => { loadComp() }, [loadComp])
+
+  // ── 자동 결과 판단 → 카드 i1(압력상태)에 주입 ──
   useEffect(() => {
     const p1 = parsedP1
     const p2 = parsedP2
-    if (p1 === null && p2 === null) { setAutoReason(''); return }
+    if (p1 === null && p2 === null) {
+      // 압력 미입력 → i1 미판정. 저장기록 조회(clean)면 복원된 i1 보존, 입력 후 지운 경우(dirty)만 해제.
+      setAutoReason('')
+      if (dirtyRef.current) setFaMarks(m => { if (!(1 in m)) return m; const n = { ...m }; delete n[1]; return n })
+      return
+    }
 
     const prev3 = prevRecords.slice(0,3).reverse() // oldest → newest
     const reasons: string[] = []
@@ -414,24 +451,23 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
       }
     }
 
-    if (reasons.length > 0) {
-      setAutoReason(`${level === 'bad' ? '불량' : '주의'} 자동 선택 — ${reasons.join(', ')}`)
-      setResult(level === 'bad' ? 'bad' : 'caution')
-    } else {
-      setAutoReason('')
-      setResult('normal')
-    }
-  }, [digits, prevRecords])
+    // autoReason = 사유 텍스트만(정상/주의/불량 단어 없이 — 카드 i1 인라인 표시용). 판정을 faMarks[1] 에 주입.
+    const verdict: CheckResult = reasons.length > 0 ? level : 'normal'
+    setAutoReason(reasons.length > 0 ? reasons.join(', ') : '')
+    setFaMarks(m => (m[1] === verdict ? m : { ...m, 1: verdict }))
+  }, [digits, prevRecords])// eslint-disable-line
 
   // ── 폼 초기화 ──
   const resetForm = useCallback(() => {
+    dirtyRef.current = false
     setDigits(['','','','','','','','',''])
     setDrain('none')
-    setResult('normal')
+    setFaMarks({})
+    setFaChecked(new Set(divManualIds))   // 첫 진입/개소전환: 수동 항목 전체선택
     setMemo('')
     setAutoReason('')
     photo.reset()
-  }, [photo])
+  }, [photo, divManualIds])
 
   // ── 저장 ──
   const handleSave = async () => {
@@ -452,6 +488,9 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
       const photoKey = await photo.upload()
       if (photo.hasPhoto && photoKey === null) { toast.error(photoUploadFailMsg(photo.vaultBacked)); return }
 
+      // 카드 line_results 정본 = div_pressures(경로 /api/div/pressure). i1 = 압력 자동판정, i0/i2/i3 = 수동.
+      // 도면(lockToPoint) 진입도 handleSave 공유 → 이 payload 한 곳으로 양 진입 커버(FloorPlanPage 어댑터 무변경).
+      const finalMemo = [faAutoMemo(divItems, faMarks), memo.trim()].filter(Boolean).join('\n')
       const pressureRes = await fetch('/api/div/pressure', {
         method:'POST', headers: hdrs,
         body: JSON.stringify({
@@ -465,9 +504,10 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
           pressure_1:  p1,
           pressure_2:  p2,
           pressure_set: p3,
-          result,
+          result:       faMarks[1] ?? 'normal',
+          line_results: JSON.stringify(faLineResults(divItems, faMarks)),
           drain,
-          memo:      memo || null,
+          memo:      finalMemo || null,
           photo_key: photoKey ?? null,
           inspector: staff?.name ?? null,
         })
@@ -491,7 +531,7 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
       // 점검 기록 연동 — 해당 층 체크포인트에 결과 반영
       const cpId = DIV_PT_CP[currentPt.id]
       if (cpId) {
-        await onSaveRecord(cpId, result, memo || '', photoKey ?? undefined).catch(() => {/* 점검 기록 실패해도 압력 저장은 유지 */})
+        await onSaveRecord(cpId, faWorst(faMarks), finalMemo, photoKey ?? undefined).catch(() => {/* 점검 기록 실패해도 압력 저장은 유지 */})
       }
 
       resetForm()
@@ -566,6 +606,22 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
     monthRecords,
     scheduleItems,
   })
+
+  // ── 카드 파생값 ──
+  const DIV_MANUAL   = divItems.filter(it => it.i !== 1)
+  const faResolved   = faAllResolved(DIV_MANUAL, faMarks)   // i0/i2/i3 수동만. i1은 압력입력으로 게이팅
+  const compDone = useMemo(() => {                           // 현재 개소·현재 timing 컴프레셔 저장 여부
+    if (!currentPt) return false
+    const now = new Date()
+    return compRecords.some(r => r.year === now.getFullYear() && r.month === now.getMonth()+1 && (r.timing ?? 'early') === timing)
+  }, [compRecords, currentPt, timing])
+  const faAllChecked = DIV_MANUAL.length > 0 && faChecked.size === DIV_MANUAL.length
+  const faAuto       = faAutoMemo(divItems, faMarks)
+  const faReadonly   = !!popupState
+  const divI1Reason  = faMarks[1] == null ? '압력값 입력 시 자동판정' : faMarks[1] === 'normal' ? '압력 추세 안정' : (autoReason || '압력 추세 이상')
+  const toggleItem = (i: number) => { dirtyRef.current = true; setFaChecked(p => { const n = new Set(p); n.has(i) ? n.delete(i) : n.add(i); return n }) }
+  const toggleSelectAll = () => { dirtyRef.current = true; setFaChecked(faAllChecked ? new Set<number>() : new Set(DIV_MANUAL.map(it => it.i))) }
+  const applyResult = (val: CheckResult) => { if (faChecked.size === 0) return; dirtyRef.current = true; setFaMarks(p => { const n = { ...p }; faChecked.forEach(i => { n[i] = val }); return n }); setFaChecked(new Set()) }
 
   // ── 완료 화면 ──
   if (done) return (
@@ -669,19 +725,8 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
         </div>
       )}
 
-      {/* 본문 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
+      {/* 본문 (결과~특이사항 서브영역에 재진입 팝업 축소 — 압력입력·카드는 재진입 시에도 노출) */}
       <div className="relative flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
-        {popupState && (
-          <InspectionRevisitPopup
-            variant={popupState.variant}
-            checkedAt={popupState.checkedAt}
-            inspectorName={popupState.inspectorName}
-            recordId={popupState.recordId}
-            onClose={dismiss}
-            onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
-          />
-        )}
-
         {/* 점검 폼 */}
         {currentPt && (
           <>
@@ -839,53 +884,77 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
               <div className="flex-1">
                 <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">컴프 점검</div>
                 <button onClick={() => setShowCompressor(true)}
-                  className="w-full px-2.5 py-2 rounded-sm text-label font-bold cursor-pointer border border-border-default bg-surface-active text-text-primary inline-flex items-center justify-center gap-1.5">
-                  <Wind size={14} className="text-text-secondary" />
-                  컴프레셔 점검 →
+                  className={`w-full px-2.5 py-2 rounded-sm text-label font-bold cursor-pointer border inline-flex items-center justify-center gap-1.5 ${
+                    compDone ? 'border-safe-bar/40 bg-safe-bg/40 text-safe' : 'border-border-default bg-surface-active text-text-primary'
+                  }`}>
+                  {compDone
+                    ? <><Check size={14} className="text-safe" />컴프레셔 점검 완료</>
+                    : <><Wind size={14} className="text-text-secondary" />컴프레셔 점검 →</>}
                 </button>
               </div>
             </div>
 
-            {/* 점검 결과 */}
-            <div>
-              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
-              <div className="flex gap-2">
-                {(['normal','caution','bad'] as const).map(r => {
-                  const active = result === r
-                  const inactiveCls = 'border-border-default bg-surface-sunken text-text-secondary'
-                  const activeCls =
-                    r === 'normal' ? 'border-safe-bar bg-safe-bg text-safe' :
-                    r === 'caution' ? 'border-warning-bar bg-warning-bg text-warning' :
-                    'border-danger-bar bg-danger-bg text-danger'
-                  const Icon = r === 'normal' ? CheckCircle2 : r === 'caution' ? AlertTriangle : XCircle
-                  const label = r === 'normal' ? '정상' : r === 'caution' ? '주의' : '불량'
-                  return (
-                    <button key={r} onClick={() => setResult(r)}
-                      className={`flex-1 px-3 py-2.5 rounded-pill border-[1.5px] inline-flex items-center justify-center gap-1.5 text-label font-semibold transition-colors cursor-pointer ${active ? activeCls : inactiveCls}`}>
-                      <Icon size={16} color="currentColor" />
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
-              {autoReason && (
-                result === 'bad' ? (
-                  <div className="mt-2 px-3 py-2 rounded-sm bg-fire-bg border border-fire-bar text-fire text-label font-semibold inline-flex items-center gap-1.5">
-                    <Flame size={14} /> {autoReason}
-                  </div>
-                ) : (
-                  <div className="mt-2 px-3 py-2 rounded-sm bg-warning-bg border border-warning-bar text-warning text-label font-semibold inline-flex items-center gap-1.5">
-                    <AlertTriangle size={14} /> {autoReason}
-                  </div>
-                )
-              )}
-            </div>
+            {/* 점검 내용 카드 — i1 압력상태 = 자동판정(체크박스 잠금·인라인 사유). 재진입 시에도 조회. */}
+            <FamilyACard
+              category="DIV"
+              items={divItems}
+              marks={faMarks}
+              checked={faChecked}
+              readonly={faReadonly}
+              allChecked={faAllChecked}
+              onSelectAll={toggleSelectAll}
+              onToggleCheck={toggleItem}
+              autoItems={{ 1: divI1Reason }}
+            />
 
-            {/* 특이사항 + 사진 */}
-            <div className="flex gap-2.5 items-start">
-              <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항 (선택)"
-                className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary" />
-              <PhotoButton hook={photo} />
+            {/* 점검 결과 ~ 특이사항 (재진입 팝업이 이 서브영역만 덮음) */}
+            <div className="relative">
+              {popupState && (
+                <InspectionRevisitPopup
+                  variant={popupState.variant}
+                  checkedAt={popupState.checkedAt}
+                  inspectorName={popupState.inspectorName}
+                  recordId={popupState.recordId}
+                  onClose={dismiss}
+                  onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+                />
+              )}
+
+              {/* 결과 버튼 — 체크된 항목(밸브/압력스위치/청소)에 적용 */}
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-caption font-semibold text-text-tertiary tracking-wider">점검 결과</span>
+                  <span className="text-caption text-text-tertiary">· 선택 {faChecked.size}개</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {INSPECT_RESULT_OPTIONS.map(opt => {
+                    const RIcon = RESULT_ICONS[opt.value]
+                    const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                                    : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
+                                    :                            'border-2 border-danger-bar bg-danger-bg text-danger'
+                    const disabled = faChecked.size === 0 || faReadonly
+                    return (
+                      <button key={opt.value} onClick={() => applyResult(opt.value)} disabled={disabled}
+                              className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md transition-colors ${
+                                disabled ? 'border border-border-default bg-surface-raised text-text-tertiary opacity-50 cursor-default' : `${activeCls} cursor-pointer`
+                              }`}>
+                        {RIcon ? <RIcon size={20} /> : null}
+                        <span className="text-caption font-bold">{opt.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 특이사항(자동 + 수동 합성) + 사진 */}
+              <div className="mt-2.5 flex gap-2.5 items-start">
+                <textarea
+                  value={[faAuto, memo].filter(Boolean).join('\n')}
+                  onChange={e => { const v = e.target.value; setMemo(faAuto && v.startsWith(faAuto) ? v.slice(faAuto.length).replace(/^\n/, '') : v) }}
+                  placeholder="특이사항 (선택)"
+                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary" />
+                <PhotoButton hook={photo} />
+              </div>
             </div>
           </>
         )}
@@ -894,20 +963,27 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
       {/* 하단 버튼 바 — 닫기 항상, 저장은 개소 선택 후 */}
       <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0" style={{ paddingBottom: lockToPoint ? 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' : undefined }}>
         <button onClick={onClose} className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer">닫기</button>
-        {currentPt && (
-          <button onClick={handleSave} disabled={saving || digits.slice(0, totalDigitSlots).some(d => d === '')}
-            className="flex-1 py-3.5 rounded-md text-text-on-accent text-body font-bold border-0"
-            style={{
-              background: (saving || digits.slice(0, totalDigitSlots).some(d=>d==='')) ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-              cursor: saving ? 'default' : 'pointer'
-            }}>
-            {saving ? '저장 중...' :
-              lockToPoint ? '저장' :
-              zone === 'underground'
-                ? (underPickIdx < underPending.length-1 ? '저장 후 다음 개소' : '저장 (완료)')
-                : (lineIdx < DIV_LINE_SEQ[line!].length-1 ? '저장 후 다음 층' : '저장 (완료)')}
-          </button>
-        )}
+        {currentPt && (() => {
+          const pressureMissing = digits.slice(0, totalDigitSlots).some(d => d === '')
+          const blocked = saving || faReadonly || !faResolved || pressureMissing || !compDone
+          return (
+            <button onClick={handleSave} disabled={blocked}
+              className="flex-1 py-3.5 rounded-md text-body font-bold border-0"
+              style={{
+                background: blocked ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
+                color:      blocked ? 'var(--text-tertiary)' : '#fff',
+                cursor:     blocked ? 'default' : 'pointer',
+              }}>
+              {saving ? '저장 중...'
+                : lockToPoint ? '저장'
+                : (!pressureMissing && !faResolved) ? '전 항목 결과 입력 필요'
+                : (!pressureMissing && faResolved && !compDone) ? '컴프레셔 점검 필요'
+                : zone === 'underground'
+                  ? (underPickIdx < underPending.length-1 ? '저장 후 다음 개소' : '저장 (완료)')
+                  : (lineIdx < DIV_LINE_SEQ[line!].length-1 ? '저장 후 다음 층' : '저장 (완료)')}
+            </button>
+          )
+        })()}
       </div>
 
       {/* 트렌드 서브뷰 (폼 상태 유지, 오버레이) */}
@@ -930,8 +1006,10 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
         <CompressorModal
           onClose={() => setShowCompressor(false)}
           onSaveRecord={onSaveRecord}
+          onSaved={loadComp}
           initialLocationNo={currentPt.id}
           mode="from-div"
+          timing={timing}
           monthRecords={monthRecords}
           scheduleItems={scheduleItems}
           lockToPoint={lockToPoint}
@@ -942,11 +1020,13 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
 }
 
 // ── 컴프레셔 점검 모달 ──────────────────────────────────
-export function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'standalone', monthRecords, scheduleItems, lockToPoint }: {
+export function CompressorModal({ onClose, onSaveRecord, onSaved, initialLocationNo, mode = 'standalone', timing, monthRecords, scheduleItems, lockToPoint }: {
   onClose: () => void
   onSaveRecord: (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+  onSaved?: () => void   // 저장 성공 후 콜백(DIV 게이트 compDone 재조회)
   initialLocationNo?: string
   mode?: 'standalone' | 'from-div'
+  timing?: 'early' | 'late'   // from-div: DIV 선택 주기 전달. standalone: 오늘 날짜로 파생
   monthRecords:  Record<string, MonthRecordEntry>
   scheduleItems: ScheduleItem[]
   lockToPoint?: boolean   // 도면 진입(DivInspectModal lockToPoint 에서 호출) 시 full-screen
@@ -982,6 +1062,8 @@ export function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode
 
   const [lastDrain, setLastDrain] = useState<string|null>(null)
   const [prevInspections, setPrevInspections] = useState<any[]>([])
+  // from-div 는 DIV 선택 주기, standalone 은 오늘 날짜(1~15 early / 16~말 late)
+  const effTiming: 'early' | 'late' = timing ?? (new Date().getDate() <= 15 ? 'early' : 'late')
 
   const currentPt = useMemo(() => {
     if (!zone) return null
@@ -1049,7 +1131,7 @@ export function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode
         method:'POST', headers: hdrs,
         body: JSON.stringify({
           location_no: currentPt.id, floor: currentPt.floor, position: currentPt.pos,
-          year: now.getFullYear(), month: now.getMonth()+1, day: now.getDate(),
+          year: now.getFullYear(), month: now.getMonth()+1, day: now.getDate(), timing: effTiming,
           tank_drain: tankDrain, oil, result, memo: memo || null, photo_key: photoKey ?? null, inspector: staff?.name ?? null,
         })
       })
@@ -1065,6 +1147,7 @@ export function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode
       if (cpId) await onSaveRecord(cpId, result, memo || '', photoKey ?? undefined).catch(() => {})
 
       resetForm()
+      onSaved?.()   // DIV 게이트(compDone) 재조회 트리거
 
       if (mode === 'from-div') { onClose(); return }
 
