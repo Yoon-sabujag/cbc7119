@@ -14,7 +14,8 @@
 | **빌드 (tsc+vite) 전체** | — | ✅ 통과 |
 | 마이그 실행 → cha-bio-db (0100→0101→0102) | — | ✅ 적용·검증(136행 early 백필) |
 | 배포 (cbc7119 --branch=production) | — | ✅ eafc8d34, health 200 |
-| UAT §5 전 카테고리 | — | ⏳ **사용자 검증 대기** |
+| UAT §5 전 카테고리 | — | ✅ **사용자 확인 (전부 정상)** |
+| 후속 픽스 — DIV 카드 전체선택(pre-card line_results=null 리뷰모드 오진입) | `d3528d60` | ✅ 배포 3a5dc76f·확인 |
 
 ## (B) DIV 포트 요약
 - 스칼라 result → faMarks[1] 자동판정 주입. i1=압력(detectDivTrend 자동), i0/i2/i3=수동.
