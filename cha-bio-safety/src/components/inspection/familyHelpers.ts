@@ -52,3 +52,10 @@ export function hydrantRemediationSymbol(
   if (marks[0] === 'caution' || marks[0] === 'bad') return special['0'].symbol as string
   return undefined
 }
+
+// 재진입 카드 복원 시 개소의 어떤 당월 기록을 쓸지 — InspectionPage monthMap upsert 규칙 미러(SSOT).
+// getMonthRecords 는 checked_at DESC → 최신 pending(주의/불량+open) 우선, 없으면 최신([0]).
+// (도면점검 InspectionCardModal ↔ 일반점검 InspectionPage 가 같은 기록을 복원하도록 통일.)
+export function pickRestoreRecord<T extends { result?: string; status?: string }>(recs: T[]): T | undefined {
+  return recs.find(r => (r.result === 'bad' || r.result === 'caution') && (r.status ?? 'open') === 'open') ?? recs[0]
+}

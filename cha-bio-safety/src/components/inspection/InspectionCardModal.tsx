@@ -13,7 +13,8 @@ import {
   FamilyACard, faLineResults, faAllResolved, faAutoMemo, faWorst,
   RESULT_ICONS, INSPECT_RESULT_OPTIONS, type FaMark,
 } from './familyCard'
-import { faAutoMemoFor, hydrantRemediationSymbol } from './familyHelpers'
+import { faAutoMemoFor, hydrantRemediationSymbol, pickRestoreRecord } from './familyHelpers'
+import { todayKstYmd } from '../../utils/datetime'
 import toast from 'react-hot-toast'
 
 // line_results(camelCase JSON 문자열) → FaMark 맵 복원 (InspectionPage.tsx:3822-3837 · 2461-2465 미러)
@@ -58,8 +59,7 @@ export function InspectionCardModal({ category, checkpointId, floor, onSave, onC
   // ── self-fetch: 개소 목록(개소명·pairedBC) + 당월 기록(카드 복원) ──
   useEffect(() => {
     let cancelled = false
-    const now = new Date()
-    const yyyymm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const yyyymm = todayKstYmd().slice(0, 7)  // KST 기준 당월 (앱 표준 — 브라우저 로컬시간 아님)
     Promise.all([
       inspectionApi.getCheckpoints(floor).catch(() => [] as any[]),
       inspectionApi.getMonthRecords(yyyymm).catch(() => [] as any[]),
@@ -70,7 +70,7 @@ export function InspectionCardModal({ category, checkpointId, floor, onSave, onC
 
       // 주 카드 복원 — 이 개소의 최근 기록(line_results 있는 것 우선)
       const myRecs = (records as any[]).filter(r => r.checkpointId === checkpointId)
-      const myRec = myRecs.find(r => r.lineResults) ?? myRecs[0]
+      const myRec = pickRestoreRecord(myRecs)  // InspectionPage 와 동일 선택규칙(최신 pending 우선) — 교차진입 복원 일치
       const nextMarks = myRec ? parseLineResults(myRec.lineResults) : {}
       setFaMarks(nextMarks)
       setFaChecked(new Set(items.map(it => it.i)))
@@ -96,7 +96,7 @@ export function InspectionCardModal({ category, checkpointId, floor, onSave, onC
         setPairedBC(bc)
         if (bc) {
           const bcRecs = (records as any[]).filter(r => r.checkpointId === bc.id)
-          const bcRec = bcRecs.find(r => r.lineResults) ?? bcRecs[0]
+          const bcRec = pickRestoreRecord(bcRecs)
           const nextMarks2 = bcRec ? parseLineResults(bcRec.lineResults) : {}
           setFaMarks2(nextMarks2)
           const bcItemsLocal = inspectionContent['비상콘센트']?.items ?? []
@@ -154,6 +154,9 @@ export function InspectionCardModal({ category, checkpointId, floor, onSave, onC
         const memo2 = [faAutoMemo(bcItems, faMarks2), bcMemo.trim()].filter(Boolean).join('\n')
         await onSave(pairedBC.id, faWorst(faMarks2), memo2, bcPhotoKey ?? undefined, { line_results: JSON.stringify(lr2) })
       }
+      // 저장 성공분 사진 vault entry 정리 — 미호출 시 다음 점검에 '복구 사진'으로 오노출(usePhotoUpload 계약)
+      photo.reset()
+      if (pairedBC) bcPhoto.reset()
       toast.success('점검 기록 저장됨')
       onClose()
     } catch (e: any) {
@@ -314,7 +317,7 @@ export function InspectionCardModal({ category, checkpointId, floor, onSave, onC
             color:      (!canSave || saving) ? 'var(--text-tertiary)' : '#fff',
             cursor:     (!canSave || saving) ? 'default' : 'pointer',
           }}>
-          {(photo.uploading || bcPhoto.uploading) ? '사진 업로드 중...' : saving ? '저장 중...' : !canSave ? '전 항목 결과 입력 필요' : '저장'}
+          {(photo.uploading || bcPhoto.uploading) ? '사진 업로드 중...' : saving ? '저장 중...' : !faHydrantPickOk ? '증상 항목 입력 필요' : !canSave ? '전 항목 결과 입력 필요' : '저장'}
         </button>
       </div>
     </div>

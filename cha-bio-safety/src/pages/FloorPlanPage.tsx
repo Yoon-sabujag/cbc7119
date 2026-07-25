@@ -1296,11 +1296,12 @@ export default function FloorPlanPage() {
             return
           }
           // 소화전/완강기 마커: generic inspectModal 대신 lockToPoint InspectionCardModal 진입 (일반점검과 동일 line_results 계약)
-          if (selected?.marker_type === 'indoor_hydrant' && selected.check_point_id) {
+          // 단 접근불가 개소는 카드로 보내지 않고 아래 generic 경로로 흘려 AccessBlockedPopup 만 표시(InspectionPage 와 동일 가드).
+          if (selected?.marker_type === 'indoor_hydrant' && selected.check_point_id && !selected.description?.includes('접근불가')) {
             setCardInspect({ category: '소화전', checkpointId: selected.check_point_id })
             return
           }
-          if (selected?.marker_type === 'descending_lifeline' && selected.check_point_id) {
+          if (selected?.marker_type === 'descending_lifeline' && selected.check_point_id && !selected.description?.includes('접근불가')) {
             setCardInspect({ category: '완강기', checkpointId: selected.check_point_id })
             return
           }
@@ -1789,12 +1790,12 @@ export default function FloorPlanPage() {
                     setDivInspectLoc(extractDivLocationNo(selected.check_point_id) ?? null)
                     return
                   }
-                  // 소화전/완강기 마커: lockToPoint InspectionCardModal 진입
-                  if (selected.marker_type === 'indoor_hydrant' && selected.check_point_id) {
+                  // 소화전/완강기 마커: lockToPoint InspectionCardModal 진입 (접근불가 개소는 제외 → generic AccessBlockedPopup)
+                  if (selected.marker_type === 'indoor_hydrant' && selected.check_point_id && !selected.description?.includes('접근불가')) {
                     setCardInspect({ category: '소화전', checkpointId: selected.check_point_id })
                     return
                   }
-                  if (selected.marker_type === 'descending_lifeline' && selected.check_point_id) {
+                  if (selected.marker_type === 'descending_lifeline' && selected.check_point_id && !selected.description?.includes('접근불가')) {
                     setCardInspect({ category: '완강기', checkpointId: selected.check_point_id })
                     return
                   }
@@ -1814,7 +1815,8 @@ export default function FloorPlanPage() {
       )}
 
       {/* ── 인라인 점검 기록 모달 ────────────────────── */}
-      {inspectModal && selected && selected.marker_type !== 'div_marker' && selected.marker_type !== 'indoor_hydrant' && selected.marker_type !== 'descending_lifeline' && (planType === 'guidelamp' || selected.check_point_id) && (() => {
+      {/* 소화전/완강기: 비-접근불가는 InspectionCardModal 로 라우팅돼 여기 안 옴. 접근불가 개소만 이 블록에 도달해 AccessBlockedPopup 표시. */}
+      {inspectModal && selected && selected.marker_type !== 'div_marker' && !((selected.marker_type === 'indoor_hydrant' || selected.marker_type === 'descending_lifeline') && !selected.description?.includes('접근불가')) && (planType === 'guidelamp' || selected.check_point_id) && (() => {
         const MARKER_TO_GL: Record<string,string> = {
           ceiling_exit:'ceiling_exit', wall_exit:'wall_exit',
           room_corridor:'room_passage', hallway_corridor:'corridor_passage', stair_corridor:'stair_passage',
