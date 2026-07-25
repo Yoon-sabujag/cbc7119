@@ -380,8 +380,11 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Row 3: 2열 — 좌(점검현황 + 빠른도구) | 우(캘린더 + 일정) */}
-        <div className="flex gap-4 flex-1 min-h-0">
+        {/* Row 3: 2열 — 좌(점검현황 + 빠른도구) | 우(캘린더 + 일정)
+            min-h-0 제거: 우측 컬럼(라이브+달력+오늘일정)이 뷰포트보다 클 때 Row3 가 콘텐츠 밑으로
+            줄지 않게 해 달력(min-h-[220px])이 삐져나오지 않도록 함. 공간 부족 시 대시보드가 스크롤,
+            두 컬럼 모두 자연높이로 stretch → 달력·점검현황 카드 바닥 정렬. 높은 화면은 flex-1 로 채움. */}
+        <div className="flex gap-4 flex-1">
 
           {/* 좌: 점검 현황 + 빠른 도구 */}
           <div className="flex-1 flex flex-col gap-4">

@@ -472,4 +472,5 @@ Resume file: None
 | 2026-04-20 | fast | 직원관리 직급순 정렬 | ✅ |
 | 2026-04-29 | fast | PhotoSourceModal 취소 버튼이 BottomNav에 가려지지 않게 padding-bottom 보강 (35a498e) | ✅ |
 | 2026-05-16 | fast | PhotoSourceModal v0.1.1 토큰+lucide 변환 (📷→Camera/🖼️→ImageIcon, --bg/bg2/bg3/t1/t3 → surface-*/text-*, hover 상태 추가, 호출처 7곳 자동 정합) — f0ee9b5 | ✅ |
-| 2026-07-25 | quick (260725-ipk) | 데스크톱 화재수신반 pane 스크롤/클리핑 수정 — id-body 스크롤러를 flex-col 겸용에서 블록 스크롤러 + 내부 flex 래퍼로 분리 (라이브뷰 하단 잘림 + 수동 기록 추가 스크롤 불가). headless Chrome 재현·build PASS. 배포 대기 | ✅ |
+| 2026-07-25 | quick (260725-ipk) | 데스크톱 화재수신반 pane 스크롤/클리핑 수정 — id-body 스크롤러를 flex-col 겸용에서 블록 스크롤러 + 내부 flex 래퍼로 분리 (라이브뷰 하단 잘림 + 수동 기록 추가 스크롤 불가). headless Chrome 재현·build PASS. 배포 완료(5349448d) | ✅ |
+| 2026-07-25 | quick (260725-mnq) | 데스크톱 대시보드 달력·점검현황 카드 바닥 정렬 — Row3 min-h-0 제거(달력 min-h-[220px] 삐져나옴 원인). Option B(달력 풀사이즈+필요시 스크롤). CDP 실측 DELTA −17/−157→0, build PASS. 배포 대기 | ✅ |
