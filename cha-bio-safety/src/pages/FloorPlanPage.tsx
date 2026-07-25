@@ -13,6 +13,7 @@ import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { InspectionRevisitPopup, type RevisitVariant } from '../components/InspectionRevisitPopup'
 import { DivInspectModal } from '../components/div/DivInspectModal'
+import { InspectionCardModal } from '../components/inspection/InspectionCardModal'
 import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
 import type { CheckResult } from '../types'
 // import PdfFloorPlan from '../components/PdfFloorPlan'
@@ -374,6 +375,7 @@ export default function FloorPlanPage() {
   const [editMarker, setEditMarker] = useState(false) // 마커 수정 모달
   const [inspectModal, setInspectModal] = useState(false) // 인라인 점검 모달
   const [divInspectLoc, setDivInspectLoc] = useState<string | null>(null) // 도면 DIV 마커 → lockToPoint DivInspectModal 진입 (locationNo)
+  const [cardInspect, setCardInspect] = useState<{ category: '소화전' | '완강기'; checkpointId: string } | null>(null) // 소화전/완강기 마커 → lockToPoint InspectionCardModal 진입
   // ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 가드) ──
   const [revisitPopup, setRevisitPopup] = useState<{
     variant:       RevisitVariant
@@ -395,6 +397,20 @@ export default function FloorPlanPage() {
       photoKey: photoKey ?? undefined,
     })
   }, [])
+  // 소화전/완강기 카드 모달 onSave 어댑터 — divSaveAdapter 미러 + extra(line_results/remediation_symbol) 전달.
+  // 카드 경로는 check_records 에 line_results/remediation_symbol 를 저장해야 하므로 extra 필수(DIV 는 미사용).
+  const cardSaveAdapter = useCallback(async (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { line_results?: string; remediation_symbol?: string }) => {
+    const today = todayKstYmd()
+    const sessions = await inspectionApi.getSessions(today)
+    const sid = sessions.length > 0 ? sessions[0].id : (await inspectionApi.createSession({ date: today })).id
+    await inspectionApi.submitRecord(sid, {
+      checkpointId: cpId,
+      result,
+      memo: memo || undefined,
+      photoKey: photoKey ?? undefined,
+      ...(extra ?? {}),
+    })
+  }, [])
   const [inspectExtDetail, setInspectExtDetail] = useState<ExtinguisherDetail | null>(null)
   const [inspectResult, setInspectResult] = useState<'normal' | 'caution' | 'bad'>('normal')
   const [inspectMemo, setInspectMemo] = useState('')
@@ -402,12 +418,7 @@ export default function FloorPlanPage() {
   const [inspectSymptomCustom, setInspectSymptomCustom] = useState('')
   const [inspectSubmitting, setInspectSubmitting] = useState(false)
   const inspectPhoto = usePhotoUpload('inspection')
-  // ── paired BC (소화전 마커일 때 같은 location_no 의 비상콘센트를 함께 점검) ──
-  const inspectBcPhoto = usePhotoUpload('inspection-bc')
-  const [inspectBcResult, setInspectBcResult] = useState<'normal' | 'caution' | 'bad'>('normal')
-  const [inspectBcMemo, setInspectBcMemo] = useState('')
-  const [pairedBC, setPairedBC] = useState<any | null>(null)
-  const [pairedBcLoading, setPairedBcLoading] = useState(false)
+  // 소화전 paired 비상콘센트는 InspectionCardModal(카드 모달)로 이관됨(260725-ps9) — generic 모달 paired BC 경로 제거.
   const [resolveModal, setResolveModal] = useState(false)
   const [resolveMemo, setResolveMemo] = useState('')
   const [resolveActionPick, setResolveActionPick] = useState<'본체 교체' | '예비전원 교체' | '직접 입력'>('본체 교체')
@@ -450,39 +461,6 @@ export default function FloorPlanPage() {
       setResolveMaterialCount('')
     }
   }, [resolveActionPick, resolveModal, planType, selected])
-
-  // ── paired BC 식별 (소화전 마커 진입 시 같은 location_no 의 비상콘센트 조회) ──
-  // InspectionPage 페어 모달과 동일한 룰. extinguisher plan + indoor_hydrant 마커 + check_point_id 가 있을 때만.
-  // BC 매핑이 없거나 모달이 닫히면 항상 null.
-  useEffect(() => {
-    let cancelled = false
-    if (!inspectModal || !selected || planType !== 'extinguisher' || selected.marker_type !== 'indoor_hydrant' || !selected.check_point_id) {
-      setPairedBC(null)
-      setPairedBcLoading(false)
-      return
-    }
-    setPairedBcLoading(true)
-    inspectionApi.getCheckpoints(selected.floor).then((all: any[]) => {
-      if (cancelled) return
-      const sh = all.find(cp => cp.id === selected.check_point_id)
-      if (!sh || !sh.locationNo) { setPairedBC(null); setPairedBcLoading(false); return }
-      const bc = all.find(cp => cp.category === '비상콘센트' && cp.locationNo === sh.locationNo)
-      setPairedBC(bc ?? null)
-      setPairedBcLoading(false)
-    }).catch(() => { if (!cancelled) { setPairedBC(null); setPairedBcLoading(false) } })
-    return () => { cancelled = true; setPairedBcLoading(false) }
-  }, [inspectModal, selected?.id, planType, selected?.marker_type, selected?.check_point_id, selected?.floor])
-
-  // 모달이 닫히면 BC state 초기화
-  useEffect(() => {
-    if (!inspectModal) {
-      setPairedBC(null)
-      setPairedBcLoading(false)
-      setInspectBcResult('normal')
-      setInspectBcMemo('')
-      inspectBcPhoto.reset()
-    }
-  }, [inspectModal])
 
   // ── 핀치줌 상태 ───────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null)
@@ -1317,10 +1295,18 @@ export default function FloorPlanPage() {
             setDivInspectLoc(extractDivLocationNo(selected.check_point_id) ?? null)
             return
           }
+          // 소화전/완강기 마커: generic inspectModal 대신 lockToPoint InspectionCardModal 진입 (일반점검과 동일 line_results 계약)
+          if (selected?.marker_type === 'indoor_hydrant' && selected.check_point_id) {
+            setCardInspect({ category: '소화전', checkpointId: selected.check_point_id })
+            return
+          }
+          if (selected?.marker_type === 'descending_lifeline' && selected.check_point_id) {
+            setCardInspect({ category: '완강기', checkpointId: selected.check_point_id })
+            return
+          }
           const defaultSymptom = SYMPTOM_OPTIONS_BY_PLAN[planType]?.[0] ?? '점등 이상'
           setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick(defaultSymptom); setInspectSymptomCustom('')
           inspectPhoto.reset(); setInspectExtDetail(null)
-          setInspectBcResult('normal'); setInspectBcMemo(''); inspectBcPhoto.reset()
           if (planType === 'extinguisher' && selected?.check_point_id) {
             extinguisherApi.getDetail(selected.check_point_id).then(d => setInspectExtDetail(d)).catch(() => {})
           }
@@ -1766,6 +1752,21 @@ export default function FloorPlanPage() {
         />
       )}
 
+      {/* 도면 소화전/완강기 마커 → lockToPoint InspectionCardModal (일반점검과 동일 line_results/remediation_symbol 계약) */}
+      {cardInspect && (
+        <InspectionCardModal
+          category={cardInspect.category}
+          checkpointId={cardInspect.checkpointId}
+          floor={floor}
+          onSave={cardSaveAdapter}
+          onClose={() => {
+            qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })
+            setCardInspect(null)
+            setSelected(null)
+          }}
+        />
+      )}
+
       {/* ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 시) ── */}
       {revisitPopup && (
         <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
@@ -1788,10 +1789,18 @@ export default function FloorPlanPage() {
                     setDivInspectLoc(extractDivLocationNo(selected.check_point_id) ?? null)
                     return
                   }
+                  // 소화전/완강기 마커: lockToPoint InspectionCardModal 진입
+                  if (selected.marker_type === 'indoor_hydrant' && selected.check_point_id) {
+                    setCardInspect({ category: '소화전', checkpointId: selected.check_point_id })
+                    return
+                  }
+                  if (selected.marker_type === 'descending_lifeline' && selected.check_point_id) {
+                    setCardInspect({ category: '완강기', checkpointId: selected.check_point_id })
+                    return
+                  }
                   const defaultSymptom = SYMPTOM_OPTIONS_BY_PLAN[planType]?.[0] ?? '점등 이상'
                   setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick(defaultSymptom); setInspectSymptomCustom('')
                   inspectPhoto.reset(); setInspectExtDetail(null)
-                  setInspectBcResult('normal'); setInspectBcMemo(''); inspectBcPhoto.reset()
                   if (planType === 'extinguisher' && selected.check_point_id) {
                     extinguisherApi.getDetail(selected.check_point_id).then(d => setInspectExtDetail(d)).catch(() => {})
                   }
@@ -1805,7 +1814,7 @@ export default function FloorPlanPage() {
       )}
 
       {/* ── 인라인 점검 기록 모달 ────────────────────── */}
-      {inspectModal && selected && selected.marker_type !== 'div_marker' && (planType === 'guidelamp' || selected.check_point_id) && (() => {
+      {inspectModal && selected && selected.marker_type !== 'div_marker' && selected.marker_type !== 'indoor_hydrant' && selected.marker_type !== 'descending_lifeline' && (planType === 'guidelamp' || selected.check_point_id) && (() => {
         const MARKER_TO_GL: Record<string,string> = {
           ceiling_exit:'ceiling_exit', wall_exit:'wall_exit',
           room_corridor:'room_passage', hallway_corridor:'corridor_passage', stair_corridor:'stair_passage',
@@ -1952,60 +1961,6 @@ export default function FloorPlanPage() {
               <PhotoButton hook={inspectPhoto} label="촬영" noCapture />
             </div>
 
-            {/* paired 비상콘센트 (소화전 마커 + 같은 location_no BC 매핑이 있을 때만 노출) */}
-            {pairedBC && (
-              <>
-                <div className="h-px bg-border-default my-2.5" />
-                <div className="bg-surface-page border border-border-default rounded-sm px-3 py-2 mb-2.5">
-                  <div className="text-caption text-text-tertiary">{pairedBC.category}</div>
-                  <div className="text-label font-bold text-text-primary mt-0.5">{pairedBC.location}</div>
-                  {pairedBC.description && <div className="text-caption text-text-tertiary mt-0.5">{pairedBC.description}</div>}
-                </div>
-                <div className="mb-2.5">
-                  <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">비상콘센트 점검 결과</div>
-                  <div className="flex gap-1.5">
-                    {([
-                      ['normal','정상', CheckCircle2, 'safe'],
-                      ['caution','주의', AlertTriangle, 'warning'],
-                      ['bad','불량', XCircle, 'danger'],
-                    ] as const).map(([val, label, Icon, tone]) => {
-                      const sel = inspectBcResult === val
-                      const cls = sel
-                        ? (tone === 'safe' ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
-                           : tone === 'warning' ? 'border-[1.5px] border-warning-bar bg-warning-bg text-warning'
-                           : 'border-[1.5px] border-danger-bar bg-danger-bg text-danger')
-                        : 'border border-border-default bg-surface-page text-text-secondary'
-                      return (
-                        <button
-                          key={val}
-                          onClick={() => setInspectBcResult(val)}
-                          className={`flex-1 inline-flex items-center justify-center gap-1 px-1 py-2.5 rounded-sm text-caption font-bold cursor-pointer transition-colors ${cls}`}
-                        >
-                          <Icon size={14} />{label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div className="mb-3.5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
-                    <span className="text-caption text-text-tertiary leading-none">점검 사진 (선택)</span>
-                  </div>
-                  <div className="flex gap-2 items-start">
-                    <textarea
-                      value={inspectBcMemo}
-                      onChange={e => setInspectBcMemo(e.target.value)}
-                      placeholder="특이사항을 입력하세요"
-                      className="flex-1 rounded-sm bg-surface-page border border-border-default text-text-primary text-label p-2.5 resize-none outline-none box-border"
-                      style={{ height: 72, fontFamily: 'inherit' }}
-                    />
-                    <PhotoButton hook={inspectBcPhoto} label="촬영" noCapture />
-                  </div>
-                </div>
-              </>
-            )}
-
             <div className="flex gap-2">
               <button
                 onClick={() => setInspectModal(false)}
@@ -2014,7 +1969,7 @@ export default function FloorPlanPage() {
                 취소
               </button>
               <button
-                disabled={inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked || (planType === 'extinguisher' && selected?.marker_type === 'indoor_hydrant' && !!selected?.check_point_id && pairedBcLoading)}
+                disabled={inspectSubmitting || inspectPhoto.uploading || isAccessBlocked}
                 onClick={async () => {
                   setInspectSubmitting(true)
                   try {
@@ -2027,9 +1982,6 @@ export default function FloorPlanPage() {
                     else { const s = await inspectionApi.createSession({ date: today }); sid = s.id }
                     const photoKey = await inspectPhoto.upload()
                     if (inspectPhoto.hasPhoto && photoKey === null) throw new Error(photoUploadFailMsg(inspectPhoto.vaultBacked))
-                    // BC 사진도 본 저장 전에 업로드 — 업로드 실패 시 양쪽 record 모두 저장 차단
-                    const bcPhotoKey = pairedBC ? await inspectBcPhoto.upload() : null
-                    if (pairedBC && inspectBcPhoto.hasPhoto && bcPhotoKey === null) throw new Error(photoUploadFailMsg(inspectBcPhoto.vaultBacked))
 
                     let cpId = selected.check_point_id ?? ''
                     let finalMemo = inspectMemo
@@ -2058,21 +2010,7 @@ export default function FloorPlanPage() {
                       photoKey: photoKey ?? undefined,
                       ...extra,
                     })
-                    // ── paired BC 동시 저장 (소화전 마커일 때만, BC 매핑 있을 때만) ──
-                    // SH 저장이 throw 하면 catch 가 잡아서 이 블록은 자동 스킵.
-                    // atomic 보장은 out-of-scope (서버 batch endpoint 별도 phase).
-                    if (pairedBC) {
-                      await inspectionApi.submitRecord(sid, {
-                        checkpointId: pairedBC.id,
-                        result: inspectBcResult,
-                        memo: inspectBcMemo.trim() || undefined,
-                        photoKey: bcPhotoKey ?? undefined,
-                      })
-                    }
                     inspectPhoto.reset()
-                    inspectBcPhoto.reset()
-                    setInspectBcResult('normal')
-                    setInspectBcMemo('')
                     toast.success('점검 기록 저장됨')
                     setInspectModal(false)
                     setSelected(null)
@@ -2085,7 +2023,7 @@ export default function FloorPlanPage() {
                 }}
                 className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer disabled:opacity-50 disabled:bg-border-default disabled:text-text-disabled disabled:cursor-default"
               >
-                {(inspectPhoto.uploading || inspectBcPhoto.uploading) ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : (planType === 'extinguisher' && selected?.marker_type === 'indoor_hydrant' && !!selected?.check_point_id && pairedBcLoading) ? '비상콘센트 확인 중...' : '저장'}
+                {inspectPhoto.uploading ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '저장'}
               </button>
             </div>
           </div>
