@@ -70,7 +70,9 @@
 
 ## 배포 상태
 
-**미배포 — 사용자 승인 대기.** executor·서브에이전트 배포 금지(feedback_subagent_production_deploy_forbidden). 검증 통과. 사용자 승인 후 메인+사용자 같은 턴에서 수동 배포(`--branch production`, --commit-message ASCII 별도).
+**배포 완료 (2026-07-25).** 사용자 승인 후 메인+사용자 같은 턴 수동 배포: `wrangler pages deploy dist --branch production` → **https://6f5ce712.cbc7119.pages.dev**. 스모크: `/api/health` 200 JSON(db/storage ok, Functions 정상 번들), `/api/auth/login` 400(라우트 정상). 커밋 4325734b→c16b71fb.
+
+**실앱 UAT 대기(사용자):** ①도면 소화전 마커 → 카드(+페어 비상콘센트) 저장 ②완강기 접근가능 4개소 카드 저장 / 접근불가 개소 AccessBlockedPopup ③점검일지 엑셀 주의=△·불량=Ｘ ④일반↔도면 교차 재진입 카드 복원 ⑤소화기 마커 무변경.
 
 ## Self-Check: PASSED
 
