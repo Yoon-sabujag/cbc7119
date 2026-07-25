@@ -692,7 +692,7 @@ async function buildDbBackupSql(env: Env): Promise<{ sql: string; oversized: str
 //   - first        → 사유 최초 관측 후 CONFIRM(10분) 경과한 첫 틱 (새벽 transient 2틱 오탐을 거르는 실측 최소값)
 //   - escalation   → **이번 사고에서 한 번도 통지한 적 없는 code** 출현 시에만.
 //                    watchdog_reasons = "이번 사고에서 이미 통지한 code 들의 누적 합집합" (마지막 발송 사유가 아니다!)
-//                    → code 가 3종(hb/starved/detect)뿐이라 사고당 에스컬레이션은 자연히 ≤2회로 유계.
+//                    → code 가 4종(hb/starved/detect/blind)뿐이라 사고당 에스컬레이션은 자연히 ≤3회로 유계.
 //   - push-failed  → 직전 발송의 실제 도달 0건 (§6-2). 단 연속 실패 WATCHDOG_FAIL_MAX 회로 상한.
 //   - cooldown     → 경과 > 6시간 지속 상기 (§6-1). **cooldown 에도 fail_n 상한을 건다** —
 //                    안 걸면 전 구독 사망 시 6시간 뒤부터 매 틱 발화(288회/일 재시도 루프). 탈출구는 폴백 청중이다.
@@ -755,6 +755,27 @@ async function handlePanelWatchdog(env: Env): Promise<void> {
     if (a.detect_mode !== 'off' && detectOk != null && now - detectOk > 180_000) {
       reasons.push({ code: 'detect', text: '감지 파이프 정지(3분 초과)' })
     }
+    // (4) 화면 실명(blind) — 프레임은 흐르는데 색평균이 지속 0 = HDMI 입력/수신반 전원 사망.
+    //     캡처보드는 HDMI 입력이 없어도 '무신호 검은 프레임'을 합성해 내보낸다(2026-07-26 실측:
+    //     HDMI 를 뽑아도 frame_starved_sec 0~2초, analyze_ok 분당 ~26 증가) — 기아(starved)로는
+    //     절대 안 잡히고, 화면은 검은데 에이전트는 정상이라 감지가 눈먼 채 침묵하는 사각지대였다.
+    //     판정: 최근 6분 하트비트 중 색평균 유효(non-NULL) 행 ≥4 가 전부 (r+g+y)<0.01 이고 기아<30s.
+    //     정상 수신반은 전원등 상시 점등이라 g/y 평균이 0 이 될 수 없다(실측 g 0.1~0.4, y 0.3~1.1).
+    //     화재 시엔 적색 점등으로 r>0 → 화재를 blind 로 오인하지 않는다. NULL(구 에이전트/미계측)은
+    //     판정 보류(M1 원칙). starved 활성이면 프레임 경로 고장이 이미 통지되므로 중복 판정 생략.
+    //     detect_mode 와 무관 — 이건 감지가 아니라 캡처 경로(라이브뷰 포함)의 고장이다.
+    if (!reasons.some(r => r.code === 'starved')) {
+      const hb = await env.DB.prepare(
+        `SELECT r_avg, g_avg, y_avg, frame_starved_sec FROM agent_heartbeats
+          WHERE datetime(at) >= datetime('now','+9 hours','-6 minutes')
+          ORDER BY at DESC LIMIT 6`,
+      ).all<{ r_avg: number | null; g_avg: number | null; y_avg: number | null; frame_starved_sec: number | null }>()
+      const hbRows = (hb.results ?? []).filter(r => r.r_avg != null && r.g_avg != null && r.y_avg != null)
+      if (hbRows.length >= 4 && hbRows.every(r =>
+        (r.r_avg! + r.g_avg! + r.y_avg!) < 0.01 && (r.frame_starved_sec ?? 0) < 30)) {
+        reasons.push({ code: 'blind', text: '화면 신호 없음(검은 화면 지속 — HDMI 입력/수신반 전원 의심)' })
+      }
+    }
 
     // ── 클린 틱 ──
     if (reasons.length === 0) {
@@ -803,7 +824,7 @@ async function handlePanelWatchdog(env: Env): Promise<void> {
     const failN = a.watchdog_push_fail_n ?? 0
     let trigger: string | null = null
     if (a.watchdog_notified_at == null) trigger = 'first'
-    else if (newCodes.length > 0) trigger = 'escalation'                        // 미통지 code 출현 시에만 — 사고당 ≤2회
+    else if (newCodes.length > 0) trigger = 'escalation'                        // 미통지 code 출현 시에만 — 사고당 ≤3회
     else if ((a.watchdog_push_ok ?? 0) === 0 && failN < WATCHDOG_FAIL_MAX) trigger = 'push-failed'
     else if (elapsedMs != null && elapsedMs > WATCHDOG_COOLDOWN_MS && failN < WATCHDOG_FAIL_MAX) trigger = 'cooldown'
     if (!trigger) return  // 발송 없는 틱은 DB 에 아무것도 쓰지 않는다 (pending/clear 시계 제외)
