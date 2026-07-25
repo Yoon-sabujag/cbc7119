@@ -225,6 +225,18 @@ export default function DashboardPage() {
     navigate('/inspection', todayInspectCategory ? { state: { autoSelectCategory: todayInspectCategory } } : undefined)
   }
 
+  // '오늘 점검 대상' 배너 탭 → 카테고리별 라우팅(모바일).
+  // 소화기·소화전·비상콘센트·유도등은 도면점검(FloorPlanPage 레이어)으로, 그 외는 일반점검(카테고리 자동선택)으로.
+  const FLOORPLAN_PLAN_TYPE: Record<string, string> = {
+    '유도등': 'guidelamp', '소화기': 'extinguisher', '소화전': 'extinguisher', '비상콘센트': 'extinguisher',
+  }
+  const goToTodayTarget = () => {
+    const cat = todayInspectCategory
+    const pt = cat ? FLOORPLAN_PLAN_TYPE[cat] : undefined
+    if (pt) navigate(`/floorplan?planType=${pt}`)
+    else navigate('/inspection', cat ? { state: { autoSelectCategory: cat } } : undefined)
+  }
+
   // 공통 tools 배열 — Lucide 아이콘 + §7.1 일관성 (배경/색 강조 제거)
   const tools = [
     { Icon: MapIcon,    label:'도면 점검',    desc:'층별 도면 보기\n유도등·감지기·소화기', descDesktop:'층별 도면 · 유도등 · 감지기',  path:'/floorplan' },
@@ -650,7 +662,7 @@ export default function DashboardPage() {
           className="rounded-md border border-info-bar/30 px-3 py-2 flex items-center gap-2.5 bg-[linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08))] [animation:slideUp_.28s_ease-out]"
         >
           <div className="w-1.5 h-1.5 rounded-full bg-info-bar shrink-0 animate-[blink_2s_ease-in-out_infinite]" />
-          <div className="flex-1">
+          <div className="flex-1 cursor-pointer" onClick={goToTodayTarget}>
             <div className="text-caption font-bold text-info-bar uppercase tracking-wider">오늘 점검 대상</div>
             <div className="text-label font-bold text-text-primary mt-0.5 leading-tight">{todayTarget}</div>
           </div>
