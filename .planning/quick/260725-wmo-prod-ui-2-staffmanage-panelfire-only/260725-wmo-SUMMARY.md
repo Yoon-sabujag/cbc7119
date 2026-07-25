@@ -34,11 +34,13 @@ commits:
 ## 검증
 - `npm run build` 통과 (타입 에러 0, 16.1s, PWA 생성).
 - grep 확인: 라이브카드=panelFire, 칩·평상=activeAlarm 유지.
-- **실기기 검증(스크롤 동작, 알람 색)은 배포 후 사용자 UAT 대기.**
+- **실기기 UAT 통과(2026-07-25):** 직원추가 모달 스크롤 정상, 데스크톱 라이브카드 정상, 설비작동 시 색변화 없음=panelFire 의도대로. (모바일 라이브 카드는 원래 LIVE 배지 없는 순수 이미지 — 변경 대상 아님.)
 
 ## 배포
 - **배포 완료** 2026-07-25 → https://675b5b71.cbc7119.pages.dev (production 브랜치, cbc7119). 수동 wrangler(--branch=production, cha-bio-safety CWD), functions untracked 0 확인.
 
 ## 다음
-1. **실기기 UAT 대기** — 직원추가 모달 스크롤(뒤 페이지 안 밀림) + 대시보드 라이브카드 평상 초록/설비알람 초록 유지.
-2. UAT OK 후 staging 콘솔(~/Documents/cbc7119-data)에서 prod 미러 리셋 진행([[project_staging_prod_mirror_reset]]).
+- **UAT 통과 완료.** → staging 콘솔(~/Documents/cbc7119-data)에서 prod 미러 리셋 진행([[project_staging_prod_mirror_reset]]).
+
+## 부수 관찰(별개 이슈, 이번 작업 무관)
+- 푸시가 "로그인 계정과 무관하게" 오는 것은 **설계상 정상**: 알람 대상=구독 staff_id의 근무여부, 구독 staff_id는 기기별 최초 푸시-켠 계정으로 고정(subscribe.ts ON CONFLICT(staff_id,endpoint), 로그인 시 자동 재구독 없음). 실운영(각자 본인폰) 정상, 멀티계정 테스트 시 드러남. [[reference_push_device_binding]]
