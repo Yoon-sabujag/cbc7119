@@ -52,6 +52,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       `SELECT * FROM panel_alarms WHERE type = ? AND status IN ('active','acked') ORDER BY detected_at DESC LIMIT 1`,
     ).bind(type).first<AlarmRow>()
     if (existing) {
+      // 영상+오디오 교차확인 → confirmed 태깅 (양쪽 source 가 존재하고 서로 다를 때만, idempotent)
+      if (existing.source && body.source && existing.source !== body.source) {
+        await env.DB.prepare(
+          `UPDATE panel_alarms SET confirmed = 1 WHERE id = ? AND (confirmed IS NULL OR confirmed = 0)`,
+        ).bind(existing.id).run()
+      }
       return Response.json({
         success: true,
         data: {

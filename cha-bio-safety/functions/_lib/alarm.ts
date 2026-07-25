@@ -33,6 +33,7 @@ export interface AlarmRow {
   ocr_method?: string | null      // exact|prefix|fuzzy|legacy|empty
   ocr_ms?: number | null
   ocr_lines?: string | null       // JSON {"badge":[...],"wide":[...]}
+  confirmed?: number | null       // 0103 신규: 영상+오디오 교차-source 확정 여부(0=미확정, 1=확정)
 }
 
 // ocr_lines 는 {"badge":[...],"wide":[...]} JSON. 파싱 실패해도 화면을 죽이지 않는다.
@@ -72,6 +73,8 @@ export function mapAlarm(r: AlarmRow) {
       ms: r.ocr_ms ?? null,
       lines: safeLines(r.ocr_lines),          // { badge: string[], wide: string[] }
     },
+    // ── 0103 신규 ──
+    confirmed: r.confirmed ?? 0,
   }
 }
 
