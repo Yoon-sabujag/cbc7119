@@ -9,22 +9,24 @@ import type { StaffFull, StaffUpdatePayload, Role } from '../types'
 import { UserPlus } from 'lucide-react'
 
 // ── BottomSheet ──────────────────────────────────────────
+const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'
+
 function BottomSheet({ onClose, title, children }: {
   onClose: () => void; title: string; children: React.ReactNode
 }) {
   return (
-    <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', animation: 'slideUp 0.28s ease-out both', maxHeight: '90vh', overflowY: 'auto' }}>
+    <>
+      {/* backdrop — BottomNav 아래로 깔리되 화면 dim */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 98 }} />
+      {/* sheet — BottomNav 위쪽 영역만 차지 (InspectionPage / ElevatorPage 표준 Pattern A) */}
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: NAV_BOTTOM, zIndex: 99, background: 'var(--bg2)', borderTop: '1px solid var(--bd)', borderRadius: '16px 16px 0 0', maxHeight: 'calc(100dvh - var(--sat, 0px) - var(--sab, 0px) - 54px)', overflowY: 'auto', overflowX: 'hidden', animation: 'slideUp 0.28s ease-out both' }}>
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
           <div className="w-[32px] h-[4px] rounded-full bg-border-strong" />
         </div>
         <div className="text-body font-bold text-text-primary" style={{ padding: '12px 16px 0' }}>{title}</div>
         {children}
       </div>
-    </div>
+    </>
   )
 }
 
@@ -49,7 +51,7 @@ function DesktopModal({ onClose, title, children }: {
 const INPUT_STYLE: React.CSSProperties = {
   height: 44, background: 'var(--bg3)', border: '1px solid var(--bd)',
   borderRadius: 8, padding: '0 12px', fontSize: 14, color: 'var(--t1)',
-  width: '100%', boxSizing: 'border-box', outline: 'none',
+  width: '100%', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', outline: 'none',
 }
 const LABEL_STYLE: React.CSSProperties = {
   fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 6, display: 'block',
@@ -225,7 +227,7 @@ function StaffModalContent({
         </div>
         <div className="form-field">
           <label style={LABEL_STYLE}>생년월일 <span className="form-sub-label text-caption text-text-tertiary">(휴가신청서 자동 채움)</span></label>
-          <input className="form-input" style={INPUT_STYLE} value={form.birthDate} onChange={setField('birthDate')} type="date" />
+          <input className="form-input appearance-none [-webkit-appearance:none]" style={INPUT_STYLE} value={form.birthDate} onChange={setField('birthDate')} type="date" />
         </div>
         <div className="form-field">
           <label style={LABEL_STYLE}>직책</label>
