@@ -197,6 +197,8 @@ export default function DashboardPage() {
     retry: false,
   })
   const activeAlarm = alarmActive ?? panelStatus?.activeAlarm ?? null
+  // 라이브카드는 칩과 동일하게 화재(fire)만 빨강/'화재'. 설비·고장은 초록 LIVE 유지(push·풀스크린은 타입 무관 동일).
+  const panelFire = activeAlarm?.type === 'fire' ? activeAlarm : null
   const maintOn = panelStatus?.maint?.enabled ?? false
   const frameUpdatedAt = panelStatus?.frameUpdatedAt ?? null
 
@@ -484,8 +486,8 @@ export default function DashboardPage() {
               <div
                 onClick={handlePanelClick}
                 onDoubleClick={handlePanelDblClick}
-                className={`relative bg-black aspect-video cursor-pointer border-y ${activeAlarm ? 'border-danger-bar' : 'border-border-default'}`}
-                style={activeAlarm ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}
+                className={`relative bg-black aspect-video cursor-pointer border-y ${panelFire ? 'border-danger-bar' : 'border-border-default'}`}
+                style={panelFire ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}
               >
                 <LivePanelImage frameUpdatedAt={frameUpdatedAt} imgClassName="w-full h-full object-cover" />
                 {/* 제목 배지 (헤더 대체) — 좌상단 */}
@@ -496,10 +498,10 @@ export default function DashboardPage() {
                 {/* LIVE / 화재 배지 (dot span) — 좌하단 */}
                 <div
                   className="absolute bottom-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
-                  style={{ background: activeAlarm ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}
+                  style={{ background: panelFire ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}
                 >
                   <span className="w-[6px] h-[6px] rounded-full bg-white" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
-                  {activeAlarm ? '화재' : 'LIVE'}
+                  {panelFire ? '화재' : 'LIVE'}
                 </div>
                 {/* 더블클릭 확대 힌트 */}
                 <div className="absolute bottom-[7px] right-[7px] inline-flex items-center gap-1 bg-black/50 rounded-sm px-[7px] py-0.5 text-[10px] text-white pointer-events-none">
@@ -509,14 +511,14 @@ export default function DashboardPage() {
               </div>
               {/* 캡션 — 평상/경보 (desktop 13px/600 = text-label) */}
               <div className="flex items-center gap-[7px] px-[13px] py-[9px] text-label text-text-secondary font-semibold">
-                {activeAlarm ? (
+                {panelFire ? (
                   <>
                     <span className="w-[7px] h-[7px] rounded-full bg-danger-bar shrink-0" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
                     <span className="text-danger font-bold">화재 발생</span>
                     <span className="text-text-tertiary">·</span>
-                    <span className="truncate">{activeAlarm.location ?? '수신반 확인 필요'}</span>
+                    <span className="truncate">{panelFire.location ?? '수신반 확인 필요'}</span>
                     <span className="text-text-tertiary">·</span>
-                    <span className="font-mono tabular-nums shrink-0">{activeAlarm.detectedAt}</span>
+                    <span className="font-mono tabular-nums shrink-0">{panelFire.detectedAt}</span>
                   </>
                 ) : (
                   <>
