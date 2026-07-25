@@ -41,3 +41,19 @@ cd ../cha-bio-safety && npm run deploy
 ```
 
 ④ 윤종엽 기기 로그아웃→재로그인(안 하면 게이트가 안 열리는 게 **정상**) → ⑤ §7 실물 검증: HDMI 뽑고 **최대 20분** 대기 → 폰 알림 육안 + 탭하여 /panel-monitor 열림 + D1 `watchdog_push_ok>=1` → 재삽입 30분 후 워치독 컬럼 전체 NULL → 플래핑 3회 = 정확히 1건. ⑥ 석현민 기기 알림 재허용(재구독).
+
+---
+
+## 260726 실물 검증 결과 (본 배포 — 사용자 실행)
+
+- 배포 3단계 완료(사용자) + 재로그인. 워커 배포 후 `cron-panel-watchdog-throw` 0건.
+- **⚠️ §7-1 의 "HDMI 뽑기"는 이 캡처보드에서 무효** — HDMI 무입력 시 무신호 검은 프레임을 합성(기아 0~2초, analyze 계속 증가). **USB 를 뽑아야 기아가 발생**한다. SSOT 에 반영(panel-agent `61db67a`).
+- USB 뽑기(08:15:46) → 08:20 틱 `pending_since` 세팅 → CONFIRM 10분 → **08:30 틱 first 발송, `watchdog_push_ok=3`, 윤종엽 폰 실수신 + `/panel-monitor` 딥링크 확인.** 텔레메트리 `subs:3/sent:3/pushOk:3/fallback:false/durMin:10`. **워치독 사상 첫 실도달.**
+- USB 재삽입(08:32) → 에이전트 자가복구(N2, 재시작 0) 실측 확인.
+- 재실측: 박보융 구독 1→0 사망(문서 §1 대비 변화). 폴백 청중 4건 성립 유지.
+
+## 후속 2건 (같은 날, 실물 검증에서 발견 — 구현 완료·배포 대기)
+
+- **`fa535a0b` blind 사유**: HDMI-만-사망은 starved 로 절대 안 잡히는 사각지대(위 실측) → 최근 6분 하트비트 색평균 전부 (r+g+y)<0.01 + 기아<30s 면 `blind` 푸시. NULL 보류(M1)/starved 시 생략/화재 r>0 오인 없음. escalation 사고당 ≤3회로 재유계.
+- **`3a95acd9` LIVE 정직화**: USB 뽑혀 기아 859초인 동안 대시보드·수신반 페인이 초록 LIVE/'정상'(경보 유무만 봄) → `liveSignalDown`(연결 끊김 3m/신호 없음 30s/지연 60s) 게이트를 표기 4곳에. 적대적 리뷰(8에이전트) 확정 3건 반영: F1 폴 실패 catch-null 초록 복귀 우회 / F2 설비·고장 표기가 '연결 끊김' 무기한 은폐(화재만 회색보다 우선) / F3 payload 동결 시 재렌더 부재(10초 티커).
+- 배포 남음(마이그레이션 없음): ② `cbc-cron-worker && npx wrangler deploy` → ③ `cha-bio-safety && npm run deploy`. 후속 실물 검증(선택): HDMI 만 뽑고 ~16-20분 내 blind 푸시 + 화면 회색 확인.
