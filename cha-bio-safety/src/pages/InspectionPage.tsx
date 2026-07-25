@@ -5461,8 +5461,11 @@ function DesktopInspectionView({
               </button>
             </div>
 
-            {/* id-body */}
-            <div className="flex-1 flex flex-col gap-[15px] overflow-y-auto p-4 pb-[22px]">
+            {/* id-body — 순수 블록 스크롤러. flex 컬럼(gap)은 내부 래퍼로 분리해야 자식이
+                shrink 되지 않고 오버플로→스크롤한다 (스크롤러 자신을 flex-col 로 두면 biglive/
+                form-card 가 pane 높이에 맞춰 축소돼 하단이 잘리고 스크롤이 죽는다). */}
+            <div className="flex-1 overflow-y-auto p-4 pb-[22px]">
+              <div className="flex flex-col gap-[15px]">
               {/* maint-autonote (점검모드 only, biglive 위 배너) */}
               {panelMode === 'maint' && (
                 <div className="flex gap-2 px-[11px] py-2 rounded-[10px] bg-surface-sunken border border-border-strong text-caption text-text-tertiary leading-normal">
@@ -5592,6 +5595,7 @@ function DesktopInspectionView({
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </>
           )
