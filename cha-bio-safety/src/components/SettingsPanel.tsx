@@ -917,8 +917,8 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           </div>
         )}
 
-        {/* 시스템 — 관리자 전용. 진입점은 여기 하나뿐(하단 네비/사이드메뉴에는 없음). */}
-        {staff?.role === 'admin' && (
+        {/* 시스템 — 관리자 + 워치독 수신자(panel_watchdog=1). 진입점은 여기 하나뿐(하단 네비/사이드메뉴에는 없음). */}
+        {(staff?.role === 'admin' || staff?.panel_watchdog === 1) && (
           <div className="px-[13px] pt-3 pb-1.5">
             <SectionHeader label="시스템" collapsed={systemCollapsed} onToggle={() => setSystemCollapsed(c => !c)} />
             {!systemCollapsed && (

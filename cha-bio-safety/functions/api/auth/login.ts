@@ -51,6 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       name:  staff.name,
       role:  staff.role,
       title: staff.title,
+      panel_watchdog: Number(staff.panel_watchdog ?? 0),  // 워치독 수신자 (assistant 라도 /panel-monitor 접근 허용)
       iat:   now,
       exp:   now + 60 * 60 * 12,
     }, env.JWT_SECRET)
@@ -65,6 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
           role:      staff.role,
           title:     staff.title,
           shiftType: staff.shift_type ?? null,
+          panel_watchdog: Number(staff.panel_watchdog ?? 0),  // zustand persist → 프론트 게이트가 읽는다. 재로그인해야 실린다.
         },
       },
     })

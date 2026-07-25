@@ -59,10 +59,13 @@ function Auth({ children }: { children: React.ReactNode }) {
 // 주의: 프론트 게이트는 UI 통제일 뿐이다(localStorage 편집으로 뚫린다).
 // 실제 데이터 보호는 서버가 한다 — /api/panel/agent-history 가 role !== 'admin' → 403.
 // 둘 다 건다: 서버만 있으면 화면이 빈 채로 403 을 뿌리고, 프론트만 있으면 데이터가 샌다.
+// panel_watchdog=1(워치독 수신자, assistant 가능)도 허용 — 현재 유일한 사용처가 /panel-monitor 라서다.
+// 다른 admin 라우트에 이 게이트를 재사용하게 되면 이 예외를 분리할 것.
+// staff 는 zustand persist(만료 없음) — 서버 플래그가 바뀌어도 재로그인 전까지 여기 반영 안 된다.
 function AdminAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, staff } = useAuthStore()
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (staff?.role !== 'admin') return <Navigate to="/dashboard" replace />
+  if (staff?.role !== 'admin' && staff?.panel_watchdog !== 1) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 function Loader() {

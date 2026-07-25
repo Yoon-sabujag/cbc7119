@@ -6,7 +6,7 @@ import { panelApi, alarmApi, type AgentHistoryPoint, type AlarmEvent } from '../
 import LivePanelImage from '../components/panel/LivePanelImage'
 import { freshnessLabel, watchdogLabel, parseKst } from '../components/panel/freshness'
 
-// 화재수신반 에이전트 원격 모니터 (/panel-monitor · 관리자 전용, 메뉴 비연결).
+// 화재수신반 에이전트 원격 모니터 (/panel-monitor · admin + 워치독 수신자(panel_watchdog=1), 메뉴 비연결).
 // 계약 SSOT: panel-agent/MONITORING-SPEC.md §6 · 시안 승인 2026-07-14.
 //
 // ★ 이 화면의 제1원칙 (SPEC §6-② 회색 규칙):
@@ -325,7 +325,7 @@ export default function PanelMonitorPage() {
 
       <header className="pm-header">
         <button className="pm-back" onClick={() => nav(-1)} aria-label="뒤로"><ChevronLeft size={20} /></button>
-        <div className="pm-title">화재수신반 에이전트 모니터<small>운영자 · admin 전용</small></div>
+        <div className="pm-title">화재수신반 에이전트 모니터<small>운영자 전용</small></div>
       </header>
 
       <main className="pm-body">

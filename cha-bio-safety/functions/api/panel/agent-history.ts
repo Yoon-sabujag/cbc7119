@@ -1,9 +1,9 @@
 import type { Env } from '../../_middleware'
 
-// GET /api/panel/agent-history?hours=24 — 에이전트 텔레메트리 시계열 (관리자 전용).
+// GET /api/panel/agent-history?hours=24 — 에이전트 텔레메트리 시계열 (admin + 워치독 수신자).
 // 계약 SSOT: panel-agent/MONITORING-SPEC.md §5.1
 //
-// JWT 필수(_middleware 통과) + role === 'admin' (전례: functions/api/database/r2-list.ts).
+// JWT 필수(_middleware 통과) + role === 'admin' 또는 panel_watchdog === 1 (FABLE-TASK-WATCHDOG.md §5).
 // PUBLIC/PUBLIC_PATTERN 에 추가하지 말 것 — 이건 에이전트 인입 경로가 아니다.
 // ※ /api/panel/status 와 /api/alarm/events 에는 admin 게이트를 걸지 않는다(대시보드가 쓴다).
 interface HbRow {
@@ -21,8 +21,10 @@ interface HbRow {
 const kstMs = (s: string): number => new Date(s.replace(' ', 'T') + '+09:00').getTime()
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) => {
-  const { role } = data as { role: string }
-  if (role !== 'admin') return Response.json({ success: false, error: '관리자만 접근 가능' }, { status: 403 })
+  // admin 또는 워치독 수신자(staff.panel_watchdog=1 — JWT 경유). FABLE-TASK-WATCHDOG.md §5.
+  const { role, panel_watchdog } = data as { role: string; panel_watchdog?: number }
+  if (role !== 'admin' && panel_watchdog !== 1)
+    return Response.json({ success: false, error: '관리자만 접근 가능' }, { status: 403 })
 
   try {
     const url = new URL(request.url)

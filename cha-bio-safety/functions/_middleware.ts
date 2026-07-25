@@ -8,7 +8,7 @@ export interface Env {
   AGENT_KEY?: string
 }
 
-interface JWTPayload { sub:string; name:string; role:string; title:string; iat:number; exp:number }
+interface JWTPayload { sub:string; name:string; role:string; title:string; panel_watchdog?:number; iat:number; exp:number }
 
 async function verifyJWT(token: string, secret: string): Promise<JWTPayload | null> {
   try {
@@ -58,7 +58,8 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   if (!payload)
     return Response.json({ success:false, error:'유효하지 않은 토큰' }, { status:401, headers:cors })
 
-  ;(ctx as any).data = { staffId:payload.sub, staffName:payload.name, role:payload.role }
+  // panel_watchdog: 구 토큰엔 키가 없다 → 0. 워치독 수신자(윤종엽 등)의 게이트 통과는 재로그인 후부터.
+  ;(ctx as any).data = { staffId:payload.sub, staffName:payload.name, role:payload.role, panel_watchdog:payload.panel_watchdog ?? 0 }
 
   const res = await next()
   Object.entries(cors).forEach(([k,v]) => res.headers.set(k,v))
