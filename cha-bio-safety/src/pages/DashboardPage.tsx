@@ -381,10 +381,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Row 3: 2열 — 좌(점검현황 + 빠른도구) | 우(캘린더 + 일정)
-            min-h-0 제거: 우측 컬럼(라이브+달력+오늘일정)이 뷰포트보다 클 때 Row3 가 콘텐츠 밑으로
-            줄지 않게 해 달력(min-h-[220px])이 삐져나오지 않도록 함. 공간 부족 시 대시보드가 스크롤,
-            두 컬럼 모두 자연높이로 stretch → 달력·점검현황 카드 바닥 정렬. 높은 화면은 flex-1 로 채움. */}
-        <div className="flex gap-4 flex-1">
+            min-h-0 유지: Row3 가 남는 공간에 맞게 축소돼 대시보드는 항상 한 화면에 들어감(페이지 스크롤 X).
+            바닥 정렬을 위한 높이 흡수는 달력(min-h-0, 아래 캘린더 카드)이 담당한다. */}
+        <div className="flex gap-4 flex-1 min-h-0">
 
           {/* 좌: 점검 현황 + 빠른 도구 */}
           <div className="flex-1 flex flex-col gap-4">
@@ -519,9 +518,11 @@ export default function DashboardPage() {
             </div>
 
             {/* 미니 캘린더 — flex-1 로 좌측 점검현황 높이만큼 채워 캘린더 카드 바닥 == 점검현황 카드 바닥 정렬.
+                min-h-0: 남는 높이가 부족하면 달력이 줄어 우측 컬럼이 Row3 안에 들어가게 함(페이지 스크롤 방지).
+                min-h-[220px] 를 두면 달력이 못 줄어 카드가 삐져나오고 바닥 정렬이 깨진다.
                 justify-end 로 그리드를 카드 하단에 붙여 '달력 마지막 주'가 카드 바닥에 닿게(=점검현황 바닥과 정렬).
-                셀 w-6(24px) 컴팩트. dot 많은 달은 overflow-y-auto 로 스크롤(카드 높이는 flex-1 로 항상 정렬 유지). */}
-            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-3 flex-1 min-h-[220px] overflow-y-auto flex flex-col justify-end">
+                셀 w-6(24px) 컴팩트. 공간 부족 시 overflow-y-auto 로 스크롤(카드 높이는 flex-1 로 항상 정렬 유지). */}
+            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-3 flex-1 min-h-0 overflow-y-auto flex flex-col justify-end">
               <div className="text-label font-bold text-text-primary text-center mb-2.5">
                 {calYear}년 {calMonth + 1}월
               </div>
