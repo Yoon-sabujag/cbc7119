@@ -4,7 +4,8 @@ slug: prod-ui-2-staffmanage-panelfire-only
 date: 2026-07-25
 status: complete
 branch: production
-deployed: false
+deployed: true
+deploy_url: https://675b5b71.cbc7119.pages.dev
 commits:
   - 8d40d310
   - 326ec2a9
@@ -35,6 +36,9 @@ commits:
 - grep 확인: 라이브카드=panelFire, 칩·평상=activeAlarm 유지.
 - **실기기 검증(스크롤 동작, 알람 색)은 배포 후 사용자 UAT 대기.**
 
+## 배포
+- **배포 완료** 2026-07-25 → https://675b5b71.cbc7119.pages.dev (production 브랜치, cbc7119). 수동 wrangler(--branch=production, cha-bio-safety CWD), functions untracked 0 확인.
+
 ## 다음
-1. 사용자 승인 시 메인 세션에서 수동 배포(`--branch production`, cha-bio-safety CWD 부모).
-2. 배포·UAT OK 후 staging 콘솔에서 prod 미러 리셋 진행.
+1. **실기기 UAT 대기** — 직원추가 모달 스크롤(뒤 페이지 안 밀림) + 대시보드 라이브카드 평상 초록/설비알람 초록 유지.
+2. UAT OK 후 staging 콘솔(~/Documents/cbc7119-data)에서 prod 미러 리셋 진행([[project_staging_prod_mirror_reset]]).
