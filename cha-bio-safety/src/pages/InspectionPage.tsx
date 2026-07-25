@@ -28,6 +28,7 @@ import { getReplaceWarning } from '../utils/extinguisher'
 import { CCTV_DVRS } from '../utils/cctv'
 import { inspectionContent, type InspectionItem } from '../data/inspectionContent'
 import { RESULT_ICONS, INSPECT_RESULT_OPTIONS, faWorst, faLineResults, faAutoMemo, faAllResolved, FamilyACard, type IconComp, type FaMark } from '../components/inspection/familyCard'
+import { faAutoMemoFor, hydrantRemediationSymbol } from '../components/inspection/familyHelpers'
 import {
   ChevronLeft, ChevronRight, Bell, X, TrendingUp, Flame,
   BellRing, BellOff, RefreshCw, Maximize2, Plus,  // Phase 25 화재수신반
@@ -2091,53 +2092,6 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
 //         소화전은 라인0(위치표시등)/라인3(소화전함·호스) 특례(faAutoMemoFor·hydrantRemediationSymbol).
 // 완강기 카드는 A 포함(사용자 확정, 13개소); 완강기 엑셀(피난방화 sheet6)만 증분 C.
 const FAMILY_A_CATEGORIES = ['청정소화약제', '소방펌프', '완강기', '소화전', '방화셔터']
-
-// 소화전 라인별 특례를 반영한 auto 특이사항.
-//  - special[i].symbol (라인0 위치표시등): caution/bad 무관 고정 문구(C/D 대체)
-//  - special[3].picker (소화전함·호스): prefix + 선택값(경종/호스걸이/직접입력 텍스트)
-// special 없는 카테고리(청정·펌프·완강기·비상콘센트)는 기존 faAutoMemo 로 위임 → A 회귀 0.
-function faAutoMemoFor(
-  category: string,
-  items: InspectionItem[],
-  marks: Record<number, FaMark>,
-  ctx?: { hydrantPick?: string; hydrantCustom?: string },
-): string {
-  const special = inspectionContent[category]?.special
-  if (!special) return faAutoMemo(items, marks)
-  return items
-    .filter(it => marks[it.i] === 'caution' || marks[it.i] === 'bad')
-    .map(it => {
-      const sp = special[String(it.i)]
-      if (sp?.symbol) return sp.symbol as string
-      if (sp?.picker) {
-        const prefix = (marks[it.i] === 'bad' ? sp.badPrefix : sp.cautionPrefix) as string
-        const suffix = ctx?.hydrantPick === '직접 입력'
-          ? (ctx?.hydrantCustom ?? '').trim()
-          : (ctx?.hydrantPick ?? (sp.picker as string[])[0])
-        return `${prefix.replace(/\s*$/, '')} ${suffix}`.trimEnd()
-      }
-      return (marks[it.i] === 'bad' ? it.bad : it.caution)
-    })
-    .join('\n')
-}
-
-// 소화전 조치용 remediation_symbol 도출(개소당 단일). 우선순위: 라인3(피커) > 라인0(위치표시등).
-// 라인3 우선이라 재방문 시 remediation_symbol 로 피커 선택값 복원 가능(라인0 은 고정문구=무상태).
-function hydrantRemediationSymbol(
-  marks: Record<number, FaMark>,
-  hydrantPick: string,
-  hydrantCustom: string,
-): string | undefined {
-  const special = inspectionContent['소화전']?.special
-  if (!special) return undefined
-  if (marks[3] === 'caution' || marks[3] === 'bad') {
-    if (hydrantPick === '직접 입력') return hydrantCustom.trim() || undefined
-    const symbols = special['3'].symbols as Record<string, string>
-    return symbols[hydrantPick] ?? symbols['경종']
-  }
-  if (marks[0] === 'caution' || marks[0] === 'bad') return special['0'].symbol as string
-  return undefined
-}
 
 // 전실제연댐퍼 조치용 remediation_symbol 도출(개소당 단일). 우선순위: i4(수동기동→'기판 조작 불량') > i0(공기유입구→'모터 기능 이상').
 // 반환값은 special[i].symbol 문자열 그대로 — RemediationDetailPage 가 이 심볼로 기본 조치/자재를 역매핑.
