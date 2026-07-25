@@ -467,11 +467,8 @@ export default function DashboardPage() {
 
             {/* Phase 25: 화재수신반 라이브 위젯 (shrink-0) */}
             <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden shrink-0">
-              <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border-default">
-                <BellRing size={16} className="text-text-secondary" />
-                <span className="text-label font-bold text-text-primary">화재수신반 라이브</span>
-                <span className="ml-auto text-caption text-text-tertiary">방재실 캡처</span>
-              </div>
+              {/* 헤더 행 제거(달력 세로 공간 ~41px 확보) → 제목을 이미지 좌상단 배지로 이동.
+                  헤더엔 운영정보 없음(제목+출처 라벨). 바텀 캡션(신선도/경보상태)은 유지. */}
               <div
                 onClick={handlePanelClick}
                 onDoubleClick={handlePanelDblClick}
@@ -479,9 +476,14 @@ export default function DashboardPage() {
                 style={activeAlarm ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}
               >
                 <LivePanelImage frameUpdatedAt={frameUpdatedAt} imgClassName="w-full h-full object-cover" />
-                {/* LIVE / 화재 배지 (dot span) */}
+                {/* 제목 배지 (헤더 대체) — 좌상단 */}
+                <div className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill bg-black/55 px-[7px] py-0.5 text-[10px] font-bold text-white pointer-events-none">
+                  <BellRing size={11} />
+                  화재수신반 라이브
+                </div>
+                {/* LIVE / 화재 배지 (dot span) — 우상단으로 이동 */}
                 <div
-                  className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
+                  className="absolute top-[7px] right-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
                   style={{ background: activeAlarm ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}
                 >
                   <span className="w-[6px] h-[6px] rounded-full bg-white" style={{ animation: 'blink 1s steps(1,end) infinite' }} />

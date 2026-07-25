@@ -473,4 +473,4 @@ Resume file: None
 | 2026-04-29 | fast | PhotoSourceModal 취소 버튼이 BottomNav에 가려지지 않게 padding-bottom 보강 (35a498e) | ✅ |
 | 2026-05-16 | fast | PhotoSourceModal v0.1.1 토큰+lucide 변환 (📷→Camera/🖼️→ImageIcon, --bg/bg2/bg3/t1/t3 → surface-*/text-*, hover 상태 추가, 호출처 7곳 자동 정합) — f0ee9b5 | ✅ |
 | 2026-07-25 | quick (260725-ipk) | 데스크톱 화재수신반 pane 스크롤/클리핑 수정 — id-body 스크롤러를 flex-col 겸용에서 블록 스크롤러 + 내부 flex 래퍼로 분리 (라이브뷰 하단 잘림 + 수동 기록 추가 스크롤 불가). headless Chrome 재현·build PASS. 배포 완료(5349448d) | ✅ |
-| 2026-07-25 | quick (260725-mnq) | 데스크톱 대시보드 달력·점검현황 카드 바닥 정렬 — 원인=달력 min-h-[220px] 삐져나옴. Option B(달력 풀사이즈+스크롤) 배포(c3613877)했으나 사용자 스크롤 원치않음 → Option A 전환(달력 min-h-0, Row3 min-h-0 원복): 페이지 스크롤 X + 바닥 정렬, 달력만 흡수 축소. CDP 실측 DELTA=0·pageScroll=false(vh953/913), build PASS. 배포 완료(a94021bc) | ✅ |
+| 2026-07-25 | quick (260725-mnq) | 데스크톱 대시보드 달력·점검현황 카드 바닥 정렬 — 원인=달력 min-h-[220px] 삐져나옴. Option B(달력 풀사이즈+스크롤) 배포(c3613877)했으나 사용자 스크롤 원치않음 → Option A 전환(달력 min-h-0, Row3 min-h-0 원복): 페이지 스크롤 X + 바닥 정렬, 달력만 흡수 축소. CDP 실측 DELTA=0·pageScroll=false(vh953/913), build PASS. 배포(a94021bc). +후속: 낮은 뷰포트 달력 상단 트림 → 라이브 카드 헤더 제거+제목 이미지배지화(공간 41px 확보, calH 183→223 풀표시), 바텀 신선도 유지 | ✅ |
