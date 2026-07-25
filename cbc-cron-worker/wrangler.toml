@@ -3,6 +3,12 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 main = "src/index.ts"
 
+# 워치독 푸시 킬스위치 — 정지 절차 = 이 값을 "0" 으로 바꿔 `wrangler deploy`.
+# 대시보드에서 바꾸지 마라: keep_vars 미설정이라 다음 deploy 가 말없이 되돌린다.
+# "0" 이어도 상태기계·텔레메트리는 계속 돈다 (발송 블록만 건너뜀 — 침묵이 성공처럼 보이면 안 된다).
+[vars]
+WATCHDOG_PUSH_ENABLED = "1"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "cha-bio-db"
