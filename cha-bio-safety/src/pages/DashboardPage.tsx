@@ -481,9 +481,9 @@ export default function DashboardPage() {
                   <BellRing size={11} />
                   화재수신반 라이브
                 </div>
-                {/* LIVE / 화재 배지 (dot span) — 우상단으로 이동 */}
+                {/* LIVE / 화재 배지 (dot span) — 좌하단 */}
                 <div
-                  className="absolute top-[7px] right-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
+                  className="absolute bottom-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
                   style={{ background: activeAlarm ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}
                 >
                   <span className="w-[6px] h-[6px] rounded-full bg-white" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
