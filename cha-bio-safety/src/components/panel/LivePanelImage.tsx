@@ -21,6 +21,9 @@ interface LivePanelImageProps {
   aspectClass?: string   // 프레임 비율/높이 (기본 16:9 aspect-video). 에이전트 크롭 비율 or 고정높이(h-[..]) 로 오버라이드.
   objectClass?: string   // object-fit (기본 cover). object-fill = 짜부(비율 무시하고 박스 채움).
   onClick?: () => void
+  // 캡처 죽음 라벨(liveSignalDown 결과). 자체 배지 없는 consumer(모바일 대시보드 등)용 회색 오버레이 —
+  // 자체 LIVE 배지가 있는 Surface 는 이 prop 을 쓰지 말고 배지에서 직접 처리한다 (이중 표기 방지).
+  signalDownLabel?: string | null
 }
 
 export default function LivePanelImage({
@@ -32,6 +35,7 @@ export default function LivePanelImage({
   aspectClass = 'aspect-video',
   objectClass = 'object-cover',
   onClick,
+  signalDownLabel,
 }: LivePanelImageProps) {
   const isLive = !snapshotKey
 
@@ -91,6 +95,15 @@ export default function LivePanelImage({
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-surface-sunken text-text-tertiary text-caption">
           수신반 화면 로딩 · 미연결
+        </div>
+      )}
+      {signalDownLabel && !hidden && (
+        <div
+          className="absolute bottom-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
+          style={{ background: 'rgba(107,114,128,.9)' }}
+        >
+          <span className="w-[6px] h-[6px] rounded-full bg-white" />
+          {signalDownLabel}
         </div>
       )}
     </div>

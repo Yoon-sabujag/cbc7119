@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -7,7 +7,7 @@ import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi, panelApi, alarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, CatBar } from '../components/ui'
 import LivePanelImage from '../components/panel/LivePanelImage'
-import { freshnessLabel } from '../components/panel/freshness'
+import { freshnessLabel, liveSignalDown } from '../components/panel/freshness'
 import type { DashboardScheduleItem, Staff } from '../types'
 import { getMonthlySchedule } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
@@ -183,9 +183,11 @@ export default function DashboardPage() {
   const latestAlarm = (recentAlarms ?? [])[0] as any
 
   // Phase 25: 화재수신반 상태 + 활성경보 (미배포 트랙 -> try/catch 평상시 fallback)
-  const { data: panelStatus } = useQuery({
+  // 실패를 catch 로 삼키지 않는다 — 삼키면 '성공적인 null' 이 캐시를 덮어 장애 중에도 초록 LIVE 로 복귀한다(260726 F1).
+  // 에러 시 react-query 가 마지막 성공 데이터를 유지 → 신선도 노화로 자연히 '지연' 회색 전이.
+  const { data: panelStatus, isError: panelStatusError } = useQuery({
     queryKey: ['panel-status'],
-    queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
+    queryFn: () => panelApi.getStatus(),
     staleTime: 30_000,
     refetchInterval: 2_000,
     retry: false,
@@ -201,6 +203,13 @@ export default function DashboardPage() {
   const panelFire = activeAlarm?.type === 'fire' ? activeAlarm : null
   const maintOn = panelStatus?.maint?.enabled ?? false
   const frameUpdatedAt = panelStatus?.frameUpdatedAt ?? null
+  // 10초 시간 티커 — 에이전트 프로세스 사망 시 status payload 가 동결돼 재렌더가 멎어도
+  // '지연' 회색 전이가 제때 그려지게 한다(260726 F3 — 신선도 판정은 렌더 시각에 의존한다).
+  const [nowTick, setNowTick] = useState(Date.now())
+  useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 10_000); return () => clearInterval(t) }, [])
+  // 캡처 죽음 판정(연결 끊김/신호 없음/지연) — LIVE·'정상' 초록은 이 게이트 통과 시에만 (260726).
+  // 성공 이력 없이 폴이 실패 중이면 '확인 불가' — 게이트를 초록으로 우회시키지 않는다(F1).
+  const liveDown = panelStatusError && !panelStatus ? '확인 불가' : liveSignalDown(panelStatus, nowTick)
 
   const dutyStaff: Staff[] = staffRows.map(s => ({
     id: s.id, name: s.name, title: s.title,
@@ -498,10 +507,10 @@ export default function DashboardPage() {
                 {/* LIVE / 화재 배지 (dot span) — 좌하단 */}
                 <div
                   className="absolute bottom-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white pointer-events-none"
-                  style={{ background: panelFire ? 'rgba(239,68,68,.9)' : 'rgba(34,197,94,.85)' }}
+                  style={{ background: panelFire ? 'rgba(239,68,68,.9)' : liveDown ? 'rgba(107,114,128,.9)' : 'rgba(34,197,94,.85)' }}
                 >
-                  <span className="w-[6px] h-[6px] rounded-full bg-white" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
-                  {panelFire ? '화재' : 'LIVE'}
+                  <span className="w-[6px] h-[6px] rounded-full bg-white" style={!panelFire && liveDown ? undefined : { animation: 'blink 1s steps(1,end) infinite' }} />
+                  {panelFire ? '화재' : liveDown ?? 'LIVE'}
                 </div>
                 {/* 더블클릭 확대 힌트 */}
                 <div className="absolute bottom-[7px] right-[7px] inline-flex items-center gap-1 bg-black/50 rounded-sm px-[7px] py-0.5 text-[10px] text-white pointer-events-none">
@@ -520,6 +529,15 @@ export default function DashboardPage() {
                     <span className="text-text-tertiary">·</span>
                     <span className="font-mono tabular-nums shrink-0">{panelFire.detectedAt}</span>
                   </>
+                ) : liveDown ? (
+                  <>
+                    <span className="w-[7px] h-[7px] rounded-full bg-text-tertiary shrink-0" />
+                    <span className="font-bold">{liveDown}</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span>라이브 확인 불가</span>
+                    <span className="text-text-tertiary">·</span>
+                    <span className="font-mono tabular-nums">{freshnessLabel(frameUpdatedAt, nowTick).label}</span>
+                  </>
                 ) : (
                   <>
                     <span className="w-[7px] h-[7px] rounded-full bg-safe-bar shrink-0" style={{ animation: 'blink 1s steps(1,end) infinite' }} />
@@ -527,7 +545,7 @@ export default function DashboardPage() {
                     <span className="text-text-tertiary">·</span>
                     <span>이상 없음</span>
                     <span className="text-text-tertiary">·</span>
-                    <span className="font-mono tabular-nums">{freshnessLabel(frameUpdatedAt).label}</span>
+                    <span className="font-mono tabular-nums">{freshnessLabel(frameUpdatedAt, nowTick).label}</span>
                   </>
                 )}
               </div>
@@ -690,6 +708,7 @@ export default function DashboardPage() {
             frameUpdatedAt={frameUpdatedAt}
             aspectClass="h-full"
             objectClass="object-fill"
+            signalDownLabel={panelFire ? null : liveDown}
           />
         </div>
 

@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, panelApi, alarmApi, type ExtinguisherDetail, type FloorPlanMarker, type Alarm } from '../utils/api'
 import LivePanelImage from '../components/panel/LivePanelImage'
-import { freshnessLabel } from '../components/panel/freshness'
+import { freshnessLabel, liveSignalDown } from '../components/panel/freshness'
 import { usePinchZoom } from '../hooks/usePinchZoom'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
@@ -4351,13 +4351,16 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
 
-  // ── 원격감시 상태 (미배포 -> 평상시 폴백) ──
-  const { data: status } = useQuery({
+  // ── 원격감시 상태 ── 실패를 catch 로 삼키지 않는다(260726 F1 — 삼키면 장애 중 초록 복귀).
+  const { data: status, isError: statusError } = useQuery({
     queryKey: ['panel-status'],
-    queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
+    queryFn: () => panelApi.getStatus(),
     refetchInterval: 2_000,
     retry: false,
   })
+  // 10초 시간 티커 — payload 동결(에이전트 사망) 시에도 '지연' 회색 전이가 제때 렌더되게 (260726 F3).
+  const [nowTick, setNowTick] = useState(Date.now())
+  useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 10_000); return () => clearInterval(t) }, [])
   const { data: activeAlarm } = useQuery({
     queryKey: ['alarm-active'],
     queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
@@ -4376,13 +4379,18 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const maintOn = !!status?.maint?.enabled
   // 경보 takeover(빨강 '화재'+화재보/비화재보 초안)는 fire 전용. 고장/설비는 push+풀스크린만 → 기록 페이지는 normal 유지.
   const mode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm?.type === 'fire' ? 'alarm' : 'normal')
-  const fresh = freshnessLabel(status?.frameUpdatedAt ?? null)
+  const fresh = freshnessLabel(status?.frameUpdatedAt ?? null, nowTick)
+  // 캡처 죽음 판정 — 성공 이력 없이 폴 실패 중이면 '확인 불가'(초록 우회 금지, F1).
+  const liveDown = statusError && !status ? '확인 불가' : liveSignalDown(status, nowTick)
   // 라이브 카드 상태 표기 = 실제 경보 타입 (기록 takeover=mode 는 fire 전용이나, 상태 표기는 전 타입). maint 시 억제.
-  const liveDisp = maintOn ? null
+  const liveDispRaw = maintOn ? null
     : activeAlarm?.type === 'fire' ? { label: '화재 경보', text: 'text-danger', dot: 'bg-danger-bar', badge: '화재', badgeBg: 'rgba(239,68,68,.9)', border: 'border-danger-bar bg-danger-bg shadow-[0_0_0_1px_rgba(239,68,68,.4)]', pulse: true }
     : activeAlarm?.type === 'equip' ? { label: '설비 동작', text: 'text-safe', dot: 'bg-safe-bar', badge: '설비', badgeBg: 'rgba(34,197,94,.9)', border: 'border-safe-bar bg-safe-bg', pulse: false }
     : activeAlarm?.type === 'fault' ? { label: '고장', text: 'text-warning', dot: 'bg-warning-bar', badge: '고장', badgeBg: 'rgba(245,158,11,.9)', border: 'border-warning-bar bg-warning-bg', pulse: false }
     : null
+  // 화재만 회색(liveDown)보다 우선한다(260726 F2). 설비/고장 경보의 해제 주체는 에이전트뿐이라,
+  // 에이전트가 죽으면 경보가 active 로 동결돼 '설비 동작' 초록이 '연결 끊김'을 무기한 가린다.
+  const liveDisp = liveDispRaw && (activeAlarm?.type === 'fire' || !liveDown) ? liveDispRaw : null
 
   // ── form state (기존 5필드 유지) ──
   const [type, setType] = useState<'fire'|'non_fire'>('non_fire')
@@ -4532,9 +4540,9 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
               <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
               {/* LIVE 배지 live-ov */}
               <div className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white"
-                style={{ background: liveDisp ? liveDisp.badgeBg : 'rgba(34,197,94,.85)' }}>
-                <span className="w-[6px] h-[6px] rounded-full bg-white" style={blinkStyle} />
-                {liveDisp ? liveDisp.badge : 'LIVE'}
+                style={{ background: liveDisp ? liveDisp.badgeBg : liveDown ? 'rgba(107,114,128,.9)' : 'rgba(34,197,94,.85)' }}>
+                <span className="w-[6px] h-[6px] rounded-full bg-white" style={!liveDisp && liveDown ? undefined : blinkStyle} />
+                {liveDisp ? liveDisp.badge : liveDown ?? 'LIVE'}
               </div>
               {/* fshint */}
               <div className="absolute bottom-[7px] right-[7px] inline-flex items-center gap-1 bg-black/50 rounded-sm px-[7px] py-0.5 text-[10px] text-white pointer-events-none">
@@ -4552,6 +4560,15 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
                   <span>{activeAlarm?.location ?? '수신반 확인 필요'}</span>
                   <span className="text-text-tertiary">·</span>
                   <span>{activeAlarm?.detectedAt ?? ''}</span>
+                </>
+              ) : liveDown ? (
+                <>
+                  <span className="w-[7px] h-[7px] rounded-full bg-text-tertiary shrink-0" />
+                  <span className="font-bold">{liveDown}</span>
+                  <span className="text-text-tertiary">·</span>
+                  <span>라이브 확인 불가</span>
+                  <span className="text-text-tertiary">·</span>
+                  <span>{fresh.label}</span>
                 </>
               ) : (
                 <>
@@ -5030,13 +5047,16 @@ function DesktopInspectionView({
   const FIRE_ALARM_IDX = CATEGORY_GROUPS.findIndex(g => g.categories.includes('화재수신반'))
   const isPanel = categoryIdx !== null && CATEGORY_GROUPS[categoryIdx].categories.includes('화재수신반')
 
-  // 원격감시 상태 (미배포 -> 평상시 폴백)
-  const { data: panelStatus } = useQuery({
+  // 원격감시 상태 — 실패를 catch 로 삼키지 않는다(260726 F1 — 삼키면 장애 중 초록 복귀).
+  const { data: panelStatus, isError: panelStatusError } = useQuery({
     queryKey: ['panel-status'],
-    queryFn: async () => { try { return await panelApi.getStatus() } catch { return null } },
+    queryFn: () => panelApi.getStatus(),
     refetchInterval: 2_000,
     retry: false,
   })
+  // 10초 시간 티커 — payload 동결(에이전트 사망) 시에도 '지연' 회색 전이가 제때 렌더되게 (260726 F3).
+  const [nowTick, setNowTick] = useState(Date.now())
+  useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 10_000); return () => clearInterval(t) }, [])
   const { data: activeAlarm } = useQuery({
     queryKey: ['alarm-active'],
     queryFn: async () => { try { return await alarmApi.getActive() } catch { return null } },
@@ -5055,13 +5075,18 @@ function DesktopInspectionView({
   const maintOn = !!panelStatus?.maint?.enabled
   // fire 전용 (mode 와 동일 룰) — 고장/설비는 화재수신반 pane 을 alarm 으로 만들지 않음.
   const panelMode: 'normal' | 'alarm' | 'maint' = maintOn ? 'maint' : (activeAlarm?.type === 'fire' ? 'alarm' : 'normal')
-  const panelFresh = freshnessLabel(panelStatus?.frameUpdatedAt ?? null)
+  const panelFresh = freshnessLabel(panelStatus?.frameUpdatedAt ?? null, nowTick)
+  // 캡처 죽음 판정 — 성공 이력 없이 폴 실패 중이면 '확인 불가'(초록 우회 금지, F1).
+  const panelLiveDown = panelStatusError && !panelStatus ? '확인 불가' : liveSignalDown(panelStatus, nowTick)
   // 라이브 카드 상태 표기 = 실제 경보 타입 (panelMode 는 fire 전용, 표기는 전 타입). maint 시 억제.
-  const panelLiveDisp = maintOn ? null
+  const panelLiveDispRaw = maintOn ? null
     : activeAlarm?.type === 'fire' ? { label: '화재 경보', text: 'text-danger', dot: 'bg-danger-bar', badge: '화재', badgeBg: 'rgba(239,68,68,.9)', border: 'border-danger-bar bg-danger-bg shadow-[0_0_0_1px_rgba(239,68,68,.4)]', pulse: true }
     : activeAlarm?.type === 'equip' ? { label: '설비 동작', text: 'text-safe', dot: 'bg-safe-bar', badge: '설비', badgeBg: 'rgba(34,197,94,.9)', border: 'border-safe-bar bg-safe-bg', pulse: false }
     : activeAlarm?.type === 'fault' ? { label: '고장', text: 'text-warning', dot: 'bg-warning-bar', badge: '고장', badgeBg: 'rgba(245,158,11,.9)', border: 'border-warning-bar bg-warning-bg', pulse: false }
     : null
+  // 화재만 회색(panelLiveDown)보다 우선한다(260726 F2). 설비/고장 경보의 해제 주체는 에이전트뿐이라,
+  // 에이전트가 죽으면 경보가 active 로 동결돼 '설비 동작' 초록이 '연결 끊김'을 무기한 가린다.
+  const panelLiveDisp = panelLiveDispRaw && (activeAlarm?.type === 'fire' || !panelLiveDown) ? panelLiveDispRaw : null
 
   // 딥링크 자동열기 (FLAG-1): /inspection?panel=fire-alarm -> 화재수신반 pane / &zoom=1 -> 줌 오버레이.
   // 데스크톱은 모바일 FireAlarmModal 마운트 전에 early-return 하므로 25-03 핸들러가 이 pane 을 열지 못함.
@@ -5435,9 +5460,9 @@ function DesktopInspectionView({
                   <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
                   {/* live-badge */}
                   <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-caption font-extrabold leading-none text-white"
-                    style={{ background: panelLiveDisp ? panelLiveDisp.badgeBg : 'rgba(34,197,94,.85)' }}>
-                    <span className="w-[6px] h-[6px] rounded-full bg-white" style={paBlink} />
-                    {panelLiveDisp ? panelLiveDisp.badge : 'LIVE'}
+                    style={{ background: panelLiveDisp ? panelLiveDisp.badgeBg : panelLiveDown ? 'rgba(107,114,128,.9)' : 'rgba(34,197,94,.85)' }}>
+                    <span className="w-[6px] h-[6px] rounded-full bg-white" style={!panelLiveDisp && panelLiveDown ? undefined : paBlink} />
+                    {panelLiveDisp ? panelLiveDisp.badge : panelLiveDown ?? 'LIVE'}
                   </div>
                   {/* live-hint */}
                   <div className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-black/50 rounded-sm px-2 py-0.5 text-caption text-white pointer-events-none">
@@ -5455,6 +5480,15 @@ function DesktopInspectionView({
                       <span>{activeAlarm?.location ?? '수신반 확인 필요'}</span>
                       <span className="text-text-tertiary">·</span>
                       <span>{activeAlarm?.detectedAt ?? ''}</span>
+                    </>
+                  ) : panelLiveDown ? (
+                    <>
+                      <span className="w-[7px] h-[7px] rounded-full bg-text-tertiary shrink-0" />
+                      <span className="font-bold">{panelLiveDown}</span>
+                      <span className="text-text-tertiary">·</span>
+                      <span>라이브 확인 불가</span>
+                      <span className="text-text-tertiary">·</span>
+                      <span>{panelFresh.label}</span>
                     </>
                   ) : (
                     <>
