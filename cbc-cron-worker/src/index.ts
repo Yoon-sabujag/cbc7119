@@ -695,7 +695,7 @@ async function buildDbBackupSql(env: Env): Promise<{ sql: string; oversized: str
 //                    → code 가 4종(hb/starved/detect/blind)뿐이라 사고당 에스컬레이션은 자연히 ≤3회로 유계.
 //   - push-failed  → 직전 발송의 실제 도달 0건 (§6-2). 단 연속 실패 WATCHDOG_FAIL_MAX 회로 상한.
 //   - cooldown     → 경과 > 6시간 지속 상기 (§6-1). **cooldown 에도 fail_n 상한을 건다** —
-//                    안 걸면 전 구독 사망 시 6시간 뒤부터 매 틱 발화(288회/일 재시도 루프). 탈출구는 폴백 청중이다.
+//                    안 걸면 전 구독 사망 시 6시간 뒤부터 매 틱 발화(288회/일 재시도 루프).
 //   회복은 한 틱 클린이 아니라 **CLEAR(30분) 연속 클린**이어야 확정 — 확정 시 워치독 컬럼 6개 전부 NULL.
 //   pending_since 는 사유가 잠깐 사라져도 지우지 않는다(플래핑 기아도 진짜 고장) — 회복 확정에서만 지운다.
 //   발송 없는 틱은 DB 무기록 (pending/clear 시계 제외). 미발송 틱에 push_ok=0 을 쓰면 다음 틱
@@ -710,8 +710,10 @@ async function buildDbBackupSql(env: Env): Promise<{ sql: string; oversized: str
 //     구 에이전트/MONITOR_TELEMETRY=0 이면 이 필드가 없다).
 //   - detect_mode='off' 면 감지 정지로 푸시하지 않는다 (S9 — 의도된 설정이지 고장이 아니다).
 //
-// ★ 청중 = staff.panel_watchdog=1 OR role='admin' (마이그레이션 0104, 데이터 주도).
-//   폴백: 청중 구독 합계 0 또는 연속 실패 3회 이상 → '구독 1건 이상 보유한 active 직원 전원' 으로 확장.
+// ★ 청중 = staff.panel_watchdog=1 **만** (0104 신설 → 0105 에서 담당자 단독으로 축소, 2026-07-27 지시).
+//   role='admin' 은 발송 대상 아님(화면 열람만). 이관은 D1 플래그 이동만으로 — 재배포 불필요.
+//   지시서 B-3 폴백(전 직원 확장)은 담당자 단독 수신 정책으로 폐기 — 담당자 구독 전멸 시 푸시는 침묵하고
+//   deaf 텔레메트리 + 화면 회색만 남는다 (담당자가 인지하고 결정한 트레이드오프).
 //   구 청중(role='admin' 만)은 유일 admin 의 구독이 410 삭제된 뒤 **평생 도달 0건**이었다 — 이 수정의 존재 이유.
 const WATCHDOG_COOLDOWN_MS = 6 * 3600_000   // 고장 지속 시 재알림 간격. 하루 최대 4회 = 알람 피로 없이 상기
 const WATCHDOG_CONFIRM_MS  = 10 * 60_000    // 사유 최초 관측 후 이만큼 지나야 첫 푸시 (새벽 transient 실측 지지값)
@@ -840,9 +842,14 @@ async function handlePanelWatchdog(env: Env): Promise<void> {
       ? reasons.map(r => r.text).join(' · ')
       : `${reasons.map(r => r.text).join(' · ')} — ${durText}째 지속`
 
-    // ── 청중: panel_watchdog=1 OR admin (0104, 데이터 주도 — 사람이 바뀌어도 재배포 불필요) ──
+    // ── 청중: panel_watchdog=1 **만** (0105, 2026-07-27 담당자 지시 — 프로그램 담당자 윤종엽 단독 수신) ──
+    // role='admin' 은 발송 대상이 아니다 — 화면 열람(§5 게이트)만 admin 에게 열려 있다.
+    // 이관(퇴사 등): D1 에서 staff.panel_watchdog 플래그만 옮기면 끝 — 코드 재배포 불필요.
+    // ⚠️ 지시서 B-3 폴백(구독 전멸 시 전 직원 확장 발송)은 같은 지시로 폐기 — 담당자 외 발송 금지.
+    //    그 대가로 담당자 구독 전멸 시(iOS 차단 → 410 → 자동삭제) 푸시는 완전 침묵한다.
+    //    남는 신호 = cron-panel-watchdog-deaf 텔레메트리 + 앱 화면 회색뿐임을 담당자가 인지하고 결정했다.
     const adminRows = await env.DB.prepare(
-      "SELECT id FROM staff WHERE active = 1 AND (panel_watchdog = 1 OR role = 'admin')",
+      "SELECT id FROM staff WHERE active = 1 AND panel_watchdog = 1",
     ).all<{ id: string }>()
     const adminIds = (adminRows.results ?? []).map(r => r.id)
 
@@ -855,26 +862,11 @@ async function handlePanelWatchdog(env: Env): Promise<void> {
       ).bind(...adminIds).all<PushSubRow>()
       subRows = subs.results ?? []
     }
-
-    // ── 폴백 청중 — "전 구독 사망 = 영구 침묵" 차단 ──
-    // 지정 청중의 구독이 전멸했거나(iOS 차단 → Apple 410 → 구독 자동삭제 한 방이면 공집합이 된다)
-    // 연속 도달 실패 3회 이상이면, '구독 1건 이상 보유한 active 직원 전원' 으로 확장해 보낸다.
-    const audienceSubs = subRows.length  // 병합 전 지정 청중 구독 수 — 텔레메트리 subs 는 이 값 (폴백에 가려지면 안 된다)
     if (subRows.length === 0) {
+      // 청각 상실 관측 — 발송 트리거가 선 틱에서만 남는다(평상시 무기록). 원사고(admins:1 오독)의 재발 방지 표식.
       await logTelemetry(env, 'cron-panel-watchdog-deaf', {
         detail: JSON.stringify({ admins: adminIds.length, trigger }),
       })
-    }
-    let fallback = false
-    if (subRows.length === 0 || failN >= 3) {
-      const fb = await env.DB.prepare(
-        `SELECT ps.id, ps.staff_id, ps.endpoint, ps.p256dh, ps.auth, ps.notification_preferences
-           FROM push_subscriptions ps JOIN staff s ON s.id = ps.staff_id
-          WHERE s.active = 1`,
-      ).all<PushSubRow>()
-      const seenSub = new Set(subRows.map(s => s.id))
-      for (const r of fb.results ?? []) if (!seenSub.has(r.id)) subRows.push(r)
-      fallback = true
     }
 
     // ── 발송 ── 킬스위치('0')는 이 블록만 건너뛴다 — 상태기계·텔레메트리는 계속 (침묵≠성공).
@@ -909,9 +901,8 @@ async function handlePanelWatchdog(env: Env): Promise<void> {
       detail: JSON.stringify({
         trigger, reasonKey, reasons: reasons.map(r => r.text),
         admins: adminIds.length,
-        subs: audienceSubs,    // "보낼 사람이 없다" vs "보냈는데 실패" 구분 — admins:1 오독의 재발 방지
-        sent: subRows.length,  // 실제 발송 대상 구독 수 (폴백 병합 후)
-        pushOk, pushFailN: disabled ? failN : pushFailN, fallback, disabled, durMin,
+        subs: subRows.length,  // "보낼 사람이 없다" vs "보냈는데 실패" 구분 — admins:1 오독의 재발 방지
+        pushOk, pushFailN: disabled ? failN : pushFailN, disabled, durMin,
       }),
     })
   } catch (e: any) {
