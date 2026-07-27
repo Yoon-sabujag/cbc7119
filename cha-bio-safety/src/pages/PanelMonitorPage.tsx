@@ -88,7 +88,17 @@ export default function PanelMonitorPage() {
     const detectMode = s?.detectMode
     const matcher = s?.matcherLoaded
 
-    // 1. 캡처보드 수신 — frameStarvedSec 이 유일한 근거
+    // 1. 캡처보드 수신 — frameStarvedSec + 색평균(blind) 이 근거
+    // 화면 실명(blind, 260727): 캡처보드는 HDMI 무입력 시 검은 프레임을 합성하므로 기아로는 안 잡힌다.
+    // 최근 ~7분 색평균 합이 전부 0 이면(유효 ≥3, 각 행 기아 <30s) 워치독 blind 사유와 동일 판정.
+    const cut7 = Date.now() - 7 * 60_000
+    const recentRgy = points.filter(p => {
+      const t = parseKst(p.at)
+      return t != null && t >= cut7 && p.rAvg != null && p.gAvg != null && p.yAvg != null
+    })
+    const blind = recentRgy.length >= 3 && recentRgy.every(p =>
+      (p.rAvg! + p.gAvg! + p.yAvg!) < 0.01 && (p.frameStarvedSec ?? 0) < 30)
+
     let cap: { s: Tone; v: string; why: string; rule: string }
     if (starved == null) {
       cap = { s: 'unsup', v: '판정 불가', why: '<b>frameStarvedSec = null</b> — 구 에이전트이거나 MONITOR_TELEMETRY=0. 계측 필드가 오지 않는다.',
@@ -96,6 +106,9 @@ export default function PanelMonitorPage() {
     } else if (starved >= 30) {
       cap = { s: 'bad', v: '무신호', why: `마지막 프레임 <b>${starved}초 전</b> — heartbeat 는 살아 있으나 새 프레임이 없다. HDMI / 캡처보드 확인. <b>현재 화재를 감지할 수 없다.</b>`,
         rule: 'frameStarvedSec ≥ 30s → 위험 (5s 초록경계 / 10s 로컬로그 / 30s 푸시)' }
+    } else if (blind) {
+      cap = { s: 'bad', v: '검은 화면', why: `프레임은 수신되나(기아 <b>${starved}초</b>) 최근 색·표시등이 전무(색평균 0) — <b>HDMI 입력 / 수신반 화면 출력 사망 의심.</b> 라이브뷰에는 에이전트 진단 카드(보라)가 떠 있다. <b>현재 화재를 감지할 수 없다.</b>`,
+        rule: '최근 ~7분 색평균 합 < 0.01 (유효 ≥3 · 기아 <30s) → 위험 — 워치독 blind 사유와 동일 판정' }
     } else if (starved >= 5) {
       cap = { s: 'warn', v: '수신 지연', why: `마지막 프레임 <b>${starved}초 전</b> · 60초 최대 지연 <b>${n0(lagMax)}ms</b>`,
         rule: '5s ≤ frameStarvedSec < 30s → 주의' }
@@ -177,7 +190,7 @@ export default function PanelMonitorPage() {
     }
 
     return [{ n: '캡처보드', ...cap }, { n: '업로드', ...up }, { n: '감지', ...det }, { n: 'OCR', ...o }]
-  }, [s, last1h, lastAlarm])
+  }, [s, points, last1h, lastAlarm])
 
   // ── ③ 프레임 지연 시계열 (로그축 SVG. 주선 = frameLagMaxMs) ──
   //
@@ -311,7 +324,9 @@ export default function PanelMonitorPage() {
       : s?.detectMode === 'off' || lights.some(l => l.s === 'warn') ? 'warn' : 'ok'
 
   const warnLine = watchdog
-    ?? (lights[0].s === 'bad' && s?.frameStarvedSec != null
+    ?? (lights[0].v === '검은 화면'
+      ? '화면 신호 없음(검은 화면) — 프레임은 수신되나 색·표시등이 전무. HDMI 입력/수신반 화면 출력 확인. 현재 화재를 감지할 수 없다.'
+      : lights[0].s === 'bad' && s?.frameStarvedSec != null
       ? `프레임 기아 ${s.frameStarvedSec}초 — heartbeat 는 살아 있으나 새 프레임이 오지 않는다. HDMI 무신호 / 캡처보드 확인. 현재 화재를 감지할 수 없다.`
       : s?.detectMode === 'off'
         ? 'DETECT_MODE=off — 자동 화재 감지가 꺼져 있다. 프레임 업로드/라이브 보기는 동작하지만 이 에이전트는 경보를 발령하지 않는다. 의도한 설정인지 확인할 것.'
