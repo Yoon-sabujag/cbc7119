@@ -495,10 +495,10 @@ export default function DashboardPage() {
               <div
                 onClick={handlePanelClick}
                 onDoubleClick={handlePanelDblClick}
-                className={`relative bg-black aspect-video cursor-pointer border-y ${panelFire ? 'border-danger-bar' : 'border-border-default'}`}
+                className={`relative bg-black cursor-pointer border-y ${panelFire ? 'border-danger-bar' : 'border-border-default'}`}
                 style={panelFire ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}
               >
-                <LivePanelImage frameUpdatedAt={frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+                <LivePanelImage frameUpdatedAt={frameUpdatedAt} imgClassName="w-full h-full object-cover" dynamicAspect />
                 {/* 제목 배지 (헤더 대체) — 좌상단 */}
                 <div className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill bg-black/55 px-[7px] py-0.5 text-[10px] font-bold text-white pointer-events-none">
                   <BellRing size={11} />

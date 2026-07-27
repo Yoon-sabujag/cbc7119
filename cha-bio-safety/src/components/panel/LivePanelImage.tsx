@@ -20,6 +20,10 @@ interface LivePanelImageProps {
   imgClassName?: string
   aspectClass?: string   // 프레임 비율/높이 (기본 16:9 aspect-video). 에이전트 크롭 비율 or 고정높이(h-[..]) 로 오버라이드.
   objectClass?: string   // object-fit (기본 cover). object-fill = 짜부(비율 무시하고 박스 채움).
+  // B안(동적 비율): onLoad 에서 실제 프레임 naturalWidth/Height 를 읽어 컨테이너 aspectRatio 를 프레임에 맞춘다.
+  // → 여백도 잘림도 없음. 단 컨테이너 높이가 프레임 비율대로 바뀌므로 고정높이 사용처(모바일 대시보드 카드)엔 쓰지 않는다.
+  // aspectClass 는 비율 확정 전(로드 前) 폴백으로만 쓰인다. 소비처의 자체 aspect-video 래퍼는 제거해야 높이가 실제로 바뀐다.
+  dynamicAspect?: boolean
   onClick?: () => void
   // 캡처 죽음 라벨(liveSignalDown 결과). 자체 배지 없는 consumer(모바일 대시보드 등)용 회색 오버레이 —
   // 자체 LIVE 배지가 있는 Surface 는 이 prop 을 쓰지 말고 배지에서 직접 처리한다 (이중 표기 방지).
@@ -34,10 +38,15 @@ export default function LivePanelImage({
   imgClassName = '',
   aspectClass = 'aspect-video',
   objectClass = 'object-cover',
+  dynamicAspect = false,
   onClick,
   signalDownLabel,
 }: LivePanelImageProps) {
   const isLive = !snapshotKey
+
+  // B안: 실제 프레임 종횡비 (naturalW/naturalH). 로드 전엔 null → aspectClass 폴백.
+  const [ratio, setRatio] = useState<number | null>(null)
+  const useDyn = dynamicAspect && ratio != null
 
   // 표시 중인 src — 프리로드 성공분만 교체(깜빡임 0). 경보 스냅샷 모드는 고정.
   const [shownSrc, setShownSrc] = useState<string>(() =>
@@ -83,13 +92,21 @@ export default function LivePanelImage({
 
   return (
     <div
-      className={`relative w-full ${aspectClass} bg-black overflow-hidden ${className}`}
+      className={`relative w-full ${useDyn ? '' : aspectClass} bg-black overflow-hidden ${className}`}
+      style={useDyn ? { aspectRatio: String(ratio) } : undefined}
       onClick={onClick}
     >
       {!hidden ? (
         <img
           src={shownSrc}
           alt={alt}
+          onLoad={dynamicAspect ? (e) => {
+            const t = e.currentTarget
+            if (t.naturalWidth && t.naturalHeight) {
+              const r = t.naturalWidth / t.naturalHeight
+              setRatio(prev => (prev != null && Math.abs(prev - r) < 0.001 ? prev : r))
+            }
+          } : undefined}
           className={`w-full h-full ${objectClass} ${imgClassName}`}
         />
       ) : (

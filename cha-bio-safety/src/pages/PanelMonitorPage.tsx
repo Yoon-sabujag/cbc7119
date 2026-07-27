@@ -475,7 +475,7 @@ export default function PanelMonitorPage() {
           <h2 className="section-title">라이브 프레임 <span className="hint">캡처시각과 업로드시각을 함께 표시 — 둘의 혼동이 80초 사고를 가렸다</span></h2>
           <div className="grid live-2col">
             <div className="card" style={{ padding: 10 }}>
-              <LivePanelImage frameUpdatedAt={s?.frameUpdatedAt ?? null} alt="화재수신반 라이브" />
+              <LivePanelImage frameUpdatedAt={s?.frameUpdatedAt ?? null} alt="화재수신반 라이브" dynamicAspect />
             </div>
             <div className="card">
               <table className="cap-table">

@@ -4536,8 +4536,8 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
           {/* live-card */}
           <div className={`bg-surface-raised border rounded-md overflow-hidden ${liveDisp ? liveDisp.border : 'border-border-default'}`}
             style={liveDisp?.pulse ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}>
-            <div className="relative w-full aspect-video bg-black cursor-pointer" onClick={() => setZoomOpen(true)}>
-              <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+            <div className="relative w-full bg-black cursor-pointer" onClick={() => setZoomOpen(true)}>
+              <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} imgClassName="w-full h-full object-cover" dynamicAspect />
               {/* LIVE 배지 live-ov */}
               <div className="absolute top-[7px] left-[7px] inline-flex items-center gap-1 rounded-pill px-[7px] py-0.5 text-[10px] font-extrabold text-white"
                 style={{ background: liveDisp ? liveDisp.badgeBg : liveDown ? 'rgba(107,114,128,.9)' : 'rgba(34,197,94,.85)' }}>
@@ -4725,7 +4725,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             {...zoom.bind}
             style={{ touchAction: 'none', transform: zoom.transform }}
             className="w-full aspect-video rounded-md bg-black overflow-hidden cursor-zoom-in">
-            <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+            <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} objectClass="object-contain" />
           </div>
         </div>
         {/* fsv-hint (mobile keeps text) */}
@@ -5456,8 +5456,8 @@ function DesktopInspectionView({
               {/* ① biglive */}
               <div className={`bg-surface-raised border rounded-[14px] overflow-hidden ${panelLiveDisp ? panelLiveDisp.border : 'border-border-default'}`}
                 style={panelLiveDisp?.pulse ? { animation: 'firepulse 1.4s ease-in-out infinite' } : undefined}>
-                <div className="relative w-full aspect-video bg-black cursor-pointer rounded-t-[14px] overflow-hidden" onClick={() => setPanelZoomOpen(true)}>
-                  <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+                <div className="relative w-full bg-black cursor-pointer rounded-t-[14px] overflow-hidden" onClick={() => setPanelZoomOpen(true)}>
+                  <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} imgClassName="w-full h-full object-cover" dynamicAspect />
                   {/* live-badge */}
                   <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-caption font-extrabold leading-none text-white"
                     style={{ background: panelLiveDisp ? panelLiveDisp.badgeBg : panelLiveDown ? 'rgba(107,114,128,.9)' : 'rgba(34,197,94,.85)' }}>
@@ -5807,7 +5807,7 @@ function DesktopInspectionView({
               {...panelZoom.bind}
               style={{ touchAction: 'none', transform: panelZoom.transform }}
               className="zoom-frame w-full max-w-[1100px] aspect-video rounded-md bg-black overflow-hidden cursor-zoom-in">
-              <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} imgClassName="w-full h-full object-cover" />
+              <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} objectClass="object-contain" />
             </div>
           </div>
         </div>
