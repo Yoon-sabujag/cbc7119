@@ -38,7 +38,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   const cors = {
     'Access-Control-Allow-Origin':  '*',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Agent-Key,X-Frame-Key,X-Frame-Ts,X-Frame-CapturedAt',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Agent-Key,X-Frame-Key,X-Frame-Ts,X-Frame-CapturedAt,X-Frame-Diag',
   }
 
   if (request.method === 'OPTIONS')
