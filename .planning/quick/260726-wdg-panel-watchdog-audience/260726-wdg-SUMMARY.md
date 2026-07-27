@@ -57,3 +57,12 @@ cd ../cha-bio-safety && npm run deploy
 - **`fa535a0b` blind 사유**: HDMI-만-사망은 starved 로 절대 안 잡히는 사각지대(위 실측) → 최근 6분 하트비트 색평균 전부 (r+g+y)<0.01 + 기아<30s 면 `blind` 푸시. NULL 보류(M1)/starved 시 생략/화재 r>0 오인 없음. escalation 사고당 ≤3회로 재유계.
 - **`3a95acd9` LIVE 정직화**: USB 뽑혀 기아 859초인 동안 대시보드·수신반 페인이 초록 LIVE/'정상'(경보 유무만 봄) → `liveSignalDown`(연결 끊김 3m/신호 없음 30s/지연 60s) 게이트를 표기 4곳에. 적대적 리뷰(8에이전트) 확정 3건 반영: F1 폴 실패 catch-null 초록 복귀 우회 / F2 설비·고장 표기가 '연결 끊김' 무기한 은폐(화재만 회색보다 우선) / F3 payload 동결 시 재렌더 부재(10초 티커).
 - 배포 남음(마이그레이션 없음): ② `cbc-cron-worker && npx wrangler deploy` → ③ `cha-bio-safety && npm run deploy`. 후속 실물 검증(선택): HDMI 만 뽑고 ~16-20분 내 blind 푸시 + 화면 회색 확인.
+
+---
+
+## 260727 후속 — 담당자 단독화 + 진단 카드 + 실물 검증 2차 (전부 배포·검증 완료)
+
+- **수신자 담당자 단독화** (`ccf1867c` + 0105): 청중 `panel_watchdog=1` 만(OR admin 제거), 석현민 플래그 0(화면 열람은 admin 게이트 유지), **B-3 폴백 폐기**(담당자 지시 — 구독 전멸 시 침묵을 인지하고 결정). 이관 = D1 플래그 두 줄, 재배포 불필요. ⚠️ 사용자가 맥북용 명령을 맥미니에 붙여 0105 가 두 번 헛돎 — **명령 안내에 실행 머신 명시 필수.**
+- **에이전트 진단 카드 v1.7.0-diagcard** (panel-agent `a6da693` + cbc7119 `55f8db3b`): 물리 고장 시 실프레임 대신 원인 카드(주황=기아 30s·USB/보드, 보라=색평균0 60s·HDMI). 카드 보임 = 에이전트 생존 증명 → 3-way 고장 위치 분리. 맥미니 ffmpeg freetype 없음 → 맥북 PIL 사전 렌더. `X-Frame-Diag` 로 frame_updated_at 불변('지연' 백스톱 보존) + uploadOk 제외(M4) + BOOT_GRACE 90s. 적대 리뷰 10에이전트 확정 4건 반영. 계약 = panel-agent MONITORING-SPEC §3.8.
+- **blind 실물 검증**(HDMI 뽑기, 10:16~10:59): 60초 후 보라 카드(MD5 실측 일치) → frame_updated_at 동결 36s+(신 frame.ts 실증) → uploadOk 91 동결(M4 실증) → 10:25 pending → 10:35 first `pushOk=3` 폰 실수신 → 10:50 재발송(`push-failed` 경로 실증, push_ok=0 수동 리셋) → 딥링크 정상 → 재삽입 후 색·업로드·신선도 복귀. **blind 경로 전 구간 실물 완결.**
+- **모니터 화면 결함 2건**(딥링크 실기기 첫 진입이 적발): ① 모바일 스크롤 잠김(앱 셸 overflow:hidden 3중 체인인데 pm-root 가 자체 스크롤 미보유) → flex column + pm-body 스크롤(`edc5c55f`) ② blind 중 캡처보드 칸 '정상 수신' 초록 — 색평균을 안 보던 화면에 blind 판정 추가(최근 7분 합0 → 빨강 '검은 화면', `fe74a57f`).
