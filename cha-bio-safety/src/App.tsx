@@ -285,7 +285,7 @@ function Layout() {
               <Route path="/inspection/qr" element={<Auth><QRScanPage /></Auth>} />
               <Route path="/fire-alarm"    element={<Auth><FireAlarmPage /></Auth>} />
               <Route path="/fire-alarm-history" element={<Auth><FireAlarmHistoryPage /></Auth>} />
-              {/* 메뉴 비연결 + admin 전용. URL 을 아는 관리자만 진입 (MONITORING-SPEC §6). */}
+              {/* 설정 메뉴에서만 진입(admin + 워치독 수신자). 워치독 푸시 딥링크의 목적지 (MONITORING-SPEC §6). */}
               <Route path="/panel-monitor" element={<AdminAuth><PanelMonitorPage /></AdminAuth>} />
               <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
               <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />

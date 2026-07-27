@@ -608,7 +608,10 @@ export default function PanelMonitorPage() {
 
 // 시안(승인 2026-07-14)의 CSS — 앱 tokens.css 변수만 사용한다.
 const CSS = `
-.pm-root { min-height:100vh; background:var(--surface-page); color:var(--text-primary); }
+/* 앱 셸(App.tsx)은 100dvh + overflow:hidden 3중 체인이라 페이지가 자체 스크롤 컨테이너를
+   가져야 한다(FireAlarmHistoryPage 의 flex-1 overflow-y-auto 패턴). min-height:100vh 블록으로
+   두면 어느 조상도 스크롤을 안 만들어 모바일에서 통째로 잠긴다 (260727 실기기 발견). */
+.pm-root { flex:1; min-height:0; display:flex; flex-direction:column; background:var(--surface-page); color:var(--text-primary); }
 .pm-root .mono { font-family:'JetBrains Mono','D2 Coding',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
 .pm-root .dim { color:var(--text-disabled); }
 .pm-header {
@@ -623,7 +626,7 @@ const CSS = `
 }
 .pm-title { font-size:18px; font-weight:600; }
 .pm-title small { font-size:12px; color:var(--text-tertiary); font-weight:400; margin-left:8px; }
-.pm-body { padding:16px; max-width:1680px; margin:0 auto; }
+.pm-body { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; width:100%; max-width:1680px; margin:0 auto; }
 .pm-root .section { margin-bottom:24px; }
 .pm-root .section-title {
   font-size:13px; font-weight:700; color:var(--text-tertiary); letter-spacing:.04em;
