@@ -12,7 +12,8 @@ import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload, photoUploadFailMsg } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { PanelEventRow } from '../components/PanelEventRow'
-import { useRecentPanelEvents } from '../utils/panelEvents'
+import { PanelEventDetailModal } from '../components/PanelEventDetailModal'
+import { useRecentPanelEvents, type PanelEventItem } from '../utils/panelEvents'
 import { FireAlarmHistoryView } from './FireAlarmHistoryPage'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime, todayKstYmd } from '../utils/datetime'
@@ -4380,6 +4381,8 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   })
   // 자동감지(events) + 수동기록 병합 뷰 (최근 48시간) — '감지중 N' 카운트는 events(status) 유지.
   const mergedEvents = useRecentPanelEvents(events)
+  // 최근 이벤트 카드 세부 열람 모달 선택 행 (260803-vp9)
+  const [evtSel, setEvtSel] = useState<PanelEventItem | null>(null)
 
   const maintOn = !!status?.maint?.enabled
   // 경보 takeover(빨강 '화재'+화재보/비화재보 초안)는 fire 전용. 고장/설비는 push+풀스크린만 → 기록 페이지는 normal 유지.
@@ -4652,7 +4655,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             {mergedEvents.length === 0 ? (
               <div className="p-[14px_12px] text-caption text-text-tertiary text-center">최근 48시간 이벤트 없음</div>
             ) : (
-              mergedEvents.map(ev => <PanelEventRow key={ev.id} item={ev} />)
+              mergedEvents.map(ev => <PanelEventRow key={ev.id} item={ev} onSelect={setEvtSel} />)
             )}
           </div>
 
@@ -4819,6 +4822,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     )}
+    {evtSel && <PanelEventDetailModal item={evtSel} onClose={() => setEvtSel(null)} />}
     </>
   )
 }

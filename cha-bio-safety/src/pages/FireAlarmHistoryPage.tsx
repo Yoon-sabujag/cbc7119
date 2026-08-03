@@ -1,15 +1,16 @@
-// 화재수신반 이력 페이지 (승인 시안 002-A) — 종류/출처 세그먼트 + 월 스테퍼 + 날짜 그룹 리스트.
+// 화재수신반 이력 페이지 (승인 시안 002-A) — 종류 세그먼트 + 월 스테퍼 + 날짜 그룹 리스트.
 // 병합 헬퍼/행 컴포넌트 재사용(드리프트 0). 백엔드 무변경 — 기존 엔드포인트만 소비.
+// 260803-vp9: 사건단위 dedup 으로 출처 구분 필요 없어져 출처 세그먼트 제거 + 세부 열람 모달 배선.
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, BellRing } from 'lucide-react'
 import { alarmApi, fireAlarmApi, type Alarm } from '../utils/api'
-import { mergePanelEvents, kstStr } from '../utils/panelEvents'
+import { mergePanelEvents, kstStr, type PanelEventItem } from '../utils/panelEvents'
 import { PanelEventRow } from '../components/PanelEventRow'
+import { PanelEventDetailModal } from '../components/PanelEventDetailModal'
 
 type KindFilter = 'all' | 'fire' | 'equip' | 'fault'
-type SrcFilter = 'all' | 'auto' | 'manual'
 
 // 세그먼트 컨트롤 (시안 002-A .seg)
 function Segment<T extends string>({ value, onChange, options }: {
@@ -42,7 +43,8 @@ export function FireAlarmHistoryView({ thumb }: { thumb?: boolean }) {
 
   // 필터 상태
   const [kindF, setKindF] = useState<KindFilter>('all')
-  const [srcF, setSrcF] = useState<SrcFilter>('all')
+  // 세부 열람 모달 선택 행
+  const [sel, setSel] = useState<PanelEventItem | null>(null)
 
   // 자동감지 720h(30일) — 감시 6월 시작이라 현재 자동 전량 커버.
   const { data: auto } = useQuery({
@@ -57,12 +59,11 @@ export function FireAlarmHistoryView({ thumb }: { thumb?: boolean }) {
     staleTime: 30_000,
   })
 
-  // 병합 → 월/종류/출처 필터 (이미 시간 내림차순)
+  // 병합 → 월/종류 필터 (이미 시간 내림차순)
   const monthKey = `${ym.year}-${String(ym.month).padStart(2, '0')}`
   const filtered = mergePanelEvents(auto ?? [], manual ?? [])
     .filter(e => e.time.slice(0, 7) === monthKey)
     .filter(e => kindF === 'all' || e.kind === kindF)
-    .filter(e => srcF === 'all' || e.source === srcF)
 
   // 날짜 그룹 (KST 오늘/어제)
   const todayYmd = kstStr(new Date()).slice(0, 10)
@@ -94,10 +95,6 @@ export function FireAlarmHistoryView({ thumb }: { thumb?: boolean }) {
           ]} />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] text-text-tertiary w-[30px] shrink-0">출처</span>
-          <Segment<SrcFilter> value={srcF} onChange={setSrcF} options={[
-            { key: 'all', label: '전체' }, { key: 'auto', label: '자동' }, { key: 'manual', label: '수동' },
-          ]} />
           <span className="flex-1" />
           {/* 월 스테퍼 (per) */}
           <div className="inline-flex items-center gap-1">
@@ -116,11 +113,12 @@ export function FireAlarmHistoryView({ thumb }: { thumb?: boolean }) {
           groups.map(g => (
             <div key={g.key}>
               <div className="px-3 pt-3 pb-[5px] text-[11px] font-bold text-text-tertiary tracking-wide">{g.label}</div>
-              {g.items.map(item => <PanelEventRow key={item.id} item={item} thumb={thumb} />)}
+              {g.items.map(item => <PanelEventRow key={item.id} item={item} thumb={thumb} onSelect={setSel} />)}
             </div>
           ))
         )}
       </div>
+      {sel && <PanelEventDetailModal item={sel} onClose={() => setSel(null)} />}
     </div>
   )
 }
