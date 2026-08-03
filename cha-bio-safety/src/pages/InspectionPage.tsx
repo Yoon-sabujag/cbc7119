@@ -4685,7 +4685,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
               ) : (
                 <>
                   <Plus size={15} className="text-text-secondary shrink-0" />
-                  <span className="text-text-primary">수동 기록 추가</span>
+                  <span className="text-text-primary">경보 기록 추가</span>
                 </>
               )}
             </div>
@@ -4764,7 +4764,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
               ? 'bg-border-default cursor-default'
               : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] cursor-pointer shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
           }`}>
-          {saving ? '저장 중...' : (mode === 'alarm' ? '조치완료 후 저장' : '점검 기록 저장')}
+          {saving ? '저장 중...' : (mode === 'alarm' ? '조치완료 후 저장' : '경보 기록 저장')}
         </button>
       </div>
       )}
@@ -5693,7 +5693,7 @@ function DesktopInspectionView({
                 <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
                   <div className="flex items-center gap-1.5 px-3.5 py-3 border-b border-border-default text-label font-bold">
                     <Plus size={15} className="text-text-secondary shrink-0" />
-                    <span className="text-text-primary">수동 기록 추가</span>
+                    <span className="text-text-primary">경보 기록 추가</span>
                   </div>
                   <div className="px-3.5 py-3.5">
                     {renderPanelFields(false)}
@@ -5710,7 +5710,7 @@ function DesktopInspectionView({
                           ? 'bg-border-default cursor-default'
                           : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] cursor-pointer shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
                       }`}>
-                      {paSaving ? '저장 중...' : '점검 기록 저장'}
+                      {paSaving ? '저장 중...' : '경보 기록 저장'}
                     </button>
                   </div>
                 </div>
