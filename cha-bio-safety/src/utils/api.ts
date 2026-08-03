@@ -155,11 +155,26 @@ export const dailyReportApi = {
     req<any>('/daily-report/notes', { method: 'POST', body: JSON.stringify(data) }),
 }
 
+export interface FireAlarmDraft {
+  id: string
+  type: string
+  occurredAt: string
+  location: string
+  cause: string
+  action: string
+  alarmId: string | null
+  ocrLocation: string | null
+  snapshotKey: string | null
+}
+
 export const fireAlarmApi = {
   getByYear: (year: number) => req<any[]>(`/fire-alarm?year=${year}`),
   getRecent: () => req<any[]>('/fire-alarm?recent=1'),
   create: (data: { type: string; occurred_at: string; location: string; cause: string; action: string }) =>
     req<{ id: string }>('/fire-alarm', { method: 'POST', body: JSON.stringify(data) }),
+  getDrafts: () => req<FireAlarmDraft[]>('/fire-alarm?drafts=1'),
+  confirmDraft: (id: string, body: { type: 'fire' | 'non_fire'; occurred_at: string; location: string; cause: string; action: string }) =>
+    req<{ id: string }>('/fire-alarm', { method: 'PUT', body: JSON.stringify({ id, ...body }) }),
 }
 
 export interface FloorPlanMarker {
@@ -739,6 +754,7 @@ export interface Alarm {
   source?: 'visual' | 'audio' | null
   confidence?: number | null
   snapshotUrl?: string | null
+  snapshotKey?: string | null
   ackedBy?: string | null
   ackedAt?: string | null
   clearedReason?: string | null

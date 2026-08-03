@@ -86,13 +86,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       await env.DB.prepare('UPDATE panel_alarms SET draft_record_id = ? WHERE id = ?').bind(draftRecordId, alarmId).run()
     }
 
-    // 4) 1차 push (경보 시각 실재실 근무자).
-    const payload = buildPanelPayload({ alarmType: type, alarmId, location: body.location ?? null, detectedAt: body.detectedAt })
-    const sent = await pushToWorkingStaff(env, kst, dateStr, payload)
-    await logTelemetry(env, 'panel-trigger', { detail: JSON.stringify({ alarmId, type, sent }) })
-
-    // 5) fire → 무장 (push_count=1, next_push_at=now+20s). equip 은 단발.
+    // 4) 1차 push — fire 전용 발송(이중 방어. 에이전트는 이미 fire 만 trigger 호출).
+    //    fault/equip 은 push·무장 모두 건너뛴다. panel_alarms INSERT·dedupe·자동초안·응답은 무변경.
     if (type === 'fire') {
+      const payload = buildPanelPayload({ alarmType: type, alarmId, location: body.location ?? null, detectedAt: body.detectedAt })
+      const sent = await pushToWorkingStaff(env, kst, dateStr, payload)
+      await logTelemetry(env, 'panel-trigger', { detail: JSON.stringify({ alarmId, type, sent }) })
+
+      // 5) fire → 무장 (push_count=1, next_push_at=now+20s).
       await env.DB.prepare('UPDATE panel_alarms SET push_count = 1, next_push_at = ? WHERE id = ?')
         .bind(Date.now() + 20000, alarmId).run()
     }

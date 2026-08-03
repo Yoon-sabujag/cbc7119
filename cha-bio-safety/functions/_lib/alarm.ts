@@ -56,6 +56,7 @@ export function mapAlarm(r: AlarmRow) {
     source: r.source,
     confidence: r.confidence,
     snapshotUrl: r.snapshot_key ? `/api/public/panel/${r.snapshot_key}.jpg` : null,
+    snapshotKey: r.snapshot_key ?? null,
     ackedBy: r.acked_by,
     ackedAt: r.acked_at,
     clearedReason: r.cleared_reason,

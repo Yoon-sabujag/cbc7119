@@ -212,15 +212,17 @@ export function buildPanelPayload(a: {
   const loc = a.location ? ` · ${a.location}` : ' · 수신반 확인 필요'
   const title = t === 'fire' ? '🔴 화재수신반 경보' : t === 'fault' ? '🟡 화재수신반 고장' : '설비 동작 감지'
   const bodyHead = t === 'fire' ? '화재 신호 감지' : t === 'fault' ? '고장 신호 감지' : '설비 동작 감지'
+  const body = t === 'fire' ? '화재경보 발생, 수신반 확인 필요' : `${bodyHead} (${a.detectedAt})${loc}`
+  const url = t === 'fire' ? '/inspection?panel=fire-alarm&zoom=1' : '/fire-alarm'
   return {
     title,
-    body: `${bodyHead} (${a.detectedAt})${loc}`,
+    body,
     type: 'panel_alarm',
     kind: 'panel_alarm',
     alarmType: a.alarmType,
     alarmId: a.alarmId,
     location: a.location,
     detectedAt: a.detectedAt,
-    url: '/fire-alarm',
+    url,
   }
 }
