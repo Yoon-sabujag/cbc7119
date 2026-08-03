@@ -4473,7 +4473,6 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     staleTime: 30_000,
   })
   const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null)
-  const [draftSnapKey, setDraftSnapKey] = useState<string | null>(null)
   const loadDraft = (draft: (typeof drafts)[number]) => {
     const [d, t] = (draft.occurredAt || '').split(' ')
     if (d) setDate(d)
@@ -4483,12 +4482,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     setAction(draft.action || '자동복구, 현장확인')
     setLocation(draft.location || (OCR_LOCATION_PREFILL ? (draft.ocrLocation ?? '') : ''))
     setLoadedDraftId(draft.id)
-    setDraftSnapKey(draft.snapshotKey ?? null)
   }
-
-  // 줌 뷰어 라이브 ↔ 경보 시점 전환 — 활성경보 스냅샷 또는 로드된 초안 스냅샷.
-  const [zoomSnap, setZoomSnap] = useState(false)
-  const zoomSnapKey = draftSnapKey ?? activeAlarm?.snapshotKey ?? null
 
   // ── 저장 3분기: 초안 로드 = confirmDraft(in-place 확정) / 경보중 = resolve(칩 소멸) / 평상시 = create(신규) ──
   const handleSave = async () => {
@@ -4780,7 +4774,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     {zoomOpen && (
       <div className="fixed left-0 right-0 z-[100] flex flex-col bg-[#05070a] text-white top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]">
         {/* fsv-close */}
-        <button onClick={() => { setZoomOpen(false); setZoomSnap(false) }}
+        <button onClick={() => setZoomOpen(false)}
           className="absolute top-[11px] right-3 w-[34px] h-[34px] flex items-center justify-center rounded-full bg-white/[.12] text-white cursor-pointer z-10">
           <X size={17} />
         </button>
@@ -4794,14 +4788,6 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
           <span className="text-caption text-white/70">
             {mode === 'alarm' ? '화재 발생 · 자세히 보기' : '실시간 수신반 화면 · 자세히 보기'}
           </span>
-          {zoomSnapKey && (
-            <span className="ml-auto flex items-center gap-1.5">
-              <button onClick={() => setZoomSnap(false)}
-                className={`rounded-pill text-[11px] font-bold px-2.5 py-1 leading-none cursor-pointer transition-colors ${!zoomSnap ? 'bg-white text-black' : 'bg-white/[.12] text-white/70'}`}>라이브</button>
-              <button onClick={() => setZoomSnap(true)}
-                className={`rounded-pill text-[11px] font-bold px-2.5 py-1 leading-none cursor-pointer transition-colors ${zoomSnap ? 'bg-white text-black' : 'bg-white/[.12] text-white/70'}`}>경보 시점</button>
-            </span>
-          )}
         </div>
         {/* fsv-frame */}
         <div className="flex-1 flex items-center justify-center px-3 pb-3 min-h-0">
@@ -4811,9 +4797,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             {...zoom.bind}
             style={{ touchAction: 'none', transform: zoom.transform }}
             className="w-full aspect-video rounded-md bg-black overflow-hidden cursor-zoom-in">
-            {zoomSnap && zoomSnapKey
-              ? <LivePanelImage snapshotKey={zoomSnapKey} objectClass="object-contain" />
-              : <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} objectClass="object-contain" />}
+            <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} objectClass="object-contain" />
           </div>
         </div>
         {/* fsv-hint (mobile keeps text) */}
@@ -5226,7 +5210,6 @@ function DesktopInspectionView({
     staleTime: 30_000,
   })
   const [panelLoadedDraftId, setPanelLoadedDraftId] = useState<string | null>(null)
-  const [panelDraftSnapKey, setPanelDraftSnapKey] = useState<string | null>(null)
   const loadPanelDraft = (draft: (typeof panelDrafts)[number]) => {
     const [d, t] = (draft.occurredAt || '').split(' ')
     if (d) setPaDate(d)
@@ -5236,12 +5219,7 @@ function DesktopInspectionView({
     setPaAction(draft.action || '자동복구, 현장확인')
     setPaLocation(draft.location || (OCR_LOCATION_PREFILL ? (draft.ocrLocation ?? '') : ''))
     setPanelLoadedDraftId(draft.id)
-    setPanelDraftSnapKey(draft.snapshotKey ?? null)
   }
-
-  // 줌 뷰어 라이브 ↔ 경보 시점 전환 — 활성경보 스냅샷 또는 로드된 초안 스냅샷.
-  const [panelZoomSnap, setPanelZoomSnap] = useState(false)
-  const panelZoomSnapKey = panelDraftSnapKey ?? activeAlarm?.snapshotKey ?? null
 
   // P2-2: 화재수신반 pane 열릴 때 activeAlarm 1회 스냅샷 → handlePanelSave 분기·prefill 이 스냅샷 사용(폴링값 X). display(panelMode)는 live 유지.
   const panelOpenAlarmRef = useRef<Alarm | null | undefined>(undefined)
@@ -5265,7 +5243,6 @@ function DesktopInspectionView({
       panelPrefilledRef.current = false
       setPanelHistoryOpen(false)  // pane 벗어나면 in-pane 이력 리셋
       setPanelLoadedDraftId(null)
-      setPanelDraftSnapKey(null)
     }
   }, [isPanel, activeAlarm, maintOn])
 
@@ -5942,7 +5919,7 @@ function DesktopInspectionView({
       {/* ── 데스크톱 줌 오버레이 (biglive 클릭, usePinchZoom 2.2× · 줌 힌트 텍스트 없음) ── */}
       {panelZoomOpen && (
         <div className="zoom absolute inset-0 z-[95] flex flex-col bg-[#05070a] text-white">
-          <button type="button" onClick={() => { setPanelZoomOpen(false); setPanelZoomSnap(false); panelZoom.reset() }}
+          <button type="button" onClick={() => { setPanelZoomOpen(false); panelZoom.reset() }}
             className="zoom-close absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white/[.12] text-white cursor-pointer z-10 hover:bg-white/20 transition-colors">
             <X size={18} />
           </button>
@@ -5955,14 +5932,6 @@ function DesktopInspectionView({
             <span className="text-body-sm text-white/70">
               {panelMode === 'alarm' ? '화재 발생 · 자세히 보기' : '실시간 수신반 화면 · 자세히 보기'}
             </span>
-            {panelZoomSnapKey && (
-              <span className="ml-auto flex items-center gap-1.5">
-                <button type="button" onClick={() => setPanelZoomSnap(false)}
-                  className={`rounded-pill text-body-sm font-bold px-2.5 py-1 leading-none cursor-pointer transition-colors ${!panelZoomSnap ? 'bg-white text-black' : 'bg-white/[.12] text-white/70'}`}>라이브</button>
-                <button type="button" onClick={() => setPanelZoomSnap(true)}
-                  className={`rounded-pill text-body-sm font-bold px-2.5 py-1 leading-none cursor-pointer transition-colors ${panelZoomSnap ? 'bg-white text-black' : 'bg-white/[.12] text-white/70'}`}>경보 시점</button>
-              </span>
-            )}
           </div>
           <div className="flex-1 flex items-center justify-center px-4 pb-4 min-h-0">
             <div
@@ -5970,9 +5939,7 @@ function DesktopInspectionView({
               {...panelZoom.bind}
               style={{ touchAction: 'none', transform: panelZoom.transform }}
               className="zoom-frame w-full max-w-[1100px] aspect-video rounded-md bg-black overflow-hidden cursor-zoom-in">
-              {panelZoomSnap && panelZoomSnapKey
-                ? <LivePanelImage snapshotKey={panelZoomSnapKey} objectClass="object-contain" />
-                : <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} objectClass="object-contain" />}
+              <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} objectClass="object-contain" />
             </div>
           </div>
         </div>
