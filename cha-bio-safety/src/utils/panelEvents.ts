@@ -13,6 +13,13 @@ export interface PanelEventItem {
   cause: string | null
   source: 'auto' | 'manual'
   snapshotUrl: string | null
+  snapshotKey: string | null
+  detectedAt: string | null
+  action: string | null
+  clearedReason: string | null
+  recordType: 'fire' | 'non_fire' | null
+  status: string | null
+  draftRecordId: string | null
 }
 
 // 종류칩 매핑 (InspectionPage badge2 / panelBadge2 와 동일).
@@ -32,6 +39,13 @@ function normalizeAuto(alarms: Alarm[]): PanelEventItem[] {
     cause: a.cause ?? null,
     source: 'auto' as const,
     snapshotUrl: a.snapshotUrl ?? null,
+    snapshotKey: a.snapshotKey ?? null,
+    detectedAt: a.detectedAt ?? null,
+    action: null,
+    clearedReason: a.clearedReason ?? null,
+    recordType: null,
+    status: a.status ?? null,
+    draftRecordId: a.draftRecordId ?? null,
   }))
 }
 
@@ -49,13 +63,39 @@ function normalizeManual(records: any[]): PanelEventItem[] {
       cause: r.cause ?? null,
       source: 'manual' as const,
       snapshotUrl: null,
+      snapshotKey: null,
+      detectedAt: null,
+      action: r.action ?? null,
+      clearedReason: null,
+      recordType: (r.type === 'non_fire' ? 'non_fire' : 'fire') as 'fire' | 'non_fire',
+      status: null,
+      draftRecordId: null,
     }))
 }
 
-// 자동 + 수동 병합 → time 문자열 내림차순 (고정폭 포맷이라 localeCompare 로 정확).
+// 자동 + 수동 병합 → 사건 단위 dedup(확정 기록과 연결된 자동 경보는 숨기고 캡처만 부착) → time 문자열 내림차순.
 export function mergePanelEvents(auto: Alarm[], manual: any[]): PanelEventItem[] {
-  return [...normalizeAuto(auto), ...normalizeManual(manual)]
-    .sort((a, b) => b.time.localeCompare(a.time))
+  const autoItems = normalizeAuto(auto)
+  const manualItems = normalizeManual(manual)
+  const manualIds = new Set(manualItems.map(m => m.id))
+
+  // 확정 기록에 연결된 자동 경보를 recordId 로 인덱싱(다중 매칭 시 마지막 것이 남음 — 실사용 1:1).
+  const linkedByRecordId = new Map<string, PanelEventItem>()
+  for (const a of autoItems) {
+    if (a.draftRecordId && manualIds.has(a.draftRecordId)) {
+      linkedByRecordId.set(a.draftRecordId, a)
+    }
+  }
+
+  const mergedManual = manualItems.map(m => {
+    const linked = linkedByRecordId.get(m.id)
+    return linked
+      ? { ...m, snapshotKey: linked.snapshotKey, snapshotUrl: linked.snapshotUrl, detectedAt: linked.detectedAt }
+      : m
+  })
+  const shownAuto = autoItems.filter(a => !(a.draftRecordId && manualIds.has(a.draftRecordId)))
+
+  return [...shownAuto, ...mergedManual].sort((a, b) => b.time.localeCompare(a.time))
 }
 
 // KST wall-clock 'YYYY-MM-DD HH:MM:SS' — 브라우저 로컬 tz 무관(Date epoch 산술 함정 회피).
