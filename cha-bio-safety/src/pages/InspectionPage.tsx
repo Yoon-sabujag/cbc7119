@@ -5185,6 +5185,19 @@ function DesktopInspectionView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp])
 
+  // 활성 fire 경보 자동 ack — 화재수신반 pane 진입 시 재발송 티커를 멈춘다. 평시(활성경보 없음)=무영향.
+  const panelAutoAckedRef = useRef(false)
+  useEffect(() => {
+    if (!isPanel) return
+    if (panelAutoAckedRef.current) return
+    if (activeAlarm?.type === 'fire' && activeAlarm.status === 'active') {
+      panelAutoAckedRef.current = true
+      alarmApi.ack(activeAlarm.id)
+        .then(() => qc.invalidateQueries({ queryKey: ['alarm-active'] }))
+        .catch(() => {})
+    }
+  }, [isPanel, activeAlarm, qc])
+
   // 화재수신반 폼 상태 (모바일 FireAlarmModal 과 동일 5필드)
   const nowKst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   const todayStr = `${nowKst.getFullYear()}-${String(nowKst.getMonth()+1).padStart(2,'0')}-${String(nowKst.getDate()).padStart(2,'0')}`
@@ -5202,6 +5215,30 @@ function DesktopInspectionView({
   const [ackedId, setAckedId] = useState<string | null>(null)
   const panelZoom = usePinchZoom({ maxScale: 2.2, doubleTapScale: 2.2 })
 
+  // ── 고아 초안(created_by='panel-agent', 연결경보 active/acked 아님) 카드 — 탭하여 이어서 작성 ──
+  const { data: panelDrafts = [] } = useQuery({
+    queryKey: ['fire-alarm-drafts'],
+    queryFn: async () => { try { return await fireAlarmApi.getDrafts() } catch { return [] } },
+    staleTime: 30_000,
+  })
+  const [panelLoadedDraftId, setPanelLoadedDraftId] = useState<string | null>(null)
+  const [panelDraftSnapKey, setPanelDraftSnapKey] = useState<string | null>(null)
+  const loadPanelDraft = (draft: (typeof panelDrafts)[number]) => {
+    const [d, t] = (draft.occurredAt || '').split(' ')
+    if (d) setPaDate(d)
+    if (t) setPaTime(t.slice(0, 5))
+    setPaType(draft.type === 'fire' ? 'fire' : 'non_fire')
+    setPaCause(draft.cause || '오작동')
+    setPaAction(draft.action || '자동복구, 현장확인')
+    setPaLocation(draft.location || (OCR_LOCATION_PREFILL ? (draft.ocrLocation ?? '') : ''))
+    setPanelLoadedDraftId(draft.id)
+    setPanelDraftSnapKey(draft.snapshotKey ?? null)
+  }
+
+  // 줌 뷰어 라이브 ↔ 경보 시점 전환 — 활성경보 스냅샷 또는 로드된 초안 스냅샷.
+  const [panelZoomSnap, setPanelZoomSnap] = useState(false)
+  const panelZoomSnapKey = panelDraftSnapKey ?? activeAlarm?.snapshotKey ?? null
+
   // P2-2: 화재수신반 pane 열릴 때 activeAlarm 1회 스냅샷 → handlePanelSave 분기·prefill 이 스냅샷 사용(폴링값 X). display(panelMode)는 live 유지.
   const panelOpenAlarmRef = useRef<Alarm | null | undefined>(undefined)
   const panelPrefilledRef = useRef(false)
@@ -5216,29 +5253,39 @@ function DesktopInspectionView({
           if (d) setPaDate(d)
           if (t) setPaTime(t.slice(0, 5))
           setPaType('non_fire')
+          if (OCR_LOCATION_PREFILL && snap.location) setPaLocation(prev => prev ? prev : (snap.location as string))
         }
       }
     } else {
       panelOpenAlarmRef.current = undefined
       panelPrefilledRef.current = false
       setPanelHistoryOpen(false)  // pane 벗어나면 in-pane 이력 리셋
+      setPanelLoadedDraftId(null)
+      setPanelDraftSnapKey(null)
     }
   }, [isPanel, activeAlarm, maintOn])
 
-  // 저장 2분기: 경보중 = resolve(칩 소멸) / 평상시 = create(신규)
+  // 저장 3분기: 초안 로드 = confirmDraft(in-place 확정) / 경보중 = resolve(칩 소멸) / 평상시 = create(신규)
   const handlePanelSave = async () => {
     setPaSaving(true)
     try {
       const snap = panelOpenAlarmRef.current
-      if (snap) {
+      if (panelLoadedDraftId) {
+        await fireAlarmApi.confirmDraft(panelLoadedDraftId, { type: paType, occurred_at: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
+      } else if (snap) {
         await alarmApi.resolve(snap.id, { type: paType, occurredAt: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
         qc.invalidateQueries({ queryKey: ['alarm-active'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
       } else {
         await fireAlarmApi.create({ type: paType, occurred_at: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
       }
       toast.success('화재수신반 기록이 저장되었습니다')
       setCategoryIdx(null)
@@ -5641,6 +5688,25 @@ function DesktopInspectionView({
                 )}
               </div>
 
+              {/* 미작성 초안 카드 — 고아 초안(에이전트 자동생성, 해제되어 자동초안 보완 흐름을 놓친 건) 이어서 작성 */}
+              {panelMode !== 'alarm' && panelDrafts.length > 0 && (
+                <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
+                  <div className="px-3 py-2 border-b border-border-default">
+                    <span className="text-caption font-semibold text-text-secondary">미작성 화재경보 기록 ({panelDrafts.length})</span>
+                  </div>
+                  {panelDrafts.map(draft => (
+                    <button key={draft.id} type="button" onClick={() => loadPanelDraft(draft)}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border-default last:border-b-0 text-left cursor-pointer hover:bg-surface-active transition-colors ${panelLoadedDraftId === draft.id ? 'bg-info-bg' : ''}`}>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-caption font-bold text-text-primary">미작성 화재경보 기록</span>
+                        <span className="text-[11px] text-text-tertiary truncate">{draft.occurredAt} · 이어서 작성</span>
+                      </div>
+                      <ChevronRight size={15} className="text-text-tertiary shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* ④ form-card (수기, 평상시 only) */}
               {panelMode === 'normal' && (
                 <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
@@ -5872,7 +5938,7 @@ function DesktopInspectionView({
       {/* ── 데스크톱 줌 오버레이 (biglive 클릭, usePinchZoom 2.2× · 줌 힌트 텍스트 없음) ── */}
       {panelZoomOpen && (
         <div className="zoom absolute inset-0 z-[95] flex flex-col bg-[#05070a] text-white">
-          <button type="button" onClick={() => { setPanelZoomOpen(false); panelZoom.reset() }}
+          <button type="button" onClick={() => { setPanelZoomOpen(false); setPanelZoomSnap(false); panelZoom.reset() }}
             className="zoom-close absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white/[.12] text-white cursor-pointer z-10 hover:bg-white/20 transition-colors">
             <X size={18} />
           </button>
@@ -5885,6 +5951,14 @@ function DesktopInspectionView({
             <span className="text-body-sm text-white/70">
               {panelMode === 'alarm' ? '화재 발생 · 자세히 보기' : '실시간 수신반 화면 · 자세히 보기'}
             </span>
+            {panelZoomSnapKey && (
+              <span className="ml-auto flex items-center gap-1.5">
+                <button type="button" onClick={() => setPanelZoomSnap(false)}
+                  className={`rounded-pill text-body-sm font-bold px-2.5 py-1 leading-none cursor-pointer transition-colors ${!panelZoomSnap ? 'bg-white text-black' : 'bg-white/[.12] text-white/70'}`}>라이브</button>
+                <button type="button" onClick={() => setPanelZoomSnap(true)}
+                  className={`rounded-pill text-body-sm font-bold px-2.5 py-1 leading-none cursor-pointer transition-colors ${panelZoomSnap ? 'bg-white text-black' : 'bg-white/[.12] text-white/70'}`}>경보 시점</button>
+              </span>
+            )}
           </div>
           <div className="flex-1 flex items-center justify-center px-4 pb-4 min-h-0">
             <div
@@ -5892,7 +5966,9 @@ function DesktopInspectionView({
               {...panelZoom.bind}
               style={{ touchAction: 'none', transform: panelZoom.transform }}
               className="zoom-frame w-full max-w-[1100px] aspect-video rounded-md bg-black overflow-hidden cursor-zoom-in">
-              <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} objectClass="object-contain" />
+              {panelZoomSnap && panelZoomSnapKey
+                ? <LivePanelImage snapshotKey={panelZoomSnapKey} objectClass="object-contain" />
+                : <LivePanelImage frameUpdatedAt={panelStatus?.frameUpdatedAt} objectClass="object-contain" />}
             </div>
           </div>
         </div>
