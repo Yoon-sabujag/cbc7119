@@ -4344,9 +4344,14 @@ export default function InspectionPage() {
 // ── 화재수신반 원격감시 페이지 (전체 화면) ───────────────────────
 // Phase 25: 라이브 카드 + 48h 자동감지 이벤트 + 3-state 폼(평상시/경보중/점검모드).
 // 백엔드 /api/panel|alarm/* 은 이 디자인 트랙 미배포 -> 모든 query try/catch 평상시 폴백.
+// OCR 발생장소 1회 시험 prefill 플래그 — 모바일 FireAlarmModal + 데스크톱 화재수신반 pane 공유.
+// 무용 판정 시 이 상수 하나만 false 로 바꾸면 양쪽 prefill 이 꺼진다.
+const OCR_LOCATION_PREFILL = true
+
 function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
+  const [sp] = useSearchParams()
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
@@ -4422,6 +4427,24 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     }
   }, [zoomOpen])
 
+  // zoom=1 딥링크 → 라이브 확대뷰 직행 (fire 푸시 탭 진입, 1회).
+  useEffect(() => {
+    if (sp.get('zoom') === '1') setZoomOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 활성 fire 경보 자동 ack — 딥링크로 화재수신반에 진입하면 재발송 티커를 멈춘다. 평시(활성경보 없음)=무영향.
+  const autoAckedRef = useRef(false)
+  useEffect(() => {
+    if (autoAckedRef.current) return
+    if (activeAlarm?.type === 'fire' && activeAlarm.status === 'active') {
+      autoAckedRef.current = true
+      alarmApi.ack(activeAlarm.id)
+        .then(() => qc.invalidateQueries({ queryKey: ['alarm-active'] }))
+        .catch(() => {})
+    }
+  }, [activeAlarm, qc])
+
   // P2-2: 폴링(15s)이 편집 중 alarm 상태를 뒤집어 resolve↔create 오분기하는 것 방지. 오픈 시점 activeAlarm 1회 스냅샷 → save 분기·prefill 이 스냅샷 사용(폴링값 X). display(mode)는 live 유지.
   const openAlarmRef = useRef<Alarm | null | undefined>(undefined)  // undefined=쿼리 미settle, null/Alarm=settle 스냅샷
   const prefilledRef = useRef(false)
@@ -4435,25 +4458,58 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
         if (d) setDate(d)
         if (t) setTime(t.slice(0, 5))
         setType('non_fire')
+        if (OCR_LOCATION_PREFILL && snap.location) setLocation(prev => prev ? prev : (snap.location as string))
       }
     }
   }, [activeAlarm, maintOn])
 
-  // ── 저장 2분기: 경보중 = resolve(칩 소멸) / 평상시 = create(신규) ──
+  // ── 고아 초안(created_by='panel-agent', 연결경보 active/acked 아님) 카드 — 탭하여 이어서 작성 ──
+  const { data: drafts = [] } = useQuery({
+    queryKey: ['fire-alarm-drafts'],
+    queryFn: async () => { try { return await fireAlarmApi.getDrafts() } catch { return [] } },
+    staleTime: 30_000,
+  })
+  const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null)
+  const [draftSnapKey, setDraftSnapKey] = useState<string | null>(null)
+  const loadDraft = (draft: (typeof drafts)[number]) => {
+    const [d, t] = (draft.occurredAt || '').split(' ')
+    if (d) setDate(d)
+    if (t) setTime(t.slice(0, 5))
+    setType(draft.type === 'fire' ? 'fire' : 'non_fire')
+    setCause(draft.cause || '오작동')
+    setAction(draft.action || '자동복구, 현장확인')
+    setLocation(draft.location || (OCR_LOCATION_PREFILL ? (draft.ocrLocation ?? '') : ''))
+    setLoadedDraftId(draft.id)
+    setDraftSnapKey(draft.snapshotKey ?? null)
+  }
+
+  // 줌 뷰어 라이브 ↔ 경보 시점 전환 — 활성경보 스냅샷 또는 로드된 초안 스냅샷.
+  const [zoomSnap, setZoomSnap] = useState(false)
+  const zoomSnapKey = draftSnapKey ?? activeAlarm?.snapshotKey ?? null
+
+  // ── 저장 3분기: 초안 로드 = confirmDraft(in-place 확정) / 경보중 = resolve(칩 소멸) / 평상시 = create(신규) ──
   const handleSave = async () => {
     setSaving(true)
     try {
       const snap = openAlarmRef.current
-      if (snap) {
+      if (loadedDraftId) {
+        // 고아 초안 이어서 작성 -> in-place UPDATE (신규 레코드 없음)
+        await fireAlarmApi.confirmDraft(loadedDraftId, { type, occurred_at: `${date} ${time}:00`, location, cause, action })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
+      } else if (snap) {
         // 경보중 자동초안 보완 -> in-place UPDATE + 확정 + panel_alarm cleared -> 대시보드 칩 소멸
         await alarmApi.resolve(snap.id, { type, occurredAt: `${date} ${time}:00`, location, cause, action })
         qc.invalidateQueries({ queryKey: ['alarm-active'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
       } else {
         await fireAlarmApi.create({ type, occurred_at: `${date} ${time}:00`, location, cause, action })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
+        qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
       }
       toast.success('화재수신반 기록이 저장되었습니다')
       onClose()
@@ -4600,6 +4656,25 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
+          {/* 미작성 초안 카드 — 고아 초안(에이전트 자동생성, 해제되어 자동초안 보완 흐름을 놓친 건) 이어서 작성 */}
+          {mode !== 'alarm' && drafts.length > 0 && (
+            <div className="bg-surface-raised border border-border-default rounded-md overflow-hidden">
+              <div className="p-[7px_12px] border-b border-border-default">
+                <span className="text-caption font-semibold text-text-secondary">미작성 화재경보 기록 ({drafts.length})</span>
+              </div>
+              {drafts.map(draft => (
+                <button key={draft.id} onClick={() => loadDraft(draft)}
+                  className={`w-full flex items-center justify-between gap-2 p-[10px_12px] border-b border-border-default last:border-b-0 text-left cursor-pointer hover:bg-surface-active transition-colors ${loadedDraftId === draft.id ? 'bg-info-bg' : ''}`}>
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-caption font-bold text-text-primary">미작성 화재경보 기록</span>
+                    <span className="text-[11px] text-text-tertiary truncate">{draft.occurredAt} · 이어서 작성</span>
+                  </div>
+                  <ChevronRight size={15} className="text-text-tertiary shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* 폼 (점검모드에선 숨김 — 자동기록만 멈춤) */}
           {mode !== 'maint' && (
           <div className="flex flex-col gap-3.5">
@@ -4702,7 +4777,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     {zoomOpen && (
       <div className="fixed left-0 right-0 z-[100] flex flex-col bg-[#05070a] text-white top-[var(--sat,0px)] bottom-[calc(54px+env(safe-area-inset-bottom,20px))]">
         {/* fsv-close */}
-        <button onClick={() => setZoomOpen(false)}
+        <button onClick={() => { setZoomOpen(false); setZoomSnap(false) }}
           className="absolute top-[11px] right-3 w-[34px] h-[34px] flex items-center justify-center rounded-full bg-white/[.12] text-white cursor-pointer z-10">
           <X size={17} />
         </button>
@@ -4716,6 +4791,14 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
           <span className="text-caption text-white/70">
             {mode === 'alarm' ? '화재 발생 · 자세히 보기' : '실시간 수신반 화면 · 자세히 보기'}
           </span>
+          {zoomSnapKey && (
+            <span className="ml-auto flex items-center gap-1.5">
+              <button onClick={() => setZoomSnap(false)}
+                className={`rounded-pill text-[11px] font-bold px-2.5 py-1 leading-none cursor-pointer transition-colors ${!zoomSnap ? 'bg-white text-black' : 'bg-white/[.12] text-white/70'}`}>라이브</button>
+              <button onClick={() => setZoomSnap(true)}
+                className={`rounded-pill text-[11px] font-bold px-2.5 py-1 leading-none cursor-pointer transition-colors ${zoomSnap ? 'bg-white text-black' : 'bg-white/[.12] text-white/70'}`}>경보 시점</button>
+            </span>
+          )}
         </div>
         {/* fsv-frame */}
         <div className="flex-1 flex items-center justify-center px-3 pb-3 min-h-0">
@@ -4725,7 +4808,9 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             {...zoom.bind}
             style={{ touchAction: 'none', transform: zoom.transform }}
             className="w-full aspect-video rounded-md bg-black overflow-hidden cursor-zoom-in">
-            <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} objectClass="object-contain" />
+            {zoomSnap && zoomSnapKey
+              ? <LivePanelImage snapshotKey={zoomSnapKey} objectClass="object-contain" />
+              : <LivePanelImage frameUpdatedAt={status?.frameUpdatedAt} objectClass="object-contain" />}
           </div>
         </div>
         {/* fsv-hint (mobile keeps text) */}
