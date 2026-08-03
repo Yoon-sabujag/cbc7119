@@ -174,9 +174,11 @@ export default function SchedulePage() {
   // 범위 일정: 시작일~종료일 사이 날짜에 표시
   // 단일 일자(end_date 없음)는 사용자가 명시적으로 그 날에 잡은 거라 주말/공휴일이라도 표시.
   // 멀티데이 범위는 주말·공휴일을 자동 제외 — DB 는 단일 항목이지만 표시만 스킵.
+  // 예외: task(업무)·event(행사) 범위 일정은 주말·공휴일에도 표시.
   const matchesDate = (item: ScheduleItem, d: string) => {
     if (d < item.date || d > (item.endDate ?? item.date)) return false
     if (!item.endDate || item.endDate === item.date) return true
+    if (item.category === 'task' || item.category === 'event') return true
     const dt = new Date(d + 'T00:00:00')
     const dow = dt.getDay()
     if (dow === 0 || dow === 6) return false
@@ -873,7 +875,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
     }
     return out
   })()
-  const skippedCount = rangeDays > 0 ? rangeDays - workingDays.length : 0
+  const skippedCount = (rangeDays > 0 && cat !== 'task' && cat !== 'event') ? rangeDays - workingDays.length : 0
 
   const handleSave = async () => {
     if (!date) { toast.error('날짜를 입력하세요'); return }

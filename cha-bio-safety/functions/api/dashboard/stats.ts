@@ -467,7 +467,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
 
     const monthScheduleDates: Record<string, string[]> = {}
     for (const r of (monthDatesRows.results ?? [])) {
-      const isRange = !!r.end_date && r.end_date !== r.date
+      const isRange = !!r.end_date && r.end_date !== r.date && r.category !== 'task' && r.category !== 'event'
       // 이번 달 범위로 클램프
       const sd = r.date < monthStart ? monthStart : r.date
       const ed = (r.end_date ?? r.date) > monthEnd ? monthEnd : (r.end_date ?? r.date)
