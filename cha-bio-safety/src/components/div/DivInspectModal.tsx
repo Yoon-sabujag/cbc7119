@@ -54,6 +54,9 @@ const COMP_PT_CP: Record<string, string> = Object.fromEntries(
   DIV_PTS.map(p => [p.id, `CP-COMP-${p.id}`])
 )
 
+// (year, month, timing) 회차 순서 키 — 판정·'직전' 표시가 공유 ('현 회차 이후 라운드 제외' 기준)
+const divRound = (y: number, m: number, t: string) => y * 10000 + m * 100 + (t === 'late' ? 1 : 0)
+
 // 추세 판단: 연속 방향성 + 누적 임계값
 function detectDivTrend(series: number[], badIfIncreasing: boolean): { level: 'normal'|'caution'|'bad'; cumulative: number } {
   if (series.length < 3) return { level: 'normal', cumulative: 0 }
@@ -360,6 +363,7 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
   // ── 이전 기록 & 자동 판단 ──
   const [prevRecords, setPrevRecords] = useState<any[]>([])
   const [autoReason,  setAutoReason]  = useState('')
+  const [noBasis,     setNoBasis]     = useState(false)   // 판정 근거 전무(비교 이력 0건+설정압 미입력) — normal 라벨 분기용
   const [saving,     setSaving]     = useState(false)
   const [done,       setDone]       = useState(false)
   const [showTrend,  setShowTrend]  = useState(false)
@@ -378,6 +382,7 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
   // ── 이전 기록 fetch ──
   useEffect(() => {
     if (!currentPt) { setPrevRecords([]); return }
+    setPrevRecords([])   // 개소/회차 전환 직후 이전 개소 이력으로 급변 Δ 오판정(플래시) 방지 — fetch 완료까지 빈 시계열
     const token = useAuthStore.getState().token
     fetch(`/api/div/pressure?location=${currentPt.id}`, {
       headers: token ? { Authorization:`Bearer ${token}` } : {}
@@ -426,39 +431,82 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
   useEffect(() => {
     const p1 = parsedP1
     const p2 = parsedP2
+    const p3 = parsedP3
     if (p1 === null && p2 === null) {
       // 압력 미입력 → i1 미판정. 저장기록 조회(clean)면 복원된 i1 보존, 입력 후 지운 경우(dirty)만 해제.
       setAutoReason('')
+      setNoBasis(false)
       if (dirtyRef.current) setFaMarks(m => { if (!(1 in m)) return m; const n = { ...m }; delete n[1]; return n })
       return
     }
 
-    const prev3 = prevRecords.slice(0,3).reverse() // oldest → newest
+    // 현 회차 이후(≥) 라운드 전부 제외 — 정정 재저장 시 '직전값=자기 자신'(Δ=0) 무력화 방지 +
+    // 월말 저장된 달에 월초를 백필할 때 '직전값'이 미래 측정치(같은 달 월말)로 역전되는 것 방지.
+    // null 압력 레코드는 시계열별로 제외(방어).
+    const now = new Date()
+    const currentRound = divRound(now.getFullYear(), now.getMonth() + 1, timing)
+    const hist = prevRecords.filter((r: any) => divRound(r.year, r.month, r.timing ?? 'early') < currentRound)
+    const hist1 = hist.filter((r: any) => r.pressure_1 != null)   // newest → oldest
+    const hist2 = hist.filter((r: any) => r.pressure_2 != null)
+
     const reasons: string[] = []
     let level: 'normal'|'caution'|'bad' = 'normal'
 
-    if (p1 !== null && prev3.length >= 2) {
-      const series = [...prev3.map((r:any) => r.pressure_1 as number), p1]
+    // 추세: 연속 방향성 + 누적 임계 (기존 로직 유지)
+    if (p1 !== null && hist1.length >= 2) {
+      const series = [...hist1.slice(0,3).reverse().map((r:any) => r.pressure_1 as number), p1] // oldest → newest
       const t = detectDivTrend(series, true)
       if (t.level !== 'normal') {
-        reasons.push(`1차압 지속 상승 (+${t.cumulative.toFixed(1)})`)
+        reasons.push(`1차압 지속 상승 (누적 +${t.cumulative.toFixed(1)})`)
         if (t.level === 'bad' || level === 'normal') level = t.level
       }
     }
-    if (p2 !== null && prev3.length >= 2) {
-      const series = [...prev3.map((r:any) => r.pressure_2 as number), p2]
+    if (p2 !== null && hist2.length >= 2) {
+      const series = [...hist2.slice(0,3).reverse().map((r:any) => r.pressure_2 as number), p2]
       const t = detectDivTrend(series, false)
       if (t.level !== 'normal') {
-        reasons.push(`2차압 지속 하강 (-${t.cumulative.toFixed(1)})`)
+        reasons.push(`2차압 지속 하강 (누적 -${t.cumulative.toFixed(1)})`)
         if (t.level === 'bad' || level === 'normal') level = t.level
       }
+    }
+
+    // 급변: 직전 유효 기록 1건만으로 동작 — 단일 급락/급상승이 추세의 '연속 2회' 요건을 우회하는 결함 보완.
+    // 입력이 소수 1자리이므로 Δ를 1자리로 반올림해 경계(±0.5/±1.0 포함)를 부동소수 오차 없이 판정.
+    if (p1 !== null && hist1.length >= 1) {
+      const d = Math.round((p1 - (hist1[0].pressure_1 as number)) * 10) / 10
+      if (d >= 0.5) {
+        reasons.push(`1차압 급상승 (+${d.toFixed(1)})`)
+        const lv = d >= 1.0 ? 'bad' : 'caution'
+        if (lv === 'bad' || level === 'normal') level = lv
+      }
+    }
+    if (p2 !== null && hist2.length >= 1) {
+      const d = Math.round((p2 - (hist2[0].pressure_2 as number)) * 10) / 10
+      if (d <= -0.5) {
+        reasons.push(`2차압 급락 (-${Math.abs(d).toFixed(1)})`)
+        const lv = d <= -1.0 ? 'bad' : 'caution'
+        if (lv === 'bad' || level === 'normal') level = lv
+      }
+    }
+
+    // 절대 하한: 설정압 대비 15% 미만이면 이력 무관 불량. (정상 개소 p2/set 최저 24% — caution 단계는 겹쳐서 불가, bad 단독)
+    const floorChecked = p2 !== null && p3 !== null && p3 > 0
+    if (floorChecked && p2 < p3 * 0.15) {
+      reasons.push('2차압 상실 (설정압 대비 15% 미만)')
+      level = 'bad'
     }
 
     // autoReason = 사유 텍스트만(정상/주의/불량 단어 없이 — 카드 i1 인라인 표시용). 판정을 faMarks[1] 에 주입.
     const verdict: CheckResult = reasons.length > 0 ? level : 'normal'
     setAutoReason(reasons.length > 0 ? reasons.join(', ') : '')
+    // 판정 근거가 하나도 못 돈 상태(비교 이력 0건 + 하한 검사 불가) → normal 라벨을 '비교 기록 부족'으로
+    setNoBasis(
+      !(p1 !== null && hist1.length >= 1) &&
+      !(p2 !== null && hist2.length >= 1) &&
+      !floorChecked
+    )
     setFaMarks(m => (m[1] === verdict ? m : { ...m, 1: verdict }))
-  }, [digits, prevRecords])// eslint-disable-line
+  }, [digits, prevRecords, timing])// eslint-disable-line
 
   // ── 폼 초기화 ──
   const resetForm = useCallback(() => {
@@ -469,6 +517,7 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
     setFaChecked(new Set(divManualIds))   // 첫 진입/개소전환: 수동 항목 전체선택
     setMemo('')
     setAutoReason('')
+    setNoBasis(false)
     photo.reset()
   }, [photo, divManualIds])
 
@@ -557,7 +606,9 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
   }
 
   // ── UI 헬퍼 ──
-  const prev = prevRecords[0] ?? null
+  // '직전' 표시 = 판정과 동일 기준(현 회차 이후 라운드 제외) — 재저장 시 '직전=자기 자신'(변화 →0.0) 표시가 카드 판정 사유와 모순되는 것 방지
+  const nowRound = divRound(new Date().getFullYear(), new Date().getMonth() + 1, timing)
+  const prev = prevRecords.find((r: any) => divRound(r.year, r.month, r.timing ?? 'early') < nowRound) ?? null
   // 각 행의 칸 수: 지난달 값 >= 9.8이면 정수부 2칸(총 3) 아니면 1칸(총 2)
   const p1Slots = prev && Number(prev.pressure_1 ?? 0) >= 9.8 ? 3 : 2
   const p2Slots = prev && Number(prev.pressure_2 ?? 0) >= 9.8 ? 3 : 2
@@ -622,7 +673,7 @@ export function DivInspectModal({ onClose, onSaveRecord, initialLocationNo, mont
   const faAllChecked = DIV_MANUAL.length > 0 && faChecked.size === DIV_MANUAL.length
   const faAuto       = faAutoMemo(divItems, faMarks)
   const faReadonly   = !!popupState
-  const divI1Reason  = faMarks[1] == null ? '압력값 입력 시 자동판정' : faMarks[1] === 'normal' ? '압력 추세 안정' : (autoReason || '압력 추세 이상')
+  const divI1Reason  = faMarks[1] == null ? '압력값 입력 시 자동판정' : faMarks[1] === 'normal' ? (noBasis ? '비교 기록 부족' : '압력 추세 안정') : (autoReason || '압력 추세 이상')
   const toggleItem = (i: number) => { dirtyRef.current = true; setFaChecked(p => { const n = new Set(p); n.has(i) ? n.delete(i) : n.add(i); return n }) }
   const toggleSelectAll = () => { dirtyRef.current = true; setFaChecked(faAllChecked ? new Set<number>() : new Set(DIV_MANUAL.map(it => it.i))) }
   const applyResult = (val: CheckResult) => { if (faChecked.size === 0) return; dirtyRef.current = true; setFaMarks(p => { const n = { ...p }; faChecked.forEach(i => { n[i] = val }); return n }); setFaChecked(new Set()) }
