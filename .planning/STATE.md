@@ -457,6 +457,7 @@ None yet.
 | 260803-tan | 수신반 경보 소극화 2단계 — 푸시 문구·zoom 딥링크·자동ack·초안 불러오기·캡처 보기·OCR prefill | 2026-08-03 | 035a8d26 | [260803-tan-panel-alarm-client-server](./quick/260803-tan-panel-alarm-client-server/) |
 | 260803-vp9 | 수신반 이력 사건 단위 통합 + 캡처 상세 열람 (줌 토글 제거·출처 구분 폐지) | 2026-08-03 | b523c96d | [260803-vp9-panel-history-unify-capture](./quick/260803-vp9-panel-history-unify-capture/) |
 | 260820-nkt | DIV 압력 자동판정 결함 수정 prod 이식 — 급변 감지+설정압 15% 하한+현 회차 제외+기록부족 라벨 (staging 검증 패치 1:1, 배포 df5ba892) | 2026-08-20 | d31ea625 | [260820-nkt-div-prod-staging](./quick/260820-nkt-div-prod-staging/) |
+| 260824-fst | (fast) 2026 추석 공휴일 정정 — holidays.ts fallback 9/23~25→9/24~26 + D1 holidays 9/23 stale 행 삭제 (공공데이터·hyunbin.page 원본 교차확인, 배포 20140c91) | 2026-08-24 | 3c7f811d | — |
 
 ### Blockers/Concerns
 

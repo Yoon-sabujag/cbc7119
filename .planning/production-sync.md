@@ -11,15 +11,24 @@
 ```
 상태:           안정 (SYNCED) — 최신: **DIV 압력 자동판정 결함 수정 (급변 감지+설정압 15% 하한+회차 제외+기록부족 라벨)**(260820-nkt, code `d31ea625`, 배포 https://df5ba892.cbc7119.pages.dev) — staging 검증 패치(cbc7119-data `55bb8f7`+`04b8705`) 1:1 이식, prod 파일 staging HEAD와 sha256 동일 검증, alias 번들 신규 문자열 서빙 확인. 잔여: `-1-2` 2026-08 late 기록 앱 재저장 정정(불량 전환). ⚠ 이 노트는 260725 이후 미갱신 상태였음 — 260726-wdg(워치독 v2)·260803 수신반 소극화 3건(sea/tan/vp9, 실배포 포함: 메모리 기준 7c53faab 등) 항목 미기재, 상세는 STATE.md Last activity 체인 참조. 직전 기재: **화재수신반 오디오 경보 2단계 (서버/계약 confirmed)**(260725-eha, code `b72429f4` + 마이그 0103, 배포 https://d0be05c8.cbc7119.pages.dev) — 영상+오디오 교차-source 동시확인 시 서버가 `panel_alarms.confirmed=1` 태깅. trigger.ts dedupe 반환 직전 idempotent UPDATE(양쪽 source 존재&상이일 때만, 응답 스키마 불변) + alarm.ts mapAlarm additive 노출 + 마이그 0103(`ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 0`, 21행 0 백필, **execute --file 직접 적용 — `migrations list` 가 0092~0102 도 미적용으로 표시하는 추적테이블 unsync 라 `migrations apply` 금지**). **3단계(에이전트 audio 발신) 전까진 dormant**(현재 전부 source=visual → 교차조건 미발동, 동작 변화 0). SPEC `MONITORING-SPEC.md` §3.7 오디오(경종) 계약 + §4.3 복원(panel-agent `cb193d0` push 완료). 마이크 1단계 완료(sox 캡처 — ffmpeg avfoundation 오디오는 맥OS 타호 버그 all-zero). 직전: **점검 내용 카드 프로젝트 FULL-PORT (증분 A~E-2 + 리파인 4)**(260724-ikd, `d3528d60`, 배포 3a5dc76f, D1 0100/0101/0102) — staging 카드 프로젝트 첫 prod 이관. prod fork 발산(패널/데스크톱/**DIV 모듈추출 DivInspectModal**) 위 3-way 병합(base=82875b5) + DivInspectModal 카드 이식(H1~12/C1~4) + familyCard 공유모듈(순환 import 방지) + staging (B) 리뷰 PASS+parity + **DIV 전체선택 픽스(d3528d60 — prod pre-card 기록 line_results=null 리뷰모드 오진입)**. **UAT ✅ (2026-07-24 사용자 확인 — 전부 정상)**. (DIV 픽스는 prod 데이터 전용 — staging 은 pre-card 기록 없어 조치 불필요.) 직전: **식단표 가드 4종 + 토요일 저장/식대 정상화**(260717-4f4, `f92719ea`, 배포 5c79ccde) — staging(cbc7119-data 8a5f146+d16d84c+82875b5) 검증본 이식(별도 repo→prod 소스 재구현). ①**파서 밴드**: colRanges 를 dateCols 전체(토포함)로, 마지막 평일을 토헤더 x 경계 → 6/08 유형 토→금 유입 차단 + 토요일 자체 컬럼 저장. ②**백엔드 버전 게이트**: `PARSER_VERSION=2` 토큰 ↔ `MIN_PARSER_VERSION=2`, 없거나<2 면 **HTTP 426**(낡은 캐시 번들 차단 — 밀림의 유일 근본 차단점). ③**구조 가드 복원(dc981f0)+실측보정**: ①평일공란2일↑ ②달력기준 weekdayMenuCount<calendarWeekdays-1 ③헤더간격1.8배(7/17 정상 공란 오차단 방지). ④**토 표시 하드닝**: 중식게이트 `(lunch_a||lunch_b)` + A/B 독립렌더(**prod 인라인 style 재패치** — staging Tailwind 아님). ⑤**공휴일직후토 자동휴무 제거**(메뉴 저장/표시 + mealCalc 3곳): 토는 메뉴 유무로만 판단, 공휴일직후토 당직=일반토(제공1·5,500). **데이터**: prod holidays **제헌절(7/17) 삭제**(국경일=stale, 사용자확인 정상운영). 감사 결과 2026 23건 중 제헌절만 이상치. **검증**: staging 최종 vs prod 이식 로직 라인 1:1 대조 + tsc0+build88 + 정합성(게이트↔토큰). **known-minor**: prod 기존 `'\n'`/토 유령행은 재업로드로만 정정(260716 내 개행 교정분 포함). 원자배포(백+프론트). 직전: **에이전트 콘솔 피드백 처리**(260714-6tq, `790bc726`+`6769d3f8`, 배포 e2589030) — 🔴**§1 워치독 억제 버그 수정(HIGH)**: heartbeat 가 `watchdog_notified_at` 을 60초마다 NULL 리셋 → 캡처보드 무신호 시 cron 이 **5분마다 무한 푸시**(하루 288회) → 알람 피로 → 진짜 화재 푸시 무음화. 리셋 제거, 알림 수명주기는 cron 단독 소유. **prod 실증**(표식 심고 70초 → heartbeat 도착해도 생존). §5 v1.4.2 스위치 상태(0097: telemetry_on/backend_v2/snapshot_on/cfg_json + 배지 3종 + R2 설정/실측 병기) · §2 카운터 다운샘플 SUM(24h 타일 과소집계 수정) + last1h 시각기준 · §3 차트 시각축 + gaps 회색밴드(다운타임이 사라지던 것). **§4 반론**: 내 §6.1 실증은 prod(cha-bio-db b12b88e7 / cbc7119.pages.dev) 가 맞다 — 행이 없는 건 핸드오프 지시대로 뒤처리했기 때문. **영구 증거 `PA-C1PROOF001` 을 prod 에 남김**(삭제 금지). ⚠️ **발견**: 맥미니가 `1.4.2-telemetry` 로 보고하는데 payload 에 telemetryOn/cfg 없음 → 실제 코드는 v1.4.2 아님(feat 브랜치에 머묾, master 로 이동 필요). 직전: **화재수신반 에이전트 원격 모니터링**(260714-33k)
 진행 작업:       (없음) — 3-class 감지 LIVE·color_probe 실측 검증 완료(실물 fault 사진 yellow 2.06%≥1.3 → fault 정상분류). 백엔드(fire/equip/fault)·AGENT_KEY·D1 prod(0093 CHECK+0094 location 실측)·프론트·에이전트 전부 준비. ⚠️ **정정**: 이 노트가 7/2 에 멈춰 "노란색 감지 미배포"로 오기재돼 있었음 — 실제로는 7/3 03:30 부터 3-class LIVE. 2026-07-04 실측으로 정정.
-기준 production: `d31ea625` (260820-nkt DIV 압력 자동판정 결함 수정 — 배포 df5ba892, D1 변경 없음. 직전 기재 b72429f4 260725-eha, 그 사이 260726~260803 커밋들 포함 배포됨)
-마지막 동기화:   2026-08-20
-마지막 배포 URL: https://df5ba892.cbc7119.pages.dev (260820-nkt DIV 압력 자동판정, production alias = cbc7119.pages.dev, D1 변경 없음). 직전 기재 d0be05c8(260725-eha 오디오 2단계, D1 0103) — 사이 260803 트랙 배포는 미기재(메모리 기준 7c53faab 등).
+기준 production: `3c7f811d` (260824-fst 2026 추석 공휴일 정정 — 배포 20140c91 + D1 holidays 9/23 stale 행 삭제. 직전 d31ea625 260820-nkt DIV 압력 자동판정)
+마지막 동기화:   2026-08-24
+마지막 배포 URL: https://20140c91.cbc7119.pages.dev (260824-fst 추석 fallback 정정, production alias = cbc7119.pages.dev, alias 신규 번들 서빙 curl 확인. D1: holidays 9/23 DELETE 1행). 직전 df5ba892(260820-nkt DIV 압력 자동판정, D1 변경 없음).
 ⚠️ 분기/미결 잔여: **260626-b5v(반쪽 윈도우: getMarkerStatus 반쪽 게이트 + inspectionProgress export)는 prod 전용·staging 미적용** + **events.ts 720h(30일) 캡 해제 미착수**(staging-first 예정). 차후 staging 작업 시 함께.
 ```
 
 **상태 의미**:
 - `안정 (SYNCED)` — 직원 도메인이 표 마지막 entry 와 일치. 새 작업 들어와도 OK.
 - `작업중 (IN_PROGRESS)` — cherry-pick / 배포가 진행 중이거나 중단됨. 새 작업 들어오면 STOP, 먼저 진행 중인 거 마무리.
+
+---
+
+## 2026 추석 공휴일 정정 — fallback+D1 이중 수정 (2026-08-24, 260824-fst)
+
+**무엇**: 연차·식사 달력에 9/23이 '추석 연휴'로 오표시. 실제 2026 추석 = 9/25(금), 연휴 9/24~26 — 공공데이터포털(sync 원본)·holidays.hyunbin.page 교차확인 일치.
+**원인 2중**: ①D1 `holidays`에 5/2 시드 때 들어간 stale `2026-09-23 추석 연휴` 행(8/24 새벽 cron sync가 올바른 24/25/26을 추가했지만 stale 행은 미삭제 — upsert-only라 잔존, 제헌절 7/17 건과 동일 계열) ②클라이언트 `src/utils/holidays.ts` HOLIDAYS_FALLBACK도 23~25로 하루 밀림. StaffServicePage holidayMap = DB 우선 ∪ fallback 보충이라 **양쪽 다 수정 필수**(D1만 지우면 fallback이 9/23을 되메꿈).
+**조치**: D1 `DELETE date='2026-09-23'`(1행, 9월 잔존 24/25/26 확인) + fallback `9/24 연휴·9/25 추석·9/26 연휴` 정정. fix `3c7f811d`, 배포 https://20140c91.cbc7119.pages.dev, alias 신규 index 청크 전환+'2026-09-26' 서빙 curl 확인. 2027 fallback은 외부 원본 미발행이라 미검증 유지(DB 우선 구조라 내년 sync가 커버).
+**후속 없음** (PWA 캐시로 fallback 반영은 다음 앱 갱신 시 — DB 정정분은 달력 재조회 즉시 반영).
 
 ---
 
