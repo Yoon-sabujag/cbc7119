@@ -459,6 +459,7 @@ None yet.
 | 260820-nkt | DIV 압력 자동판정 결함 수정 prod 이식 — 급변 감지+설정압 15% 하한+현 회차 제외+기록부족 라벨 (staging 검증 패치 1:1, 배포 df5ba892) | 2026-08-20 | d31ea625 | [260820-nkt-div-prod-staging](./quick/260820-nkt-div-prod-staging/) |
 | 261028-c7x | 화재수신반 오감지(마이크 오인식) 분류 플래그 추가 — location 텍스트 관례→false_alarm 컬럼, 이력 제외(DB 보존), 체크박스 2폼 (마이그 0106, 배포 3c5253f6) | 2026-10-28 | 92f850e3 | [261028-c7x-fire-false-alarm](./quick/261028-c7x-fire-false-alarm/) |
 | 261028-reword | 오감지 체크박스 라벨 문구 변경 — "오감지(마이크 오인식)" → "오감지 (경종 알람 없음, 수신반 정상)" (261028-c7x 후속, gsd-fast) | 2026-10-28 | b2a7e41d | — |
+| 261028-btn | 오감지를 체크박스에서 구분(화재보/비화재보) 버튼 그룹의 3번째 버튼으로 이동 — 선택 시 type=non_fire+false_alarm=1, 화재보/비화재보 선택 시 false_alarm 해제 (261028-c7x 후속, gsd-fast) | 2026-10-28 | 5d56eba8 | — |
 | 260824-fst | (fast) 2026 추석 공휴일 정정 — holidays.ts fallback 9/23~25→9/24~26 + D1 holidays 9/23 stale 행 삭제 (공공데이터·hyunbin.page 원본 교차확인, 배포 20140c91) | 2026-08-24 | 3c7f811d | — |
 
 ### Blockers/Concerns
