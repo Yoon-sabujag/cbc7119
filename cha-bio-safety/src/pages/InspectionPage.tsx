@@ -4699,18 +4699,30 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
                 {mode === 'alarm' && <span className="ml-1.5 text-[10.5px] text-info bg-info-bg rounded-sm px-1.5 py-0.5 leading-none">자동선택</span>}
               </label>
               <div className="flex gap-2">
-                {([['fire','화재보'],['non_fire','비화재보']] as const).map(([v, l]) => (
-                  <button key={v} onClick={() => setType(v)}
-                    className={`flex-1 px-0 py-2.5 rounded-sm text-label font-bold cursor-pointer transition-colors ${
-                      type===v
-                        ? (v === 'fire'
-                            ? 'border-2 border-danger-bar bg-danger-bg text-danger'
-                            : 'border-2 border-accent bg-[rgba(59,130,246,.13)] text-[#60a5fa]')
-                        : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
-                    }`}>
-                    {l}
-                  </button>
-                ))}
+                <button onClick={() => { setType('fire'); setFalseAlarm(false) }}
+                  className={`flex-1 px-0 py-2.5 rounded-sm text-label font-bold cursor-pointer transition-colors ${
+                    type === 'fire' && !falseAlarm
+                      ? 'border-2 border-danger-bar bg-danger-bg text-danger'
+                      : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+                  }`}>
+                  화재보
+                </button>
+                <button onClick={() => { setType('non_fire'); setFalseAlarm(false) }}
+                  className={`flex-1 px-0 py-2.5 rounded-sm text-label font-bold cursor-pointer transition-colors ${
+                    type === 'non_fire' && !falseAlarm
+                      ? 'border-2 border-accent bg-[rgba(59,130,246,.13)] text-[#60a5fa]'
+                      : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+                  }`}>
+                  비화재보
+                </button>
+                <button onClick={() => { setType('non_fire'); setFalseAlarm(true) }}
+                  className={`flex-1 px-0 py-2.5 rounded-sm text-label font-bold cursor-pointer transition-colors ${
+                    falseAlarm
+                      ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                      : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+                  }`}>
+                  오감지 (경종 알람 없음, 수신반 정상)
+                </button>
               </div>
             </div>
 
@@ -4732,14 +4744,6 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
               <textarea value={location} onChange={e => setLocation(e.target.value)}
                 placeholder={mode === 'alarm' ? '현장 확인 후 입력 (예: B1F-2 DIV 경비과 3F)' : '발생장소를 입력하세요'} rows={2}
                 className={`${inputCls} resize-none leading-relaxed ${mode === 'alarm' ? 'border-danger-bar bg-danger-bg' : ''}`} />
-            </div>
-
-            {/* 마이크 오인식 체크박스 */}
-            <div>
-              <label className="flex items-center gap-2 text-body-sm text-text-secondary leading-none cursor-pointer">
-                <input type="checkbox" checked={falseAlarm} onChange={e => setFalseAlarm(e.target.checked)} />
-                오감지 (경종 알람 없음, 수신반 정상)
-              </label>
             </div>
 
             {/* 발생원인 */}
@@ -5330,18 +5334,30 @@ function DesktopInspectionView({
           {isAlarm && <span className="ml-1.5 text-[10.5px] text-info bg-info-bg rounded-sm px-1.5 py-0.5 leading-none">자동선택</span>}
         </label>
         <div className="flex gap-2">
-          {([['fire','화재보'],['non_fire','비화재보']] as const).map(([v, l]) => (
-            <button key={v} type="button" onClick={() => setPaType(v)}
-              className={`flex-1 px-0 py-2.5 rounded-sm text-body-sm font-bold cursor-pointer transition-colors ${
-                paType===v
-                  ? (v === 'fire'
-                      ? 'border-2 border-danger-bar bg-danger-bg text-danger'
-                      : 'border-2 border-accent bg-[rgba(59,130,246,.13)] text-[#60a5fa]')
-                  : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
-              }`}>
-              {l}
-            </button>
-          ))}
+          <button type="button" onClick={() => { setPaType('fire'); setPaFalseAlarm(false) }}
+            className={`flex-1 px-0 py-2.5 rounded-sm text-body-sm font-bold cursor-pointer transition-colors ${
+              paType === 'fire' && !paFalseAlarm
+                ? 'border-2 border-danger-bar bg-danger-bg text-danger'
+                : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+            }`}>
+            화재보
+          </button>
+          <button type="button" onClick={() => { setPaType('non_fire'); setPaFalseAlarm(false) }}
+            className={`flex-1 px-0 py-2.5 rounded-sm text-body-sm font-bold cursor-pointer transition-colors ${
+              paType === 'non_fire' && !paFalseAlarm
+                ? 'border-2 border-accent bg-[rgba(59,130,246,.13)] text-[#60a5fa]'
+                : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+            }`}>
+            비화재보
+          </button>
+          <button type="button" onClick={() => { setPaType('non_fire'); setPaFalseAlarm(true) }}
+            className={`flex-1 px-0 py-2.5 rounded-sm text-body-sm font-bold cursor-pointer transition-colors ${
+              paFalseAlarm
+                ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+            }`}>
+            오감지 (경종 알람 없음, 수신반 정상)
+          </button>
         </div>
       </div>
       {/* 발생일시 */}
@@ -5361,13 +5377,6 @@ function DesktopInspectionView({
         <textarea value={paLocation} onChange={e => setPaLocation(e.target.value)}
           placeholder={isAlarm ? '현장 확인 후 입력 (예: B1F-2 DIV 경비과 3F)' : '발생장소를 입력하세요'} rows={2}
           className={`${paInputCls} resize-none leading-relaxed ${isAlarm ? 'border-danger-bar bg-danger-bg' : ''}`} />
-      </div>
-      {/* 마이크 오인식 체크박스 */}
-      <div>
-        <label className="flex items-center gap-2 text-body-sm text-text-secondary leading-none cursor-pointer">
-          <input type="checkbox" checked={paFalseAlarm} onChange={e => setPaFalseAlarm(e.target.checked)} />
-          오감지 (경종 알람 없음, 수신반 정상)
-        </label>
       </div>
       {/* 발생원인 */}
       <div>
