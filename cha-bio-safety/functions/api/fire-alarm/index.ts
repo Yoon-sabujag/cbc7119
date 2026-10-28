@@ -12,7 +12,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   try {
     if (drafts) {
       const rows = await env.DB.prepare(
-        `SELECT far.id, far.type, far.occurred_at, far.location, far.cause, far.action,
+        `SELECT far.id, far.type, far.occurred_at, far.location, far.cause, far.action, far.false_alarm,
                 pa.id AS alarm_id, pa.location AS alarm_location, pa.snapshot_key AS snapshot_key
          FROM fire_alarm_records far
          LEFT JOIN panel_alarms pa ON pa.draft_record_id = far.id
@@ -20,7 +20,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
            AND (pa.status IS NULL OR pa.status NOT IN ('active', 'acked'))
          ORDER BY far.occurred_at DESC LIMIT 20`
       ).all<{
-        id: string; type: string; occurred_at: string; location: string; cause: string; action: string
+        id: string; type: string; occurred_at: string; location: string; cause: string; action: string; false_alarm: number
         alarm_id: string | null; alarm_location: string | null; snapshot_key: string | null
       }>()
       const data = (rows.results ?? []).map(r => ({
@@ -30,6 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         location: r.location,
         cause: r.cause,
         action: r.action,
+        falseAlarm: !!r.false_alarm,
         alarmId: r.alarm_id,
         ocrLocation: r.alarm_location,
         snapshotKey: r.snapshot_key,
@@ -66,7 +67,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   const { staffId } = data as any
   try {
     const body = await request.json<{
-      type: string; occurred_at: string; location: string; cause: string; action: string
+      type: string; occurred_at: string; location: string; cause: string; action: string; false_alarm?: boolean | number
     }>()
 
     if (!body.type || !['fire', 'non_fire'].includes(body.type)) {
@@ -76,11 +77,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
       return Response.json({ success: false, error: '발생일시를 입력하세요' }, { status: 400 })
     }
 
+    const falseAlarm = body.false_alarm ? 1 : 0
     const id = 'FA-' + nanoid(10)
     await env.DB.prepare(
-      `INSERT INTO fire_alarm_records (id, type, occurred_at, location, cause, action, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(id, body.type, body.occurred_at, body.location ?? '', body.cause ?? '오작동', body.action ?? '자동복구, 현장확인', staffId).run()
+      `INSERT INTO fire_alarm_records (id, type, occurred_at, location, cause, action, created_by, false_alarm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(id, body.type, body.occurred_at, body.location ?? '', body.cause ?? '오작동', body.action ?? '자동복구, 현장확인', staffId, falseAlarm).run()
 
     return Response.json({ success: true, data: { id } }, { status: 201 })
   } catch (e) {
@@ -94,7 +96,7 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, data }) =
   const { staffId } = data as any
   try {
     const body = await request.json<{
-      id: string; type: 'fire' | 'non_fire'; occurred_at?: string; location: string; cause: string; action: string
+      id: string; type: 'fire' | 'non_fire'; occurred_at?: string; location: string; cause: string; action: string; false_alarm?: boolean | number
     }>()
 
     if (!body.id) {
@@ -104,11 +106,12 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, data }) =
       return Response.json({ success: false, error: '구분을 선택하세요' }, { status: 400 })
     }
 
+    const falseAlarm = body.false_alarm ? 1 : 0
     await env.DB.prepare(
       `UPDATE fire_alarm_records
-       SET type = ?, occurred_at = COALESCE(?, occurred_at), location = ?, cause = ?, action = ?, created_by = ?
+       SET type = ?, occurred_at = COALESCE(?, occurred_at), location = ?, cause = ?, action = ?, created_by = ?, false_alarm = ?
        WHERE id = ? AND created_by = 'panel-agent'`
-    ).bind(body.type, body.occurred_at ?? null, body.location ?? '', body.cause ?? '오작동', body.action ?? '자동복구, 현장확인', staffId, body.id).run()
+    ).bind(body.type, body.occurred_at ?? null, body.location ?? '', body.cause ?? '오작동', body.action ?? '자동복구, 현장확인', staffId, falseAlarm, body.id).run()
 
     return Response.json({ success: true, data: { id: body.id } })
   } catch (e) {

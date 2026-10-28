@@ -162,6 +162,7 @@ export interface FireAlarmDraft {
   location: string
   cause: string
   action: string
+  falseAlarm: boolean
   alarmId: string | null
   ocrLocation: string | null
   snapshotKey: string | null
@@ -170,10 +171,10 @@ export interface FireAlarmDraft {
 export const fireAlarmApi = {
   getByYear: (year: number) => req<any[]>(`/fire-alarm?year=${year}`),
   getRecent: () => req<any[]>('/fire-alarm?recent=1'),
-  create: (data: { type: string; occurred_at: string; location: string; cause: string; action: string }) =>
+  create: (data: { type: string; occurred_at: string; location: string; cause: string; action: string; false_alarm?: 0 | 1 }) =>
     req<{ id: string }>('/fire-alarm', { method: 'POST', body: JSON.stringify(data) }),
   getDrafts: () => req<FireAlarmDraft[]>('/fire-alarm?drafts=1'),
-  confirmDraft: (id: string, body: { type: 'fire' | 'non_fire'; occurred_at: string; location: string; cause: string; action: string }) =>
+  confirmDraft: (id: string, body: { type: 'fire' | 'non_fire'; occurred_at: string; location: string; cause: string; action: string; false_alarm?: 0 | 1 }) =>
     req<{ id: string }>('/fire-alarm', { method: 'PUT', body: JSON.stringify({ id, ...body }) }),
 }
 
@@ -862,6 +863,6 @@ export const alarmApi = {
   // 경보중 자동초안 '조치완료 후 저장' — in-place UPDATE + record 확정 +
   // panel_alarm cleared_reason='record_saved' -> 대시보드 칩 소멸.
   // fireAlarmApi.create (평상시 신규) 와는 DISTINCT.
-  resolve: (id: string, body: { type: 'fire' | 'non_fire'; occurredAt: string; location: string; cause: string; action: string }): Promise<Alarm> =>
+  resolve: (id: string, body: { type: 'fire' | 'non_fire'; occurredAt: string; location: string; cause: string; action: string; false_alarm?: 0 | 1 }): Promise<Alarm> =>
     api.post<Alarm>(`/alarm/${id}/resolve`, body),
 }

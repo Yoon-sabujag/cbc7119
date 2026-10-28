@@ -4407,6 +4407,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   const [location, setLocation] = useState('')
   const [cause, setCause] = useState('오작동')
   const [action, setAction] = useState('자동복구, 현장확인')
+  const [falseAlarm, setFalseAlarm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [maintBusy, setMaintBusy] = useState(false)
   const [zoomOpen, setZoomOpen] = useState(false)
@@ -4481,6 +4482,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     setCause(draft.cause || '오작동')
     setAction(draft.action || '자동복구, 현장확인')
     setLocation(draft.location || (OCR_LOCATION_PREFILL ? (draft.ocrLocation ?? '') : ''))
+    setFalseAlarm(!!draft.falseAlarm)
     setLoadedDraftId(draft.id)
   }
 
@@ -4491,19 +4493,19 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
       const snap = openAlarmRef.current
       if (loadedDraftId) {
         // 고아 초안 이어서 작성 -> in-place UPDATE (신규 레코드 없음)
-        await fireAlarmApi.confirmDraft(loadedDraftId, { type, occurred_at: `${date} ${time}:00`, location, cause, action })
+        await fireAlarmApi.confirmDraft(loadedDraftId, { type, occurred_at: `${date} ${time}:00`, location, cause, action, false_alarm: falseAlarm ? 1 : 0 })
         qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
       } else if (snap) {
         // 경보중 자동초안 보완 -> in-place UPDATE + 확정 + panel_alarm cleared -> 대시보드 칩 소멸
-        await alarmApi.resolve(snap.id, { type, occurredAt: `${date} ${time}:00`, location, cause, action })
+        await alarmApi.resolve(snap.id, { type, occurredAt: `${date} ${time}:00`, location, cause, action, false_alarm: falseAlarm ? 1 : 0 })
         qc.invalidateQueries({ queryKey: ['alarm-active'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
       } else {
-        await fireAlarmApi.create({ type, occurred_at: `${date} ${time}:00`, location, cause, action })
+        await fireAlarmApi.create({ type, occurred_at: `${date} ${time}:00`, location, cause, action, false_alarm: falseAlarm ? 1 : 0 })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
@@ -4730,6 +4732,14 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
               <textarea value={location} onChange={e => setLocation(e.target.value)}
                 placeholder={mode === 'alarm' ? '현장 확인 후 입력 (예: B1F-2 DIV 경비과 3F)' : '발생장소를 입력하세요'} rows={2}
                 className={`${inputCls} resize-none leading-relaxed ${mode === 'alarm' ? 'border-danger-bar bg-danger-bg' : ''}`} />
+            </div>
+
+            {/* 마이크 오인식 체크박스 */}
+            <div>
+              <label className="flex items-center gap-2 text-body-sm text-text-secondary leading-none cursor-pointer">
+                <input type="checkbox" checked={falseAlarm} onChange={e => setFalseAlarm(e.target.checked)} />
+                오감지(마이크 오인식)
+              </label>
             </div>
 
             {/* 발생원인 */}
@@ -5196,6 +5206,7 @@ function DesktopInspectionView({
   const [paLocation, setPaLocation] = useState('')
   const [paCause, setPaCause] = useState('오작동')
   const [paAction, setPaAction] = useState('자동복구, 현장확인')
+  const [paFalseAlarm, setPaFalseAlarm] = useState(false)
   const [paSaving, setPaSaving] = useState(false)
   const [maintBusy, setMaintBusy] = useState(false)
   const [panelZoomOpen, setPanelZoomOpen] = useState(false)
@@ -5218,6 +5229,8 @@ function DesktopInspectionView({
     setPaCause(draft.cause || '오작동')
     setPaAction(draft.action || '자동복구, 현장확인')
     setPaLocation(draft.location || (OCR_LOCATION_PREFILL ? (draft.ocrLocation ?? '') : ''))
+    // draft.falseAlarm → paFalseAlarm 상태로 반영
+    setPaFalseAlarm(!!draft.falseAlarm)
     setPanelLoadedDraftId(draft.id)
   }
 
@@ -5252,18 +5265,18 @@ function DesktopInspectionView({
     try {
       const snap = panelOpenAlarmRef.current
       if (panelLoadedDraftId) {
-        await fireAlarmApi.confirmDraft(panelLoadedDraftId, { type: paType, occurred_at: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
+        await fireAlarmApi.confirmDraft(panelLoadedDraftId, { type: paType, occurred_at: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction, false_alarm: paFalseAlarm ? 1 : 0 })
         qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
       } else if (snap) {
-        await alarmApi.resolve(snap.id, { type: paType, occurredAt: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
+        await alarmApi.resolve(snap.id, { type: paType, occurredAt: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction, false_alarm: paFalseAlarm ? 1 : 0 })
         qc.invalidateQueries({ queryKey: ['alarm-active'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
       } else {
-        await fireAlarmApi.create({ type: paType, occurred_at: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction })
+        await fireAlarmApi.create({ type: paType, occurred_at: `${paDate} ${paTime}:00`, location: paLocation, cause: paCause, action: paAction, false_alarm: paFalseAlarm ? 1 : 0 })
         qc.invalidateQueries({ queryKey: ['fire-alarm-recent'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-year'] })
         qc.invalidateQueries({ queryKey: ['fire-alarm-drafts'] })
@@ -5348,6 +5361,13 @@ function DesktopInspectionView({
         <textarea value={paLocation} onChange={e => setPaLocation(e.target.value)}
           placeholder={isAlarm ? '현장 확인 후 입력 (예: B1F-2 DIV 경비과 3F)' : '발생장소를 입력하세요'} rows={2}
           className={`${paInputCls} resize-none leading-relaxed ${isAlarm ? 'border-danger-bar bg-danger-bg' : ''}`} />
+      </div>
+      {/* 마이크 오인식 체크박스 */}
+      <div>
+        <label className="flex items-center gap-2 text-body-sm text-text-secondary leading-none cursor-pointer">
+          <input type="checkbox" checked={paFalseAlarm} onChange={e => setPaFalseAlarm(e.target.checked)} />
+          오감지(마이크 오인식)
+        </label>
       </div>
       {/* 발생원인 */}
       <div>

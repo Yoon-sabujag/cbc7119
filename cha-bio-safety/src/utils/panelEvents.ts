@@ -51,10 +51,11 @@ function normalizeAuto(alarms: Alarm[]): PanelEventItem[] {
 
 // 수동기록(fire_alarm_records) → PanelEventItem
 // created_by === 'panel-agent' 는 자동초안(panel_alarms 와 중복)이므로 제외.
+// false_alarm=1(오감지)은 DB 에 보존하되 이력 목록에서만 제외.
 // 화재수신반 수동기록은 fire/non_fire 모두 화재수신반=화재로 취급(kind:'fire').
 function normalizeManual(records: any[]): PanelEventItem[] {
   return (records ?? [])
-    .filter(r => r.created_by !== 'panel-agent')
+    .filter(r => r.created_by !== 'panel-agent' && !r.false_alarm)
     .map(r => ({
       id: r.id,
       kind: 'fire' as const,
@@ -78,6 +79,9 @@ export function mergePanelEvents(auto: Alarm[], manual: any[]): PanelEventItem[]
   const autoItems = normalizeAuto(auto)
   const manualItems = normalizeManual(manual)
   const manualIds = new Set(manualItems.map(m => m.id))
+  // 오감지(false_alarm=1)로 이력에서 제외된 수동기록 id — normalizeManual 이 걸러내 manualIds 에는
+  // 안 남지만, 그 짝 자동경보(PA-*)가 이력에 되살아나는 것을 막으려면 원본 manual 에서 따로 모아야 한다.
+  const hiddenIds = new Set((manual ?? []).filter(r => r.false_alarm).map(r => r.id))
 
   // 확정 기록에 연결된 자동 경보를 recordId 로 인덱싱(다중 매칭 시 마지막 것이 남음 — 실사용 1:1).
   const linkedByRecordId = new Map<string, PanelEventItem>()
@@ -93,7 +97,9 @@ export function mergePanelEvents(auto: Alarm[], manual: any[]): PanelEventItem[]
       ? { ...m, snapshotKey: linked.snapshotKey, snapshotUrl: linked.snapshotUrl, detectedAt: linked.detectedAt }
       : m
   })
-  const shownAuto = autoItems.filter(a => !(a.draftRecordId && manualIds.has(a.draftRecordId)))
+  // manualIds(표시되는 수동기록과 연결) 또는 hiddenIds(오감지로 숨긴 수동기록과 연결) 중
+  // 하나라도 걸리면 자동경보도 숨긴다 — 오감지 짝 자동경보 부활 방지.
+  const shownAuto = autoItems.filter(a => !(a.draftRecordId && (manualIds.has(a.draftRecordId) || hiddenIds.has(a.draftRecordId))))
 
   return [...shownAuto, ...mergedManual].sort((a, b) => b.time.localeCompare(a.time))
 }

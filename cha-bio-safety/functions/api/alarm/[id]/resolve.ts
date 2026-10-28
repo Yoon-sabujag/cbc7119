@@ -9,7 +9,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const staffId = (ctx as unknown as { data?: { staffId?: string } }).data?.staffId
   const id = Array.isArray(params.id) ? params.id[0] : params.id
   try {
-    const body = await request.json<{ type?: 'fire' | 'non_fire'; location?: string; cause?: string; action?: string }>()
+    const body = await request.json<{ type?: 'fire' | 'non_fire'; location?: string; cause?: string; action?: string; false_alarm?: boolean | number }>()
     if (body.type && !['fire', 'non_fire'].includes(body.type)) {
       return Response.json({ success: false, error: 'type is fire|non_fire' }, { status: 400 })
     }
@@ -18,10 +18,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (row.status === 'cleared') return Response.json({ success: true, data: mapAlarm(row) }) // 멱등
     if (!row.draft_record_id) return Response.json({ success: false, error: '저장할 자동초안이 없습니다' }, { status: 400 })
 
-    // 자동초안 in-place 확정 (신규 레코드 없음). type 미지정 시 기존값 유지.
+    // 자동초안 in-place 확정 (신규 레코드 없음). type/false_alarm 미지정 시 기존값 유지.
+    const falseAlarm = body.false_alarm === undefined ? null : (body.false_alarm ? 1 : 0)
     await env.DB.prepare(
-      `UPDATE fire_alarm_records SET type=COALESCE(?,type), location=?, cause=?, action=?, created_by=? WHERE id=?`,
-    ).bind(body.type ?? null, body.location ?? '', body.cause ?? '오작동', body.action ?? '자동복구, 현장확인', staffId ?? 'panel-agent', row.draft_record_id).run()
+      `UPDATE fire_alarm_records SET type=COALESCE(?,type), location=?, cause=?, action=?, created_by=?, false_alarm=COALESCE(?,false_alarm) WHERE id=?`,
+    ).bind(body.type ?? null, body.location ?? '', body.cause ?? '오작동', body.action ?? '자동복구, 현장확인', staffId ?? 'panel-agent', falseAlarm, row.draft_record_id).run()
 
     // 경보 종료 + 칩 소멸 (record_saved) + 에스컬레이션 중지.
     await env.DB.prepare(
