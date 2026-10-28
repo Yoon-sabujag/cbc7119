@@ -4738,7 +4738,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="flex items-center gap-2 text-body-sm text-text-secondary leading-none cursor-pointer">
                 <input type="checkbox" checked={falseAlarm} onChange={e => setFalseAlarm(e.target.checked)} />
-                오감지(마이크 오인식)
+                오감지 (경종 알람 없음, 수신반 정상)
               </label>
             </div>
 
@@ -5366,7 +5366,7 @@ function DesktopInspectionView({
       <div>
         <label className="flex items-center gap-2 text-body-sm text-text-secondary leading-none cursor-pointer">
           <input type="checkbox" checked={paFalseAlarm} onChange={e => setPaFalseAlarm(e.target.checked)} />
-          오감지(마이크 오인식)
+          오감지 (경종 알람 없음, 수신반 정상)
         </label>
       </div>
       {/* 발생원인 */}
