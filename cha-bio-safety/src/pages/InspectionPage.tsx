@@ -4721,7 +4721,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
                       ? 'border-2 border-safe-bar bg-safe-bg text-safe'
                       : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
                   }`}>
-                  오감지 (경종 알람 없음, 수신반 정상)
+                  오감지<br />경종 알람 없음<br />수신반 정상
                 </button>
               </div>
             </div>
@@ -5356,7 +5356,7 @@ function DesktopInspectionView({
                 ? 'border-2 border-safe-bar bg-safe-bg text-safe'
                 : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
             }`}>
-            오감지 (경종 알람 없음, 수신반 정상)
+            오감지<br />경종 알람 없음<br />수신반 정상
           </button>
         </div>
       </div>
