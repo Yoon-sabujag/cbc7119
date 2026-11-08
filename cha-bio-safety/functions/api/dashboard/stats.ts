@@ -244,12 +244,31 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     `).first<{n:number}>()
 
     // ── 승강기 검사 도래/초과 건수 ───────────────────────
+    // 2소스 우선순위(next-inspection.ts 와 동일): ①공단 공식 이력(elevator_inspect_history)
+    // 의 최신 레코드 valid_end 가 1순위 ②없거나 비면 자체점검(elevator_inspections) MAX +
+    // cycleMonths 폴백 ③둘 다 없으면 도래로 집계(기존 동작 유지).
     const elevInspRows = await env.DB.prepare(`
-      SELECT e.id, e.type, e.install_year, MAX(i.inspect_date) AS last_date
+      SELECT e.id, e.type, e.install_year, MAX(i.inspect_date) AS last_date,
+        e.cert_no, REPLACE(e.cert_no, '-', '') AS cert_key
       FROM elevators e
       LEFT JOIN elevator_inspections i ON i.elevator_id = e.id AND i.type = 'annual'
       GROUP BY e.id
-    `).all<{ id: string; type: string; install_year: number | null; last_date: string | null }>()
+    `).all<{ id: string; type: string; install_year: number | null; last_date: string | null; cert_no: string | null; cert_key: string | null }>()
+
+    const elevHistoryRows = await env.DB.prepare(`
+      SELECT elevator_no, inspect_date, valid_end
+      FROM elevator_inspect_history
+      WHERE elevator_no IS NOT NULL AND inspect_date IS NOT NULL
+      ORDER BY elevator_no, inspect_date DESC
+    `).all<{ elevator_no: string; inspect_date: string; valid_end: string | null }>()
+
+    // elevator_no 별 최신 1건만 = inspect_date DESC 정렬의 첫 등장
+    const elevOfficialMap = new Map<string, { elevator_no: string; inspect_date: string; valid_end: string | null }>()
+    for (const h of elevHistoryRows.results ?? []) {
+      if (!elevOfficialMap.has(h.elevator_no)) {
+        elevOfficialMap.set(h.elevator_no, h)
+      }
+    }
 
     const todayDate = new Date(today)
     todayDate.setHours(0, 0, 0, 0)
@@ -264,9 +283,19 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
 
     let elevInspDueSoon = 0
     for (const r of (elevInspRows.results ?? [])) {
-      if (!r.last_date) { elevInspDueSoon++; continue }
-      const cycleMonths = getElevCycleMonths(r.type, r.install_year)
-      const nextDate = addMonths(parseISO(r.last_date), cycleMonths)
+      const official = r.cert_key ? elevOfficialMap.get(r.cert_key) ?? null : null
+
+      let nextDate: Date | null = null
+      if (official && official.valid_end) {
+        const parsed = parseISO(official.valid_end)
+        if (!Number.isNaN(parsed.getTime())) nextDate = parsed
+      }
+      if (!nextDate && r.last_date) {
+        const cycleMonths = getElevCycleMonths(r.type, r.install_year)
+        nextDate = addMonths(parseISO(r.last_date), cycleMonths)
+      }
+
+      if (!nextDate) { elevInspDueSoon++; continue }
       const days = differenceInDays(nextDate, todayDate)
       if (days <= 90) elevInspDueSoon++
     }
