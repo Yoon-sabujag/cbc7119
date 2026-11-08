@@ -7,6 +7,14 @@ type ElevatorRow = {
   type: string
   install_year: number | null
   last_date: string | null
+  cert_no: string | null
+  cert_key: string | null
+}
+
+type HistoryRow = {
+  elevator_no: string
+  inspect_date: string
+  valid_end: string | null
 }
 
 /**
@@ -22,7 +30,11 @@ function getCycleMonths(type: string, installYear: number | null, today: Date): 
 }
 
 // GET /api/elevators/next-inspection
-// Returns per-elevator next inspection dates and status
+// Returns per-elevator next inspection dates and status.
+// 2소스 우선순위:
+// ①공단 공식 이력(elevator_inspect_history)의 최신 레코드 valid_end 가 1순위
+// ②없거나 비면 자체점검(elevator_inspections) MAX + cycleMonths 폴백
+// ③둘 다 없으면 no_record
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   try {
     const rows = await env.DB.prepare(`
@@ -31,7 +43,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
         e.number,
         e.type,
         e.install_year,
-        MAX(i.inspect_date) AS last_date
+        MAX(i.inspect_date) AS last_date,
+        e.cert_no,
+        REPLACE(e.cert_no, '-', '') AS cert_key
       FROM elevators e
       LEFT JOIN elevator_inspections i
         ON i.elevator_id = e.id AND i.type = 'annual'
@@ -39,12 +53,42 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
       ORDER BY e.number
     `).all<ElevatorRow>()
 
+    const historyRows = await env.DB.prepare(`
+      SELECT elevator_no, inspect_date, valid_end
+      FROM elevator_inspect_history
+      WHERE elevator_no IS NOT NULL AND inspect_date IS NOT NULL
+      ORDER BY elevator_no, inspect_date DESC
+    `).all<HistoryRow>()
+
+    // elevator_no 별 최신 1건만 = inspect_date DESC 정렬의 첫 등장
+    const officialMap = new Map<string, HistoryRow>()
+    for (const h of historyRows.results ?? []) {
+      if (!officialMap.has(h.elevator_no)) {
+        officialMap.set(h.elevator_no, h)
+      }
+    }
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
     const data = (rows.results ?? []).map(r => {
       const cycleMonths = getCycleMonths(r.type, r.install_year, today)
-      const lastDate = r.last_date ?? null
+
+      const official = r.cert_key ? officialMap.get(r.cert_key) ?? null : null
+
+      let useOfficial = false
+      let officialNextDate: Date | null = null
+      if (official && official.valid_end) {
+        const parsed = parseISO(official.valid_end)
+        if (!Number.isNaN(parsed.getTime())) {
+          useOfficial = true
+          officialNextDate = parsed
+        }
+      }
+
+      const lastDate: string | null = useOfficial
+        ? official!.inspect_date
+        : (r.last_date ?? null)
 
       if (!lastDate) {
         return {
@@ -60,7 +104,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
         }
       }
 
-      const nextDate = addMonths(parseISO(lastDate), cycleMonths)
+      const nextDate = useOfficial
+        ? officialNextDate!
+        : addMonths(parseISO(lastDate), cycleMonths)
       const days = differenceInDays(nextDate, today)
 
       let status: 'ok' | 'due_soon' | 'overdue'
