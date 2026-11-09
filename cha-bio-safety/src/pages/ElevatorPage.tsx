@@ -1095,7 +1095,7 @@ export default function ElevatorPage() {
                             )}
                           </div>
                           <div className="text-caption text-text-tertiary mt-0.5">
-                            {ev.last_inspect_date ? `최근 점검: ${ev.last_inspect_date}` : '점검 기록 없음'}
+                            {ev.last_inspect_date ? `최근 검사: ${ev.last_inspect_date}` : '검사 기록 없음'}
                             {(ev.active_faults ?? 0) > 0 && <span className="text-danger ml-1.5">미해결 {ev.active_faults}건</span>}
                           </div>
                         </div>
