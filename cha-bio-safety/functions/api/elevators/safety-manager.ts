@@ -218,9 +218,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       // 호출 전에 읽어둔 cachedRows(일관된 스냅샷)를 사용한다.
       console.error(`safety-manager KOELSA error: ${apiError?.message}`)
       if (cachedRows && cachedRows.length > 0) {
+        const fetchedAtRaw = cachedRows[0]?.fetched_at as string | undefined
+        const lastSuccessAt = fetchedAtRaw
+          ? new Date(new Date(fetchedAtRaw).getTime() + 9 * 3600_000).toISOString().slice(0, 10)
+          : null
         return respondFromCache(env, elevators ?? [], cachedRows, {
           stale: true,
           staleReason: String(apiError?.message ?? apiError).slice(0, 200),
+          lastSuccessAt,
         })
       }
       return Response.json(

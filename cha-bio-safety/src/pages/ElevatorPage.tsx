@@ -466,7 +466,10 @@ export default function ElevatorPage() {
     queryFn: async () => {
       const res = await fetch('/api/elevators/safety-manager', { headers: authHeader() })
       const json = await res.json() as any
-      if (json.data?.stale) toast('공단 서버 응답 지연 — 최근 저장된 정보 표시', { id: 'koelsa-stale', icon: '⚠️' })
+      if (json.data?.stale) {
+        const dateSuffix = json.data?.lastSuccessAt ? ` (${json.data.lastSuccessAt} 기준)` : ''
+        toast(`공단 서버 응답 지연 — 최근 저장된 정보 표시${dateSuffix}`, { id: 'koelsa-stale', icon: '⚠️' })
+      }
       return json.success ? json.data : null
     },
     staleTime: 30 * 60_000,
