@@ -54,7 +54,8 @@ export async function fetchInspectHistory(certNo: string): Promise<InspectHistor
   if (data?.stale) {
     const fetchedAt = data.lastFetchedAt ? new Date(data.lastFetchedAt).getTime() : 0
     if (!fetchedAt || Date.now() - fetchedAt > STALE_TOAST_MIN_AGE_MS) {
-      toast('공단 서버 응답 지연 — 최근 저장된 정보 표시', { id: 'koelsa-stale', icon: '⚠️' })
+      const dateSuffix = fetchedAt ? ` (${new Date(fetchedAt + 9 * 3600_000).toISOString().slice(0, 10)} 기준)` : ''
+      toast(`공단 서버 응답 지연 — 최근 저장된 정보 표시${dateSuffix}`, { id: 'koelsa-stale', icon: '⚠️' })
     }
   }
   return data

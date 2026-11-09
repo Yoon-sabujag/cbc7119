@@ -144,9 +144,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       // stale-while-error: 공단 장애 시 캐시를 덮지 않고 만료된 직전 캐시로 응답
       console.error(`koelsa KOELSA error: ${apiError?.message}`)
       if (cached) {
+        const fetchedAtRaw = cached.fetched_at as string | undefined
+        const lastSuccessAt = fetchedAtRaw
+          ? new Date(new Date(fetchedAtRaw).getTime() + 9 * 3600_000).toISOString().slice(0, 10)
+          : null
         return Response.json({
           success: true,
-          data: { ...buildResponseData(cached), stale: true, staleReason: String(apiError?.message ?? apiError).slice(0, 200) },
+          data: { ...buildResponseData(cached), stale: true, staleReason: String(apiError?.message ?? apiError).slice(0, 200), lastSuccessAt },
         })
       }
       return Response.json(
