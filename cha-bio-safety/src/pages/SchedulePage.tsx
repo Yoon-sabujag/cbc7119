@@ -557,6 +557,7 @@ export default function SchedulePage() {
       {editItem && (
         <EditModal
           item={editItem}
+          selectedDate={selDate}
           onClose={() => setEditItem(null)}
           onSaved={() => { invalidate(); setEditItem(null); toast.success('수정됐습니다') }}
           isDesktop={isDesktop}
@@ -1149,21 +1150,20 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 }
 
 // ── 수정 모달 ────────────────────────────────────────────────
-function EditModal({ item, onClose, onSaved, isDesktop }: {
-  item: ScheduleItem; onClose: () => void; onSaved: () => void; isDesktop?: boolean
+function EditModal({ item, selectedDate, onClose, onSaved, isDesktop }: {
+  item: ScheduleItem; selectedDate: string; onClose: () => void; onSaved: () => void; isDesktop?: boolean
 }) {
   const isRangeItem = !!item.endDate && item.endDate !== item.date
   const isNightEligibleFire = isRangeItem && item.category === 'fire' &&
     (item.title === '소방 상반기 종합정밀점검' || item.title === '소방 하반기 작동기능점검')
-  const todayStr = localYMD(new Date())
 
   const [title,  setTitle]  = useState(item.title)
-  const [date,   setDate]   = useState(isRangeItem ? todayStr : item.date)
+  const [date,   setDate]   = useState(isRangeItem ? selectedDate : item.date)
   const [time,   setTime]   = useState(item.time ?? '')
   const [memo,   setMemo]   = useState(item.memo ?? '')
   const [saving, setSaving] = useState(false)
   const [titleError, setTitleError] = useState(false)
-  const [isNightDay, setIsNightDay] = useState(isNightEligibleFire && item.nightDate === todayStr)
+  const [isNightDay, setIsNightDay] = useState(isNightEligibleFire && item.nightDate === selectedDate)
 
   const handleSave = async () => {
     if (!title.trim()) { setTitleError(true); toast.error('제목을 입력하세요'); return }
