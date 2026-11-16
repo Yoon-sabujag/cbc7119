@@ -234,6 +234,14 @@ export default function SchedulePage() {
     toast.success(status === 'done' ? '완료 처리됐습니다' : '상태 변경됐습니다')
   }
 
+  // 범위 일정(여러 날짜)은 지금 보고 있는 날짜(selDate)만 완료/취소 토글 — 전체 범위를 한번에 바꾸지 않음
+  const handleDayComplete = async (item: ScheduleItem) => {
+    const wasDone = (item.completedDates ?? []).includes(selDate)
+    await scheduleApi.toggleDayComplete(item.id, selDate)
+    invalidate()
+    toast.success(wasDone ? '완료 취소됐습니다' : '완료 처리됐습니다')
+  }
+
   const handleDelete = async (item: ScheduleItem) => {
     try {
       await scheduleApi.delete(item.id)
@@ -437,7 +445,27 @@ export default function SchedulePage() {
 
         {/* 액션 row */}
         <div className="flex gap-1.5" style={{ marginTop: grouped ? 'auto' : 8, paddingTop: grouped ? 4 : 0 }}>
-          {item.status !== 'done' && (
+          {isMultiDay ? (
+            // 범위 일정: status 전체가 아니라 지금 보는 날짜(selDate)의 완료 여부만 토글.
+            // 단, completed_dates 없이 과거에 통째로 done 처리된 레거시 항목은 날짜별 이력이 없어
+            // 기존 그대로 버튼을 숨긴다(취소 불가 — 되돌릴 날짜 집합을 알 수 없음).
+            (() => {
+              const isLegacyDone = item.status === 'done' && !(item.completedDates && item.completedDates.length > 0)
+              if (isLegacyDone) return null
+              const doneHere = (item.completedDates ?? []).includes(selDate)
+              return (
+                <button
+                  onClick={() => handleDayComplete(item)}
+                  className={doneHere
+                    ? 'text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-secondary cursor-pointer'
+                    : 'text-caption font-semibold rounded-sm border border-safe-bar bg-safe-bg text-safe cursor-pointer'}
+                  style={{ padding: '4px 10px', lineHeight: 1.4 }}
+                >
+                  {doneHere ? '완료 취소' : '완료'}
+                </button>
+              )
+            })()
+          ) : item.status !== 'done' && (
             <button
               onClick={() => handleStatus(item, 'done')}
               className="text-caption font-semibold rounded-sm border border-safe-bar bg-safe-bg text-safe cursor-pointer"

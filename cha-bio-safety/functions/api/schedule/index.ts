@@ -61,6 +61,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       inspectionCategory:  r.inspection_category ?? undefined,
       memo:                r.memo ?? undefined,
       nightDate:           r.night_date ?? undefined,
+      completedDates:      r.completed_dates ? JSON.parse(r.completed_dates as string) : undefined,
     }
   }))
   return Response.json({ success: true, data: rows })

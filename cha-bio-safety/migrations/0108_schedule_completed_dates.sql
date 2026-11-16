@@ -1,0 +1,12 @@
+-- 0108: schedule_items.completed_dates 컬럼 — 범위 일정(여러 날짜에 걸친 일정)의 날짜별 완료 상태.
+-- JSON 배열 문자열(예: '["2026-11-12","2026-11-13"]')로 "완료 처리된 날짜"를 저장한다. nullable.
+-- 배경: 범위 일정은 schedule_items row 1건으로 여러 날짜를 표현하는데, 기존 status 컬럼은 row당
+-- 1개뿐이라 "완료" 버튼을 어느 날짜 칸에서 누르든 범위 전체가 done 처리되는 버그가 있었다
+-- (12~18일 소방점검에서 12일 완료 처리 시 18일까지 전부 done 처리됨).
+-- 소비처: functions/api/schedule/[id].ts onRequestPatch — body.date 가 있으면 completed_dates 에
+-- 해당 날짜를 토글하고, 범위 내 평일(주말·공휴일 제외, task/event 카테고리는 예외)이 모두
+-- completed_dates 에 포함되면 status 를 자동으로 done 으로 동기화한다.
+-- 단일 날짜 일정은 영향 없음(기존 status 토글 그대로).
+-- 경고: 이 파일은 wrangler d1 execute --file 로 1회 수동 적용한다. SQLite 는 ADD COLUMN IF NOT EXISTS
+-- 미지원 → 재실행 시 'duplicate column: completed_dates' 에러가 정상이며, 재적용 금지.
+ALTER TABLE schedule_items ADD COLUMN completed_dates TEXT;
