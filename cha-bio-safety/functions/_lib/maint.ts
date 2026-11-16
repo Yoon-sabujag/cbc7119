@@ -5,8 +5,8 @@ import { nowKST, nowKstSql } from '../utils/kst'
 
 type MaintEnv = { DB: D1Database }
 
-// 일과 시작(KST). §3④ 예시 cron '0 23 UTC'=KST 08:00. 튜닝 가능.
-const WORK_START = '08:00'
+// 일과 시작(KST) = 08:30.
+const WORK_START = '08:30'
 
 export interface MaintState {
   enabled: boolean
