@@ -1152,18 +1152,30 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 function EditModal({ item, onClose, onSaved, isDesktop }: {
   item: ScheduleItem; onClose: () => void; onSaved: () => void; isDesktop?: boolean
 }) {
+  const isRangeItem = !!item.endDate && item.endDate !== item.date
+  const isNightEligibleFire = isRangeItem && item.category === 'fire' &&
+    (item.title === '소방 상반기 종합정밀점검' || item.title === '소방 하반기 작동기능점검')
+  const todayStr = localYMD(new Date())
+
   const [title,  setTitle]  = useState(item.title)
-  const [date,   setDate]   = useState(item.date)
+  const [date,   setDate]   = useState(isRangeItem ? todayStr : item.date)
   const [time,   setTime]   = useState(item.time ?? '')
   const [memo,   setMemo]   = useState(item.memo ?? '')
   const [saving, setSaving] = useState(false)
   const [titleError, setTitleError] = useState(false)
+  const [isNightDay, setIsNightDay] = useState(isNightEligibleFire && item.nightDate === todayStr)
 
   const handleSave = async () => {
     if (!title.trim()) { setTitleError(true); toast.error('제목을 입력하세요'); return }
     setSaving(true)
     try {
-      await scheduleApi.update(item.id, { title: title.trim(), date, time: time || undefined, memo: memo || undefined })
+      await scheduleApi.update(item.id, {
+        title: title.trim(),
+        ...(isRangeItem ? {} : { date }),
+        time: time || undefined,
+        memo: memo || undefined,
+        ...(isNightEligibleFire ? { night_date: isNightDay ? date : null } : {}),
+      })
       onSaved()
     } catch {
       toast.error('수정 실패')
@@ -1224,6 +1236,7 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
             <div style={{ flex:1 }}>
               <label style={lbl}>날짜</label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                min={isRangeItem ? item.date : undefined} max={isRangeItem ? item.endDate : undefined}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
             <div style={{ flex:1 }}>
@@ -1232,10 +1245,16 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
           </div>
+          {isNightEligibleFire && (
+            <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+              <input type="checkbox" checked={isNightDay} onChange={e => setIsNightDay(e.target.checked)} />
+              <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)' }}>이 날짜를 야간 점검일로 표시</span>
+            </label>
+          )}
           <div>
             <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
             <textarea value={memo} onChange={e => setMemo(e.target.value)}
-              rows={4} style={{ ...inp, resize:'none', lineHeight:1.6 }} />
+              rows={isNightEligibleFire ? 1 : 4} style={{ ...inp, resize:'none', lineHeight:1.6, ...(isNightEligibleFire ? { height:44 } : {}) }} />
           </div>
           <button onClick={handleSave} disabled={saving}
             className="bg-accent text-text-on-accent text-body font-bold rounded-md border-0 cursor-pointer"
