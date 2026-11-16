@@ -119,7 +119,7 @@ export const scheduleApi = {
     api.post<{ id:string }>('/schedule', body),
   updateStatus: (id: string, status: string) =>
     api.patch<void>(`/schedule/${id}`, { status }),
-  update: (id: string, body: { title: string; date: string; time?: string; memo?: string }) =>
+  update: (id: string, body: { title: string; date?: string; time?: string; memo?: string; night_date?: string | null }) =>
     api.put<void>(`/schedule/${id}`, body),
   delete: (id: string) =>
     api.delete<void>(`/schedule/${id}`),

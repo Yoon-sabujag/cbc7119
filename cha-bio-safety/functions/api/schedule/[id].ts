@@ -3,18 +3,21 @@ import type { Env } from '../../_middleware'
 // PUT /api/schedule/:id  — 내용 수정
 export const onRequestPut: PagesFunction<Env> = async ({ request, env, params }) => {
   const id   = params.id as string
-  const body = await request.json<{ title?: string; date?: string; time?: string; memo?: string }>()
+  const body = await request.json<{ title?: string; date?: string; time?: string; memo?: string; night_date?: string | null }>()
   if (!body.title && !body.date) return Response.json({ success: false, error: '수정할 내용이 없습니다' }, { status: 400 })
 
+  const setClauses = ["title = COALESCE(?, title)", "date = COALESCE(?, date)", "time = ?", "memo = ?"]
+  const binds: (string | null)[] = [body.title ?? null, body.date ?? null, body.time ?? null, body.memo ?? null]
+  if ('night_date' in body) {
+    setClauses.push('night_date = ?')
+    binds.push(body.night_date ?? null)
+  }
+  setClauses.push("updated_at = datetime('now','+9 hours')")
+  binds.push(id)
+
   await env.DB.prepare(
-    `UPDATE schedule_items SET
-      title      = COALESCE(?, title),
-      date       = COALESCE(?, date),
-      time       = ?,
-      memo       = ?,
-      updated_at = datetime('now','+9 hours')
-    WHERE id = ?`
-  ).bind(body.title ?? null, body.date ?? null, body.time ?? null, body.memo ?? null, id).run()
+    `UPDATE schedule_items SET ${setClauses.join(', ')} WHERE id = ?`
+  ).bind(...binds).run()
 
   return Response.json({ success: true })
 }
