@@ -30,8 +30,11 @@ export const KIND_BADGE: Record<PanelEventItem['kind'], { label: string; cls: st
 }
 
 // 자동감지(panel_alarms) → PanelEventItem
+// status='suppressed'(점검모드 중 억제)는 이력/최근 이벤트에서 제외 — 조치 대상이 아닌
+// 점검 작업 중 감지는 기록하지 않는다는 원칙. PanelMonitorPage(관리자 진단)는 이 함수를
+// 거치지 않고 /api/alarm/events 를 직접 소비하므로 suppressed 항목을 계속 본다.
 function normalizeAuto(alarms: Alarm[]): PanelEventItem[] {
-  return (alarms ?? []).map(a => ({
+  return (alarms ?? []).filter(a => a.status !== 'suppressed').map(a => ({
     id: a.id,
     kind: a.type,
     time: a.detectedAt,
