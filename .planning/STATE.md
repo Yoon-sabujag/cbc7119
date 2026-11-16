@@ -461,6 +461,7 @@ None yet.
 | 261028-reword | 오감지 체크박스 라벨 문구 변경 — "오감지(마이크 오인식)" → "오감지 (경종 알람 없음, 수신반 정상)" (261028-c7x 후속, gsd-fast) | 2026-10-28 | b2a7e41d | — |
 | 261028-btn | 오감지를 체크박스에서 구분(화재보/비화재보) 버튼 그룹의 3번째 버튼으로 이동 — 선택 시 type=non_fire+false_alarm=1, 화재보/비화재보 선택 시 false_alarm 해제 (261028-c7x 후속, gsd-fast) | 2026-10-28 | 5d56eba8 | — |
 | 261109-bp6 | 승강기 "검사 초과" 배지 오판정 수정 — next-inspection.ts가 공단 공식 elevator_inspect_history.valid_end 우선/자체점검 폴백 2소스 계산으로 전환(화물용 EV-09/10·덤웨이터 EV-11 정상화). 대시보드 검사도래 칩(stats.ts)도 동일 로직 동기화 후속 적용(f54c4f2b) — 3→10대로 재집계(승객용 8+에스컬레이터 2 신규 포함, 공단 실제 유효기한이 어림값보다 빠름) | 2026-11-09 | adf30340+f54c4f2b | [261109-bp6-next-inspection](./quick/261109-bp6-next-inspection/) |
+| 261116-hgz | 소방점검 야간 점검일 필드 추가 — 월간 점검 계획 AddModal에 소방 상/하반기 점검 전용 "야간 점검일" 입력(내용칸 압축+종료일 아래 배치), schedule_items.night_date 컬럼(마이그 0107), 점검모드 야간연장 판정(hasNightEvent)을 잘못된 category='event'(낮시간 투어/지원 오판정) 대신 night_date 정확매칭으로 교체. 같은 세션에서 isFireInspectionDay category='fire' 교정 + WORK_START 08:00→08:30 교정도 선행(별도 커밋). 배포 4ca116c4 | 2026-11-16 | 79730b76 | [261116-hgz-night-inspection-date](./quick/261116-hgz-night-inspection-date/) |
 | 260824-fst | (fast) 2026 추석 공휴일 정정 — holidays.ts fallback 9/23~25→9/24~26 + D1 holidays 9/23 stale 행 삭제 (공공데이터·hyunbin.page 원본 교차확인, 배포 20140c91) | 2026-08-24 | 3c7f811d | — |
 
 ### Blockers/Concerns
