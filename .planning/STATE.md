@@ -464,6 +464,7 @@ None yet.
 | 261116-hgz | 소방점검 야간 점검일 필드 추가 — 월간 점검 계획 AddModal에 소방 상/하반기 점검 전용 "야간 점검일" 입력(내용칸 압축+종료일 아래 배치), schedule_items.night_date 컬럼(마이그 0107), 점검모드 야간연장 판정(hasNightEvent)을 잘못된 category='event'(낮시간 투어/지원 오판정) 대신 night_date 정확매칭으로 교체. 같은 세션에서 isFireInspectionDay category='fire' 교정 + WORK_START 08:00→08:30 교정도 선행(별도 커밋). 배포 4ca116c4 | 2026-11-16 | 79730b76 | [261116-hgz-night-inspection-date](./quick/261116-hgz-night-inspection-date/) |
 | 260824-fst | (fast) 2026 추석 공휴일 정정 — holidays.ts fallback 9/23~25→9/24~26 + D1 holidays 9/23 stale 행 삭제 (공공데이터·hyunbin.page 원본 교차확인, 배포 20140c91) | 2026-08-24 | 3c7f811d | — |
 | 261116-lgr | EditModal 야간 점검일 체크박스 (261116-hgz 후속) — 이미 등록된 기간 일정(소방 상/하반기 점검) 수정 시 "이 날짜를 야간 점검일로 표시" 체크박스 노출. 날짜 필드 기본값을 시작일 대신 오늘(수정일)로 보여주되 payload에서 date 키를 빼 시작일은 절대 건드리지 않음(스프레드 조건부). 체크 해제 시 night_date=null 명시 전송(백엔드 COALESCE가 못 지우는 문제라 조건부 SET 절로 전환). 단일 날짜 일정 편집은 무변화. 배포 3a07e618 | 2026-11-16 | b66cc2e6 | [261116-lgr-editmodal](./quick/261116-lgr-editmodal/) |
+| 261116-n3e | (fast) EditModal 야간 날짜 기본값 버그 수정 (261116-lgr 직후 실사용 중 발견) — 범위 일정은 여러 날짜 칸에서 모두 같은 item 객체로 렌더되는데 "수정" 버튼이 어느 날짜 칸에서 눌렀는지 정보를 전달하지 않고 EditModal 날짜 필드가 무조건 "오늘"을 기본값으로 떠서, 17일 칸에서 수정 들어가 체크박스를 켜도 night_date가 17이 아닌 오늘(16) 로 저장되던 버그. 달력에서 이미 선택된 날짜(selDate)를 EditModal에 prop으로 전달해 기본값으로 사용하도록 수정. 배포 9054df90 | 2026-11-16 | 44550891 | — |
 
 ### Blockers/Concerns
 
