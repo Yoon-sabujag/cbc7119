@@ -365,11 +365,21 @@ export default function SchedulePage() {
   // ── 일정 카드 1개 렌더 ────────────────────────────────────
   const renderCard = (item: ScheduleItem, grouped?: boolean) => {
     const cat  = catInfo(item.category)
-    const st   = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
-    const stTw = STATUS_TW[item.status]    ?? STATUS_TW.pending
 
     // W2 OQ #3 LOCKED b — 멀티데이는 시간 자리 텍스트로 표시 (제목 옆/메타 row 칩 X)
     const isMultiDay = !!item.endDate && item.endDate !== item.date
+    // completed_dates 없이 과거에 통째로 done 처리된 레거시 범위 일정은 날짜별 이력이 없어
+    // 기존 그대로 버튼 숨김 유지(취소 불가 — 되돌릴 날짜 집합을 알 수 없음).
+    const isLegacyDone = isMultiDay && item.status === 'done' && !(item.completedDates && item.completedDates.length > 0)
+    const doneHere = isMultiDay && !isLegacyDone && (item.completedDates ?? []).includes(selDate)
+
+    // 범위 일정은 지금 보는 날짜(selDate) 기준으로 뱃지를 파생: 완료 / 진행중(오늘 이하, 미완료) / 예정(미래)
+    const derivedStatus = isMultiDay
+      ? ((isLegacyDone || doneHere) ? 'done' : (selDate > today ? 'pending' : 'in_progress'))
+      : item.status
+    const st   = STATUS_LABEL[derivedStatus] ?? STATUS_LABEL.pending
+    const stTw = STATUS_TW[derivedStatus]    ?? STATUS_TW.pending
+
     let multiDayText: string | null = null
     if (isMultiDay) {
       const startMD = item.date.slice(5).replace('-', '/')
@@ -447,24 +457,18 @@ export default function SchedulePage() {
         <div className="flex gap-1.5" style={{ marginTop: grouped ? 'auto' : 8, paddingTop: grouped ? 4 : 0 }}>
           {isMultiDay ? (
             // 범위 일정: status 전체가 아니라 지금 보는 날짜(selDate)의 완료 여부만 토글.
-            // 단, completed_dates 없이 과거에 통째로 done 처리된 레거시 항목은 날짜별 이력이 없어
-            // 기존 그대로 버튼을 숨긴다(취소 불가 — 되돌릴 날짜 집합을 알 수 없음).
-            (() => {
-              const isLegacyDone = item.status === 'done' && !(item.completedDates && item.completedDates.length > 0)
-              if (isLegacyDone) return null
-              const doneHere = (item.completedDates ?? []).includes(selDate)
-              return (
-                <button
-                  onClick={() => handleDayComplete(item)}
-                  className={doneHere
-                    ? 'text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-secondary cursor-pointer'
-                    : 'text-caption font-semibold rounded-sm border border-safe-bar bg-safe-bg text-safe cursor-pointer'}
-                  style={{ padding: '4px 10px', lineHeight: 1.4 }}
-                >
-                  {doneHere ? '완료 취소' : '완료'}
-                </button>
-              )
-            })()
+            // 라벨은 항상 "완료" — on/off 는 색으로만 구분(초록=완료, 회색=미완료).
+            !isLegacyDone && (
+              <button
+                onClick={() => handleDayComplete(item)}
+                className={doneHere
+                  ? 'text-caption font-semibold rounded-sm border border-safe-bar bg-safe-bg text-safe cursor-pointer'
+                  : 'text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-secondary cursor-pointer'}
+                style={{ padding: '4px 10px', lineHeight: 1.4 }}
+              >
+                완료
+              </button>
+            )
           ) : item.status !== 'done' && (
             <button
               onClick={() => handleStatus(item, 'done')}
