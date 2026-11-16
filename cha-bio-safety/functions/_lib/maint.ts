@@ -26,13 +26,16 @@ interface MaintRow {
   turned_on_by: string | null
 }
 
-// 오늘 소방점검일? schedule_items.inspection_category 가 '소방…' (staging 값 전부 '소방' prefix).
-// 정확한 소방 카테고리 집합은 필요 시 `SELECT DISTINCT inspection_category` 확정 후 IN(...) 로 교체.
+// 오늘 소방점검일? schedule_items.category = 'fire'.
+// 실측 확정(2026-11): inspection_category 는 점검대상/업체명(예: '동양소방')이라 '소방' prefix가
+// 전혀 없음 — category 컬럼(elevator/task/inspect/event/fire 5종) 중 'fire' 가 소방 작동기능/정밀
+// 점검 일정의 정확한 신호. 과거 'inspection_category LIKE 소방%' 가정은 production 데이터와
+// 불일치해 자동 전환이 전혀 동작하지 않았다.
 export async function isFireInspectionDay(env: MaintEnv, dateStr: string): Promise<boolean> {
   const r = await env.DB.prepare(
     `SELECT 1 FROM schedule_items
      WHERE (date = ?1 OR (date <= ?1 AND end_date >= ?1))
-       AND inspection_category LIKE '소방%' LIMIT 1`,
+       AND category = 'fire' LIMIT 1`,
   ).bind(dateStr).first()
   return !!r
 }
