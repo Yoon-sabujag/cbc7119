@@ -60,6 +60,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       repeatRule:          r.repeat_rule ?? undefined,
       inspectionCategory:  r.inspection_category ?? undefined,
       memo:                r.memo ?? undefined,
+      nightDate:           r.night_date ?? undefined,
     }
   }))
   return Response.json({ success: true, data: rows })
@@ -77,6 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     inspectionCategory?: string
     memo?: string
     end_date?: string
+    night_date?: string
   }>()
 
   if (!body.title?.trim() || !body.date || !body.category) {
@@ -85,8 +87,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 
   const id = 'SCH-' + nanoid(8)
   await env.DB.prepare(`
-    INSERT INTO schedule_items (id, title, date, time, assignee_id, category, status, inspection_category, memo, end_date)
-    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+    INSERT INTO schedule_items (id, title, date, time, assignee_id, category, status, inspection_category, memo, end_date, night_date)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
   `).bind(
     id,
     body.title.trim(),
@@ -97,6 +99,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     body.inspectionCategory ?? null,
     body.memo ?? null,
     body.end_date ?? null,
+    body.night_date ?? null,
   ).run()
 
   return Response.json({ success: true, data: { id } }, { status: 201 })

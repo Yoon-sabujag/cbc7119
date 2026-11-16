@@ -823,7 +823,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 
   const handleCat = (v: ScheduleCategory) => {
     setCat(v)
-    setInsCat(''); setInspTitle(''); setTitle(''); setMemo('')
+    setInsCat(''); setInspTitle(''); setTitle(''); setMemo(''); setNightDate('')
   }
 
   const handleInsCat = (v: string) => {
@@ -835,6 +835,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
   const [date,      setDate]      = useState(defaultDate)
   const [time,      setTime]      = useState('')
   const [endDate,   setEndDate]   = useState(defaultDate)
+  const [nightDate, setNightDate] = useState('')
   const [endTime,   setEndTime]   = useState('')
   const [elevSub,   setElevSub]   = useState<ElevSubCat>('승강기 정기 점검')
   const [elevAgency,setElevAgency]= useState(ELEV_AGENCY['승강기 정기 점검'])
@@ -843,7 +844,9 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
   const [saving,    setSaving]    = useState(false)
 
   const handleElevSub = (v: ElevSubCat) => { setElevSub(v); setElevAgency(ELEV_AGENCY[v]) }
-  const handleFireSub = (v: FireSubCat) => { setFireSub(v); setFireAgency(FIRE_AGENCY[v]) }
+  const handleFireSub = (v: FireSubCat) => { setFireSub(v); setFireAgency(FIRE_AGENCY[v]); setNightDate('') }
+
+  const isNightEligibleFire = cat === 'fire' && (fireSub === '소방 상반기 종합정밀점검' || fireSub === '소방 하반기 작동기능점검')
 
   const shiftDate = (delta: number) => {
     const [y, m, d] = date.split('-').map(Number)
@@ -914,6 +917,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
         inspectionCategory: finalInsCat,
         memo:               memo || undefined,
         ...(hasRange ? { end_date: endDate } : {}),
+        ...(nightDate ? { night_date: nightDate } : {}),
       })
       onSaved()
     } catch {
@@ -1066,8 +1070,8 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
               <div>
                 <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
-                  placeholder="상세 내용을 입력하세요" rows={3}
-                  style={{ ...inp, resize:'none', lineHeight:1.5 }} />
+                  placeholder="상세 내용을 입력하세요" rows={isNightEligibleFire ? 1 : 3}
+                  style={{ ...inp, resize:'none', lineHeight:1.5, ...(isNightEligibleFire ? { height:44 } : {}) }} />
               </div>
             </>
           )}
@@ -1099,6 +1103,14 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
           </div>
+
+          {isNightEligibleFire && (
+            <div>
+              <label style={lbl}>야간 점검일 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
+              <input type="date" value={nightDate} onChange={e=>setNightDate(e.target.value)} min={date} max={endDate || undefined}
+                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+            </div>
+          )}
 
           {/* N일 미리보기 — 항상 단일 항목 + end_date 로 저장, 주말·공휴일은 표시에서만 제외 */}
           {rangeDays > 1 && (

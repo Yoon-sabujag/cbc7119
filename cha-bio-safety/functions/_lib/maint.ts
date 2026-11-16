@@ -40,12 +40,11 @@ export async function isFireInspectionDay(env: MaintEnv, dateStr: string): Promi
   return !!r
 }
 
-// 오늘 야간 일정? category='event' (§3④). range-aware. 저녁 time 필터는 v1 미적용.
+// 오늘 소방점검이 야간까지 연장되는 날? schedule_items.night_date 직접 매칭
+// (category='event' 가정은 실측 결과 전부 낮 시간 투어/지원이라 폐기됨).
 export async function hasNightEvent(env: MaintEnv, dateStr: string): Promise<boolean> {
   const r = await env.DB.prepare(
-    `SELECT 1 FROM schedule_items
-     WHERE (date = ?1 OR (date <= ?1 AND end_date >= ?1))
-       AND category = 'event' LIMIT 1`,
+    `SELECT 1 FROM schedule_items WHERE category = 'fire' AND night_date = ?1 LIMIT 1`,
   ).bind(dateStr).first()
   return !!r
 }

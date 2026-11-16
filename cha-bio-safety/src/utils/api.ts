@@ -115,7 +115,7 @@ export const remediationApi = {
 export const scheduleApi = {
   getByDate:  (date: string)  => api.get<import('../types').ScheduleItem[]>(`/schedule?date=${date}`),
   getByMonth: (month: string) => api.get<import('../types').ScheduleItem[]>(`/schedule?month=${month}`),
-  create: (body: { title:string; date:string; time?:string; category:string; assigneeId?:string; inspectionCategory?:string; memo?:string }) =>
+  create: (body: { title:string; date:string; time?:string; category:string; assigneeId?:string; inspectionCategory?:string; memo?:string; night_date?:string }) =>
     api.post<{ id:string }>('/schedule', body),
   updateStatus: (id: string, status: string) =>
     api.patch<void>(`/schedule/${id}`, { status }),
